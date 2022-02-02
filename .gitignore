@@ -1,0 +1,5 @@
+/migrations/
+.idea/
+__pycache__/
+/venv/
+/src/secret.py

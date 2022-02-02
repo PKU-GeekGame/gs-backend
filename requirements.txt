@@ -1,0 +1,12 @@
+# store
+sqlalchemy~=1.4.31
+PyMySQL~=1.0.2
+
+# logic
+pyzmq~=22.3.0
+
+# admin
+flask~=2.0.2
+flask-sqlalchemy~=2.5.1
+Flask-Migrate~=3.1.0
+flask-admin~=1.6.0
