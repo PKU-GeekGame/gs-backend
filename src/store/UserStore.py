@@ -1,7 +1,11 @@
+from __future__ import annotations
 from sqlalchemy import Column, String, UniqueConstraint, JSON, Integer, ForeignKey, Boolean, Index
 from sqlalchemy.orm import relationship
+from typing import TYPE_CHECKING
 
-from . import Table, UserProfileStore
+if TYPE_CHECKING:
+    from . import *
+from . import Table
 
 class UserStore(Table):
     __tablename__ = 'user'

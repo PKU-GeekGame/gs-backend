@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Boolean, String, Text, JSON
+from sqlalchemy import Column, Integer, String, Text, JSON
 
 from . import Table
 

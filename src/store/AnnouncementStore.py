@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Boolean, BigInteger, Text
+from sqlalchemy import Column, BigInteger, Text
 import time
 
 from . import Table
