@@ -1,5 +1,9 @@
-/migrations/
 .idea/
 __pycache__/
 /venv/
+/migrations/
+
+/.dmypy.json
+/.mypy_cache
+
 /src/secret.py
