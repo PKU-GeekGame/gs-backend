@@ -2,8 +2,10 @@ from sqlalchemy import Column, Integer, ForeignKey, BigInteger, String
 from sqlalchemy.orm import relationship
 import time
 import re
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
+if TYPE_CHECKING:
+    from . import *
 from . import Table
 
 class UserProfileStore(Table):
@@ -40,7 +42,7 @@ class UserProfileStore(Table):
         'banned': ['nickname', 'qq'],
     }
 
-    def check_profile(self, group) -> Optional[str]:
+    def check_profile(self, group: str) -> Optional[str]:
         for field in self.PROFILE_FOR_GROUP.get(group, []):
             if getattr(self, f'{field}_or_null') is None:
                 return f'个人信息不完整（{field}）'
@@ -58,5 +60,7 @@ class UserProfileStore(Table):
         if self.comment_or_null is not None and not self.VAL_COMMENT.match(self.comment_or_null):
             return '了解比赛的渠道格式错误'
 
-    def __repr__(self):
+        return None
+
+    def __repr__(self) -> str:
         return f'<nick={self.nickname_or_null!r} qq={self.qq_or_null!r} email={self.email_or_null!r}>'

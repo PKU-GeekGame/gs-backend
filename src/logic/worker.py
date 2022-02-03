@@ -1,10 +1,12 @@
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
-from typing import Type
+from typing import Type, TypeVar, List, Optional
 
 from ..state import *
 from ..store import *
 from .. import secret
+
+T = TypeVar('T', bound=Table)
 
 class Worker:
     def __init__(self, process_name: str):
@@ -34,16 +36,16 @@ class Worker:
     def register_from_reducer(self) -> int: # returns current tick
         return 0 # todo
 
-    def logger(self, level, module, message):
+    def logger(self, level: str, module: str, message: str) -> None:
         with self.Session() as session:
             log = LogStore(level=level, process=self.process_name, module=module, message=message)
             session.add(log)
             session.commit()
 
-    def load_all_data(self, cls: Type[Table]) -> list:
+    def load_all_data(self, cls: Type[T]) -> List[T]:
         with self.Session() as session:
-            return session.execute(select(cls)).scalars().all()
+            return session.execute(select(cls)).scalars().all() # type: ignore
 
-    def load_one_data(self, cls: Table, id: int) -> list:
+    def load_one_data(self, cls: Type[Table], id: int) -> Optional[T]:
         with self.Session() as session:
-            return session.execute(select(cls).where(cls.id==id)).scalar()
+            return session.execute(select(cls).where(cls.id==id)).scalar() # type: ignore

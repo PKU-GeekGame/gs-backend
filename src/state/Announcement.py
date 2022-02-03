@@ -15,7 +15,7 @@ class Announcements:
 
         self.on_store_reload(stores)
 
-    def on_store_reload(self, stores: List[AnnouncementStore]):
+    def on_store_reload(self, stores: List[AnnouncementStore]) -> None:
         self._stores = sorted(stores, key=lambda x: x.timestamp_s, reverse=True)
         self.list = [Announcement(self._game, x) for x in self._stores]
 

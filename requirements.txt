@@ -1,7 +1,6 @@
 # store
 sqlalchemy~=1.4.31
 PyMySQL~=1.0.2
-Flask-Migrate~=3.1.0
 
 # utils
 markdown~=3.3.6
@@ -16,3 +15,4 @@ pyopenssl~=22.0.0
 flask~=2.0.2
 flask-sqlalchemy~=2.5.1
 flask-admin~=1.6.0
+Flask-Migrate~=3.1.0

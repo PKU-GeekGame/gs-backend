@@ -19,7 +19,7 @@ class UserStore(Table):
     admin_token_or_null = Column(String(64), nullable=True)
 
     profile_id = Column(Integer, ForeignKey('user_profile.id'), nullable=True) # initialized in register logic
-    profile: UserProfileStore = relationship('UserProfileStore', lazy='joined', foreign_keys=[profile_id])
+    profile = relationship('UserProfileStore', lazy='joined', foreign_keys=[profile_id])
     terms_agreed = Column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
@@ -27,6 +27,6 @@ class UserStore(Table):
         Index('admin_token_index', admin_token_or_null, unique=True),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         nick = '(no profile)' if self.profile is None else self.profile.nickname_or_null
         return f'<#{self.id} {self.login_type} {self.login_identity}: {nick!r}>'

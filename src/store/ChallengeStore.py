@@ -13,5 +13,5 @@ class ChallengeStore(Table):
     sorting_index = Column(Integer, nullable=False)
     desc_template = Column(Text, nullable=False)
 
-    actions: list = Column(JSON, nullable=False)
-    flags: list = Column(JSON, nullable=False)
+    actions = Column(JSON, nullable=False)
+    flags = Column(JSON, nullable=False)

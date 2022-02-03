@@ -16,18 +16,17 @@ class Users(WithGameLifecycle):
 
         self.on_store_reload(stores)
 
-    def _update_aux_dicts(self):
+    def _update_aux_dicts(self) -> None:
         self.chall_by_id = {ch._store.id: ch for ch in self.list}
 
-    def on_store_reload(self, stores: List[UserStore]):
+    def on_store_reload(self, stores: List[UserStore]) -> None:
         self._stores = stores
         self.list = [User(self._game, x) for x in self._stores]
         self._update_aux_dicts()
         self._game.need_reloading_scoreboard = True
 
-    def on_store_update(self, id: int, new_store: Optional[UserStore]):
-        # noinspection PyTypeChecker
-        old_user: Optional[User] = ([x for x in self.list if x._store.id==id]+[None])[0]
+    def on_store_update(self, id: int, new_store: Optional[UserStore]) -> None:
+        old_user: Optional[User] = ([x for x in self.list if x._store.id==id]+[None])[0]  # type: ignore
         other_users = [x for x in self.list if x._store.id!=id]
 
         if new_store is None: # remove
@@ -41,14 +40,11 @@ class Users(WithGameLifecycle):
 
         self._update_aux_dicts()
 
-    def on_tick_change(self):
-        pass
-
-    def on_scoreboard_reset(self):
+    def on_scoreboard_reset(self) -> None:
         for user in self.list:
             user.on_scoreboard_reset()
 
-    def on_scoreboard_update(self, submission: Submission, in_batch: bool):
+    def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         submission.user.on_scoreboard_update(submission, in_batch)
 
 class User(WithGameLifecycle):
@@ -62,21 +58,18 @@ class User(WithGameLifecycle):
 
         self.on_store_reload(self._store)
 
-    def on_store_reload(self, store: UserStore):
+    def on_store_reload(self, store: UserStore) -> None:
         if self._store.group!=store.group:
             self._game.need_reloading_scoreboard = True
 
         self._store = store
 
-    def on_tick_change(self):
-        pass
-
-    def on_scoreboard_reset(self):
+    def on_scoreboard_reset(self) -> None:
         self.passed_flags = set()
         self.passed_challs = set()
         self.last_succ_submission = None
 
-    def on_scoreboard_update(self, submission: Submission, in_batch: bool):
+    def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission._store.user_id==self._store.id: # always true as delegated from Users
             if submission.matched_flag is not None:
                 ch = submission.matched_flag.challenge
@@ -85,7 +78,7 @@ class User(WithGameLifecycle):
                     self.passed_challs.add(ch)
                 self.last_succ_submission = submission
 
-    def get_tot_score(self):
+    def get_tot_score(self) -> int:
         tot = 0
         for f in self.passed_flags:
             tot += f.cur_score
@@ -94,6 +87,7 @@ class User(WithGameLifecycle):
     def check_login(self) -> Optional[str]:
         if not self._store.enabled:
             return '账号不允许登录'
+        return None
 
     def check_update_profile(self) -> Optional[str]:
         if self.check_login() is not None:
@@ -102,9 +96,11 @@ class User(WithGameLifecycle):
             return '请先阅读比赛须知'
         if self._store.group=='banned':
             return '此用户组被禁止参赛'
+        return None
 
     def check_play_game(self) -> Optional[str]:
         if self.check_update_profile() is not None:
             return self.check_update_profile()
         if self._store.profile.check_profile(self._store.group) is not None:
             return self._store.profile.check_profile(self._store.group)
+        return None

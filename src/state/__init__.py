@@ -1,16 +1,17 @@
+from __future__ import annotations
 from abc import ABC
 
 class WithGameLifecycle(ABC):
-    def on_tick_change(self):
+    def on_tick_change(self) -> None:
         pass
 
-    def on_scoreboard_reset(self):
+    def on_scoreboard_reset(self) -> None:
         pass
 
-    def on_scoreboard_update(self, submission, in_batch: bool):
+    def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         pass
 
-    def on_scoreboard_batch_update_done(self):
+    def on_scoreboard_batch_update_done(self) -> None:
         pass
 
 from .Announcement import Announcement, Announcements

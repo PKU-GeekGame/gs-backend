@@ -15,7 +15,7 @@ class GamePolicy(WithGameLifecycle):
 
         self.on_store_reload(stores)
 
-    def on_store_reload(self, stores: List[GamePolicyStore]):
+    def on_store_reload(self, stores: List[GamePolicyStore]) -> None:
         self._stores = sorted(stores, key=lambda x: x.effective_after)
         self.on_tick_change()
         self._game.need_reloading_scoreboard = True
@@ -30,11 +30,5 @@ class GamePolicy(WithGameLifecycle):
     def get_policy_at_time(self, timestamp_s: float) -> Optional[GamePolicyStore]:
         return self.get_policy_at_tick(self._game.trigger.get_tick_at_time(timestamp_s))
 
-    def on_tick_change(self):
+    def on_tick_change(self) -> None:
         self.cur_policy = self.get_policy_at_tick(self._game.cur_tick)
-
-    def on_scoreboard_reset(self):
-        pass
-
-    def on_scoreboard_update(self, submission: Submission, in_batch: bool):
-        pass

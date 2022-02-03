@@ -11,7 +11,7 @@ class Submission:
         self._store: SubmissionStore = store
 
         # foreign key constraint on SubmissionStore ensured user always exist
-        self.user: User = self._game.users.user_by_id.get(self._store.user_id)
+        self.user: User = self._game.users.user_by_id[self._store.user_id]
 
         # challenge be None if it is deleted later
         self.challenge: Optional[Challenge] = self._game.challenges.chall_by_key.get(self._store.challenge_key, None)

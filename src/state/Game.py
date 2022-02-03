@@ -31,14 +31,14 @@ class Game(WithGameLifecycle):
             'first_pku': FirstBloodBoard(self, ['pku']),
         }
 
-    def on_tick_change(self):
+    def on_tick_change(self) -> None:
         self.policy.on_tick_change()
         self.challenges.on_tick_change()
         self.users.on_tick_change()
         for b in self.boards.values():
             b.on_tick_change()
 
-    def on_scoreboard_reset(self):
+    def on_scoreboard_reset(self) -> None:
         self.submissions = []
 
         self.policy.on_scoreboard_reset()
@@ -47,7 +47,7 @@ class Game(WithGameLifecycle):
         for b in self.boards.values():
             b.on_scoreboard_reset()
 
-    def on_scoreboard_update(self, submission: Submission, in_batch: bool):
+    def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         self.submissions.append(submission)
 
         self.policy.on_scoreboard_update(submission, in_batch)
@@ -56,7 +56,7 @@ class Game(WithGameLifecycle):
         for b in self.boards.values():
             b.on_scoreboard_update(submission, in_batch)
 
-    def on_scoreboard_batch_update_done(self):
+    def on_scoreboard_batch_update_done(self) -> None:
         self.policy.on_scoreboard_batch_update_done()
         self.challenges.on_scoreboard_batch_update_done()
         self.users.on_scoreboard_batch_update_done()

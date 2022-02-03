@@ -12,7 +12,7 @@ class Trigger:
 
         self.on_store_reload(stores)
 
-    def on_store_reload(self, stores: List[TriggerStore]):
+    def on_store_reload(self, stores: List[TriggerStore]) -> None:
         self._stores = stores
         self._game.need_reloading_scoreboard = True
 
