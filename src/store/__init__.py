@@ -10,6 +10,7 @@ class Table(Base):
 from .AnnouncementStore import AnnouncementStore
 from .ChallengeStore import ChallengeStore
 from .GamePolicyStore import GamePolicyStore
+from .LogStore import LogStore
 from .SubmissionStore import SubmissionStore
 from .TriggerStore import TriggerStore
 from .UserProfileStore import UserProfileStore
