@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional, Dict, Set
 
 if TYPE_CHECKING:
-    from . import *
+    from . import Game, Submission, Flag, Challenge
     from ..store import *
 from . import WithGameLifecycle
 
@@ -17,7 +17,7 @@ class Users(WithGameLifecycle):
         self.on_store_reload(stores)
 
     def _update_aux_dicts(self) -> None:
-        self.chall_by_id = {ch._store.id: ch for ch in self.list}
+        self.user_by_id = {ch._store.id: ch for ch in self.list}
 
     def on_store_reload(self, stores: List[UserStore]) -> None:
         self._stores = stores
@@ -55,6 +55,7 @@ class User(WithGameLifecycle):
         self.passed_flags: Set[Flag] = set()
         self.passed_challs: Set[Challenge] = set()
         self.last_succ_submission: Optional[Submission] = None
+        self.succ_submissions: List[Submission] = []
 
         self.on_store_reload(self._store)
 
@@ -68,15 +69,19 @@ class User(WithGameLifecycle):
         self.passed_flags = set()
         self.passed_challs = set()
         self.last_succ_submission = None
+        self.succ_submissions = []
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission._store.user_id==self._store.id: # always true as delegated from Users
             if submission.matched_flag is not None:
                 ch = submission.matched_flag.challenge
+
                 self.passed_flags.add(submission.matched_flag)
                 if self in ch.passed_users:
                     self.passed_challs.add(ch)
+
                 self.last_succ_submission = submission
+                self.succ_submissions.append(submission)
 
     def get_tot_score(self) -> int:
         tot = 0
@@ -104,3 +109,6 @@ class User(WithGameLifecycle):
         if self._store.profile.check_profile(self._store.group) is not None:
             return self._store.profile.check_profile(self._store.group)
         return None
+
+    def __repr__(self) -> str:
+        return repr(self._store)

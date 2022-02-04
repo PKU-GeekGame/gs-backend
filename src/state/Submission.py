@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from . import *
+    from . import Game, Challenge, Flag, User
     from ..store import *
 
 class Submission:
@@ -18,11 +18,16 @@ class Submission:
 
         self.matched_flag: Optional[Flag] = self._find_matched_flag()
 
+        self._game.log('info', 'new_submission', repr(self))
+
     def _find_matched_flag(self) -> Optional[Flag]:
         if self.challenge is None:
             return None
 
         for flag in self.challenge.flags:
+            if self.user in flag.passed_users:
+                continue # already passed
+
             if flag.validate_flag(self.user, self._store.flag):
                 return flag
 
@@ -43,3 +48,6 @@ class Submission:
             score = int(score*self._store.precentage_override_or_null/100)
 
         return score
+
+    def __repr__(self) -> str:
+        return f'[Sub#{self._store.id} User#{self.user._store.id} Ch={self._store.challenge_key!r} Flag={self.matched_flag!r}]'

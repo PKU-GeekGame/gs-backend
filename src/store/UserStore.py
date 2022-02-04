@@ -4,7 +4,8 @@ from sqlalchemy.orm import relationship
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from . import *
+    # noinspection PyUnresolvedReferences
+    from . import UserProfileStore
 from . import Table
 
 class UserStore(Table):
@@ -33,4 +34,4 @@ class UserStore(Table):
 
     def __repr__(self) -> str:
         nick = '(no profile)' if self.profile is None else self.profile.nickname_or_null
-        return f'<#{self.id} {self.login_type} {self.login_identity}: {nick!r}>'
+        return f'[#{self.id} {self.login_type}:{self.login_identity} {nick!r}]'

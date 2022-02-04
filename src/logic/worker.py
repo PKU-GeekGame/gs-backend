@@ -26,21 +26,27 @@ class Worker:
         self.game.cur_tick = self.register_from_reducer()
         self.game.on_tick_change()
 
-        self.need_reloading_scoreboard = False
-        self.game.on_scoreboard_reset()
-
-        for submission in self.load_all_data(SubmissionStore):
-            self.game.on_scoreboard_update(submission, in_batch=True)
-        self.game.on_scoreboard_batch_update_done()
+        self.scoreboard_reload()
 
     def register_from_reducer(self) -> int: # returns current tick
         return 0 # todo
 
+    def scoreboard_reload(self) -> None:
+        self.game.need_reloading_scoreboard = False
+        self.game.on_scoreboard_reset()
+
+        for submission_store in self.load_all_data(SubmissionStore):
+            submission = Submission(self.game, submission_store)
+            self.game.on_scoreboard_update(submission, in_batch=True)
+        self.game.on_scoreboard_batch_update_done()
+
     def logger(self, level: str, module: str, message: str) -> None:
-        with self.Session() as session:
-            log = LogStore(level=level, process=self.process_name, module=module, message=message)
-            session.add(log)
-            session.commit()
+        print(f'{self.process_name} [{level}] {module}: {message}')
+
+        # with self.Session() as session:
+        #     log = LogStore(level=level, process=self.process_name, module=module, message=message)
+        #     session.add(log)
+        #     session.commit()
 
     def load_all_data(self, cls: Type[T]) -> List[T]:
         with self.Session() as session:

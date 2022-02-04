@@ -5,7 +5,8 @@ import re
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from . import *
+    # noinspection PyUnresolvedReferences
+    from . import UserStore
 from . import Table
 
 class UserProfileStore(Table):
@@ -14,7 +15,7 @@ class UserProfileStore(Table):
     MAX_INFO_LEN = 128
 
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    user = relationship('UserStore', lazy='select', foreign_keys=[user_id])
+    user_ = relationship('UserStore', lazy='select', foreign_keys=[user_id])
     timestamp_ms = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
 
     nickname_or_null = Column('nickname', String(MAX_INFO_LEN), nullable=True)
@@ -63,4 +64,4 @@ class UserProfileStore(Table):
         return None
 
     def __repr__(self) -> str:
-        return f'<nick={self.nickname_or_null!r} qq={self.qq_or_null!r} email={self.email_or_null!r}>'
+        return f'[{self.nickname_or_null!r} qq={self.qq_or_null!r} email={self.email_or_null!r}]'

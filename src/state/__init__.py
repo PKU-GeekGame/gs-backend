@@ -16,8 +16,8 @@ class WithGameLifecycle(ABC):
 
 from .Announcement import Announcement, Announcements
 from .Board import Board, ScoreBoard, FirstBloodBoard
-from .Challenge import Challenge, Challenges
 from .Flag import Flag
+from .Challenge import Challenge, Challenges
 from .GamePolicy import GamePolicy
 from .Submission import Submission
 from .Trigger import Trigger

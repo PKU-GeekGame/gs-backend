@@ -6,7 +6,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Set, Dict, Any
 
 if TYPE_CHECKING:
-    from . import *
+    from . import Game, Challenge, User, Submission
 from . import WithGameLifecycle
 from .. import secret
 
@@ -75,3 +75,6 @@ class Flag(WithGameLifecycle):
         if submission.matched_flag is self:
             self.passed_users.add(submission.user)
             self._update_cur_score()
+
+    def __repr__(self) -> str:
+        return f'[{self.challenge._store.key}#{self.idx}]'

@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Dict, Optional, Set
 
 if TYPE_CHECKING:
-    from . import *
+    from . import Game, Submission, User
     from ..store import *
-from . import WithGameLifecycle
+from . import WithGameLifecycle, Flag
 from .. import utils
 
 class Challenges(WithGameLifecycle):
@@ -100,3 +100,6 @@ class Challenge(WithGameLifecycle):
 
             if all_passed:
                 self.passed_users.add(submission.user)
+
+    def __repr__(self) -> str:
+        return f'[#{self._store.id} {self._store.key}: {self._store.title}]'

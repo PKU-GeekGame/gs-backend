@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
     from . import *
+    ScoreBoardItemType = Tuple[User, int]
 from . import WithGameLifecycle
 
 class Board(WithGameLifecycle, ABC):
@@ -11,8 +12,6 @@ class Board(WithGameLifecycle, ABC):
     @abstractmethod
     def summarized(self) -> object:
         raise NotImplementedError()
-
-ScoreBoardItemType = Tuple[User, int]
 
 class ScoreBoard(Board):
 
