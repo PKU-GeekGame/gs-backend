@@ -4,6 +4,7 @@ import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    # noinspection PyUnresolvedReferences
     from . import UserStore
 from . import Table
 

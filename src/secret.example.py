@@ -1,4 +1,4 @@
-import OpenSSL
+import OpenSSL.crypto
 
 DB_CONNECTOR = 'mysql+pymysql://username:password@host:port/database'
 

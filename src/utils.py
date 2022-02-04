@@ -8,7 +8,7 @@ from markdown.extensions.sane_lists import SaneListExtension
 import datetime
 import pytz
 import base64
-import OpenSSL
+import OpenSSL.crypto
 import traceback
 from typing import Union
 

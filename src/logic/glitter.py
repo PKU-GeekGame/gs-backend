@@ -76,7 +76,8 @@ class Action:
 
     async def _send_req(self, sock: Socket) -> None:
         await sock.send_multipart([json.dumps(self.req).encode('utf-8')]) # type: ignore
-    async def _recv_rep(self, sock: Socket) -> ActionRep:
+    @staticmethod
+    async def _recv_rep(sock: Socket) -> ActionRep:
         parts = await sock.recv_multipart() # type: ignore
         assert len(parts)==1
         rep: ActionRep = json.loads(parts[0].decode('utf-8'))

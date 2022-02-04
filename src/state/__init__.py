@@ -14,13 +14,13 @@ class WithGameLifecycle(ABC):
     def on_scoreboard_batch_update_done(self) -> None:
         pass
 
-from .announcement import Announcement, Announcements
-from .board import Board, ScoreBoard, FirstBloodBoard
-from .flag import Flag
-from .challenge import Challenge, Challenges
-from .game_policy import GamePolicy
-from .submission import Submission
-from .trigger import Trigger
-from .user import User, Users
+from .announcement_state import Announcement, Announcements
+from .board_state import Board, ScoreBoard, FirstBloodBoard
+from .flag_state import Flag
+from .challenge_state import Challenge, Challenges
+from .game_policy_state import GamePolicy
+from .submission_state import Submission
+from .trigger_state import Trigger
+from .user_state import User, Users
 
-from .game import Game
+from .game_state import Game
