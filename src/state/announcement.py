@@ -1,9 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional
 
-if TYPE_CHECKING:
-    from . import Game
-    from ..store import *
 from .. import utils
 
 class Announcements:
@@ -41,3 +38,7 @@ class Announcement:
 
     def __repr__(self) -> str:
         return repr(self._store)
+
+if TYPE_CHECKING:
+    from . import Game
+    from ..store import *

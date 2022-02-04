@@ -1,57 +1,70 @@
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
-from typing import Type, TypeVar, List, Optional
+from __future__ import annotations
+import zmq
+from zmq.asyncio import Socket
+import asyncio
 
-from ..state import *
-from ..store import *
+from .base import StateContainerBase
+from . import glitter
 from .. import secret
 
-T = TypeVar('T', bound=Table)
-
-class Worker:
+class Worker(StateContainerBase):
     def __init__(self, process_name: str):
-        self.process_name: str = process_name
-        self.Session = sessionmaker(create_engine(secret.DB_CONNECTOR, future=True), expire_on_commit=False, future=True)
+        super().__init__(process_name)
 
-        self.game: Game = Game(
-            logger=self.logger,
-            cur_tick=0,
-            game_policy_stores=self.load_all_data(GamePolicyStore),
-            trigger_stores=self.load_all_data(TriggerStore),
-            challenge_stores=self.load_all_data(ChallengeStore),
-            announcement_stores=self.load_all_data(AnnouncementStore),
-            user_stores=self.load_all_data(UserStore),
-        )
+        self.action_socket: Socket = self.glitter_ctx.socket(zmq.REQ) # type: ignore
+        self.event_socket: Socket = self.glitter_ctx.socket(zmq.SUB) # type: ignore
 
-        self.game.cur_tick = self.register_from_reducer()
-        self.game.on_tick_change()
+        self.action_socket.setsockopt(zmq.RCVTIMEO, glitter.CALL_TIMEOUT_MS)
+        self.action_socket.setsockopt(zmq.SNDTIMEO, glitter.CALL_TIMEOUT_MS)
+        self.event_socket.setsockopt(zmq.RCVTIMEO, glitter.SYNC_TIMEOUT_MS)
+        self.event_socket.setsockopt(zmq.SNDTIMEO, glitter.SYNC_TIMEOUT_MS)
 
-        self.scoreboard_reload()
+        self.action_socket.connect(glitter.ACTION_SOCKET) # type: ignore
+        self.event_socket.connect(glitter.EVENT_SOCKET) # type: ignore
+        self.event_socket.setsockopt(zmq.SUBSCRIBE, b'')
 
-    def register_from_reducer(self) -> int: # returns current tick
-        return 0 # todo
+        self.state_counter: int = -1
+        self.state_counter_cond: asyncio.Condition = asyncio.Condition()
 
-    def scoreboard_reload(self) -> None:
-        self.game.need_reloading_scoreboard = False
-        self.game.on_scoreboard_reset()
+    async def _sync_with_reducer(self) -> None:
+        event = await glitter.Event.next(self.event_socket)
+        self.state_counter = event.state_counter
+        self.init_game()
+        self.state_counter_cond.notify_all()
 
-        for submission_store in self.load_all_data(SubmissionStore):
-            submission = Submission(self.game, submission_store)
-            self.game.on_scoreboard_update(submission, in_batch=True)
-        self.game.on_scoreboard_batch_update_done()
+    async def _before_run(self) -> None:
+        hello_res = await glitter.Action({
+            'type': glitter.ActionType.WORKER_HELLO,
+            'ssrf_token': secret.GLITTER_SSRF_TOKEN,
+            'protocol_ver': glitter.PROTOCOL_VER,
+        }).call(self.action_socket)
 
-    def logger(self, level: str, module: str, message: str) -> None:
-        print(f'{self.process_name} [{level}] {module}: {message}')
+        if hello_res['error_msg'] is not None:
+            self.log('critical', 'worker.before_run', f'handshake failure: {hello_res["error_msg"]}')
+            raise RuntimeError(f'handshake failure: {hello_res["error_msg"]}')
 
-        # with self.Session() as session:
-        #     log = LogStore(level=level, process=self.process_name, module=module, message=message)
-        #     session.add(log)
-        #     session.commit()
+        await self._sync_with_reducer()
 
-    def load_all_data(self, cls: Type[T]) -> List[T]:
-        with self.Session() as session:
-            return session.execute(select(cls)).scalars().all() # type: ignore
+    async def _mainloop(self) -> None:
+        while True:
+            event = await glitter.Event.next(self.event_socket)
 
-    def load_one_data(self, cls: Type[Table], id: int) -> Optional[T]:
-        with self.Session() as session:
-            return session.execute(select(cls).where(cls.id==id)).scalar() # type: ignore
+            # in rare cases when zeromq reaches high-water-mark, we may lose packets!
+            if event.state_counter not in [self.state_counter, self.state_counter+1]:
+                await self._sync_with_reducer()
+            else:
+                self.state_counter = event.state_counter
+                self.process_event(event)
+                self.state_counter_cond.notify_all()
+
+    async def perform_action(self, req: glitter.SomeActionReq) -> glitter.ActionRep:
+        rep = await glitter.Action(req).call(self.action_socket)
+
+        cond = self.state_counter_cond.wait_for(lambda: self.state_counter>=rep['state_counter'])
+        try:
+            await asyncio.wait_for(cond, glitter.CALL_TIMEOUT_MS/1000)
+        except asyncio.TimeoutError:
+            self.log('error', 'worker.perform_action', f'state sync timeout: {self.state_counter} -> {rep["state_counter"]}')
+            raise RuntimeError('timed out syncing state with reducer')
+
+        return rep

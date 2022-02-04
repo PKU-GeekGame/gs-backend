@@ -1,10 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
-if TYPE_CHECKING:
-    from . import Game, Challenge, Flag, User
-    from ..store import *
-
 class Submission:
     def __init__(self, game: Game, store: SubmissionStore):
         self._game: Game = game
@@ -51,3 +47,7 @@ class Submission:
 
     def __repr__(self) -> str:
         return f'[Sub#{self._store.id} User#{self.user._store.id} Ch={self._store.challenge_key!r} Flag={self.matched_flag!r}]'
+
+if TYPE_CHECKING:
+    from . import Game, Challenge, Flag, User
+    from ..store import *

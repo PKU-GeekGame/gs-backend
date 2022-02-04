@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Set
 
 from . import *
 from ..store import *
@@ -16,8 +16,9 @@ class Game(WithGameLifecycle):
     ):
         self.log: Callable[[str, str, str], None] = logger # level, module, message
         self.cur_tick: int = cur_tick
-        self.need_reloading_scoreboard: bool = False
+        self.need_reloading_scoreboard: bool = True
         self.submissions: List[Submission] = []
+        self._processed_submissions: Set[int] = set()
 
         self.trigger: Trigger = Trigger(self, trigger_stores)
         self.policy: GamePolicy = GamePolicy(self, game_policy_stores)
@@ -40,6 +41,7 @@ class Game(WithGameLifecycle):
 
     def on_scoreboard_reset(self) -> None:
         self.submissions = []
+        self._processed_submissions = set()
 
         self.policy.on_scoreboard_reset()
         self.challenges.on_scoreboard_reset()
@@ -48,7 +50,11 @@ class Game(WithGameLifecycle):
             b.on_scoreboard_reset()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
+        if submission._store.id in self._processed_submissions:
+            return # already processed this submission
+
         self.submissions.append(submission)
+        self._processed_submissions.add(submission._store.id)
 
         self.policy.on_scoreboard_update(submission, in_batch)
         self.challenges.on_scoreboard_update(submission, in_batch)

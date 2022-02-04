@@ -7,9 +7,14 @@ from markdown.extensions.fenced_code import FencedCodeExtension
 from markdown.extensions.sane_lists import SaneListExtension
 import datetime
 import pytz
+import base64
+import OpenSSL
+import traceback
 from typing import Union
 
-def gen_random_token(length: int = 32) -> str:
+from . import secret
+
+def gen_random_str(length: int = 32) -> str:
     ALPHABET='qwertyuiopasdfghjkzxcvbnmQWERTYUPASDFGHJKLZXCVBNM23456789'
     return ''.join([random.choice(ALPHABET) for _ in range(length)])
 
@@ -25,3 +30,10 @@ def render_template(template_str: str) -> str:
 def format_timestamp(timestamp_s: Union[float, int]) -> str:
     date = datetime.datetime.fromtimestamp(timestamp_s, pytz.timezone('Asia/Shanghai'))
     return date.strftime('%Y-%m-%d %H:%M:%S')
+
+def sign_token(uid: int) -> str:
+    sig = base64.b64encode(OpenSSL.crypto.sign(secret.TOKEN_SIGNING_KEY, str(uid).encode(), 'sha256')).decode()
+    return f'{uid}:{sig}'
+
+def get_traceback(e: Exception) -> str:
+    return repr(e) + '\n' + ''.join(traceback.format_exception(type(e), e, e.__traceback__))

@@ -11,8 +11,8 @@ from .. import store
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = secret.DB_CONNECTOR
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = secret.ADMIN_SECRET
-db = SQLAlchemy(app, model_class=store.Base)
+app.config['SECRET_KEY'] = secret.ADMIN_SESSION_SECRET
+db = SQLAlchemy(app, model_class=store.SqlBase)
 migrate = Migrate(app, db)
 
 class AuthedAdminIndexView(AdminIndexView): # type: ignore

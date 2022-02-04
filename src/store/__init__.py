@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer
 from sqlalchemy.orm import declarative_base  # type: ignore
 
-Base = declarative_base()
+SqlBase = declarative_base()
 
-class Table(Base):  # type: ignore
+class Table(SqlBase):  # type: ignore
     __abstract__ = True
     id = Column(Integer, primary_key=True)
 

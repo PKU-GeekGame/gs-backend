@@ -1,5 +1,11 @@
+import OpenSSL
+
 DB_CONNECTOR = 'mysql+pymysql://username:password@host:port/database'
 
-ADMIN_SECRET = 'admin_secret'
+ADMIN_SESSION_SECRET = '...'
 
-FLAG_SALT = 'flag_salt'
+FLAG_LEET_SALT = '...'
+
+GLITTER_SSRF_TOKEN = '...'
+
+TOKEN_SIGNING_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, '-----BEGIN EC PRIVATE KEY-----\n...')

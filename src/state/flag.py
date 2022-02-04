@@ -11,7 +11,7 @@ from . import WithGameLifecycle
 from .. import secret
 
 def leet_flag(flag: str, uid: int) -> str:
-    uid = int(hashlib.sha256((secret.FLAG_SALT+str(uid)).encode()).hexdigest(), 16)
+    uid = int(hashlib.sha256((secret.FLAG_LEET_SALT+str(uid)).encode()).hexdigest(), 16)
     rcont = flag[len('flag{'):-len('}')]
     rdlis=[]
     for i in range(len(rcont)):
