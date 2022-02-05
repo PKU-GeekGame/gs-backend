@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from zmq.asyncio import Context
 from abc import ABC, abstractmethod
+import asyncio
 from typing import Type, TypeVar, List, Optional, Dict, Callable, Any, Tuple
 
 from . import glitter
@@ -30,17 +31,26 @@ def make_callback_decorator() -> Tuple[Callable[[Any], Callable[[CbMethod], CbMe
 on_event, event_listeners = make_callback_decorator()
 
 class StateContainerBase(ABC):
+    RECOVER_THROTTLE_S = .5
+
     def __init__(self, process_name: str):
         self.process_name: str = process_name
         self.SqlSession = sessionmaker(create_engine(secret.DB_CONNECTOR, future=True), expire_on_commit=False, future=True)
 
         self.glitter_ctx: Context = Context() # type: ignore
 
-        # self.game is initialized later in self.init_game
-        self.game: Game = None # type: ignore
+        # initialized later in self.init_game
+        self._game: Game = None # type: ignore
+
+        self.game_dirty: bool = True
+
+    def get_game(self) -> Optional[Game]:
+        if self.game_dirty:
+            return None
+        return self._game
 
     def init_game(self) -> None:
-        self.game = Game(
+        self._game = Game(
             logger=self.log,
             cur_tick=0,
             game_policy_stores=self.load_all_data(GamePolicyStore),
@@ -49,8 +59,9 @@ class StateContainerBase(ABC):
             announcement_stores=self.load_all_data(AnnouncementStore),
             user_stores=self.load_all_data(UserStore),
         )
-        self.game.on_tick_change()
+        self._game.on_tick_change()
         self.reload_scoreboard_if_needed()
+        self.game_dirty = False
 
     @abstractmethod
     async def _before_run(self) -> None:
@@ -64,7 +75,8 @@ class StateContainerBase(ABC):
         await self._before_run()
 
         # _before_run should call init_game to initialize `self.game` field
-        assert self.game is not None
+        assert self._game is not None, 'game state not initialized in _before_run'
+        assert not self.game_dirty, 'game state should be set to not dirty after _before_run'
 
         await self._mainloop()
 
@@ -74,52 +86,52 @@ class StateContainerBase(ABC):
 
     @on_event(glitter.EventType.RELOAD_GAME_POLICY)
     def on_reload_game_policy(self, _event: glitter.Event) -> None:
-        self.game.policy.on_store_reload(self.load_all_data(GamePolicyStore))
+        self._game.policy.on_store_reload(self.load_all_data(GamePolicyStore))
 
     @on_event(glitter.EventType.RELOAD_TRIGGER)
     def on_reload_trigger(self, _event: glitter.Event) -> None:
-        self.game.trigger.on_store_reload(self.load_all_data(TriggerStore))
+        self._game.trigger.on_store_reload(self.load_all_data(TriggerStore))
 
     @on_event(glitter.EventType.RELOAD_SUBMISSION)
     def on_reload_submission(self, _event: glitter.Event) -> None:
-        self.game.need_reloading_scoreboard = True
+        self._game.need_reloading_scoreboard = True
         self.reload_scoreboard_if_needed()
 
     @on_event(glitter.EventType.UPDATE_ANNOUNCEMENT)
     def on_update_announcement(self, event: glitter.Event) -> None:
-        self.game.announcements.on_store_update(event.data, self.load_one_data(AnnouncementStore, event.data))
+        self._game.announcements.on_store_update(event.data, self.load_one_data(AnnouncementStore, event.data))
 
     @on_event(glitter.EventType.UPDATE_CHALLENGE)
     def on_update_challenge(self, event: glitter.Event) -> None:
-        self.game.challenges.on_store_update(event.data, self.load_one_data(ChallengeStore, event.data))
+        self._game.challenges.on_store_update(event.data, self.load_one_data(ChallengeStore, event.data))
 
     @on_event(glitter.EventType.UPDATE_USER)
     def on_update_user(self, event: glitter.Event) -> None:
-        self.game.users.on_store_update(event.data, self.load_one_data(UserStore, event.data))
+        self._game.users.on_store_update(event.data, self.load_one_data(UserStore, event.data))
 
     @on_event(glitter.EventType.NEW_SUBMISSION)
     def on_new_submission(self, event: glitter.Event) -> None:
         sub_store = self.load_one_data(SubmissionStore, event.data)
-        assert sub_store is not None
-        sub = Submission(self.game, sub_store)
-        self.game.on_scoreboard_update(sub, in_batch=False)
+        assert sub_store is not None, 'submission not found'
+        sub = Submission(self._game, sub_store)
+        self._game.on_scoreboard_update(sub, in_batch=False)
 
     @on_event(glitter.EventType.TICK_UPDATE)
     def on_tick_update(self, event: glitter.Event) -> None:
-        self.game.cur_tick = event.data
-        self.game.on_tick_change()
+        self._game.cur_tick = event.data
+        self._game.on_tick_change()
 
     def reload_scoreboard_if_needed(self) -> None:
-        if not self.game.need_reloading_scoreboard:
+        if not self._game.need_reloading_scoreboard:
             return
 
-        self.game.need_reloading_scoreboard = False
-        self.game.on_scoreboard_reset()
+        self._game.need_reloading_scoreboard = False
+        self._game.on_scoreboard_reset()
 
         for sub_store in self.load_all_data(SubmissionStore):
-            submission = Submission(self.game, sub_store)
-            self.game.on_scoreboard_update(submission, in_batch=True)
-        self.game.on_scoreboard_batch_update_done()
+            submission = Submission(self._game, sub_store)
+            self._game.on_scoreboard_update(submission, in_batch=True)
+        self._game.on_scoreboard_batch_update_done()
 
     def log(self, level: str, module: str, message: str) -> None:
         print(f'{self.process_name} [{level}] {module}: {message}')
@@ -137,11 +149,17 @@ class StateContainerBase(ABC):
         with self.SqlSession() as session:
             return session.execute(select(cls).where(cls.id==id)).scalar() # type: ignore
 
-    def process_event(self, event: glitter.Event) -> None:
-        def default(_self: Any, e: glitter.Event) -> None:
-            self.log('warning', 'base.process_event', f'unknown event: {e.type!r}')
+    async def process_event(self, event: glitter.Event) -> None:
+        def default(_self: Any, ev: glitter.Event) -> None:
+            self.log('warning', 'base.process_event', f'unknown event: {ev.type!r}')
 
         listener = event_listeners.get(event.type, default)
-        listener(self, event)
+
+        try:
+            listener(self, event)
+        except Exception as e:
+            self.log('critical', 'base.process_event', f'exception during event listener, will recover: {e!r}')
+            self.init_game()
+            await asyncio.sleep(self.RECOVER_THROTTLE_S)
 
         self.reload_scoreboard_if_needed()

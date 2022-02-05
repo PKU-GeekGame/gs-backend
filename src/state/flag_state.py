@@ -42,6 +42,7 @@ class Flag(WithGameLifecycle):
         self.idx = idx
         self.type: str = descriptor['type']
         self.val: str = descriptor['val']
+        self.name: str = descriptor['name']
         self.base_score: int = descriptor['base_score']
 
         self.cur_score: int = 0

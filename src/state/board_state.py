@@ -85,7 +85,7 @@ class FirstBloodBoard(Board):
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission.matched_flag is not None:
-            assert submission.challenge is not None
+            assert submission.challenge is not None, 'submission matched flag to no challenge'
             if self.group is None or submission.user._store.group in self.group:
                 self.chall_board.setdefault(submission.challenge, submission.user)
                 self.flag_board.setdefault(submission.matched_flag, submission.user)

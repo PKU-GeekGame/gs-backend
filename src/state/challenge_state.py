@@ -68,6 +68,9 @@ class Challenge(WithGameLifecycle):
 
         self.passed_users: Set[User] = set()
 
+        self.tot_base_score: int = 0
+        self.tot_cur_score: int = 0
+
         self.on_store_reload(store)
 
     def on_store_reload(self, store: ChallengeStore) -> None:
@@ -90,6 +93,8 @@ class Challenge(WithGameLifecycle):
         for flag in self.flags:
             flag.on_scoreboard_reset()
 
+        self._update_tot_score()
+
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission.challenge is not None and submission.challenge._store.id==self._store.id: # always true as delegated from Challenges
             all_passed = True
@@ -100,6 +105,17 @@ class Challenge(WithGameLifecycle):
 
             if all_passed:
                 self.passed_users.add(submission.user)
+
+            if submission.matched_flag is not None:
+                self._update_tot_score()
+
+    def _update_tot_score(self) -> None:
+        self.tot_base_score = 0
+        self.tot_cur_score = 0
+
+        for flag in self.flags:
+            self.tot_base_score += flag.base_score
+            self.tot_cur_score += flag.cur_score
 
     def __repr__(self) -> str:
         return f'[#{self._store.id} {self._store.key}: {self._store.title}]'

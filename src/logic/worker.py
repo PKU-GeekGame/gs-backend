@@ -30,7 +30,8 @@ class Worker(StateContainerBase):
         self.state_counter: int = -1
         self.state_counter_cond: asyncio.Condition = asyncio.Condition()
 
-    async def _sync_with_reducer(self) -> None:
+    async def _sync_with_reducer(self, *, throttled: bool = True) -> None:
+        self.game_dirty = True
         self.log('info', 'reducer.sync_with_reducer', 'sent handshake')
 
         while True:
@@ -69,18 +70,23 @@ class Worker(StateContainerBase):
 
         self.log('debug', 'worker.sync_with_reducer', f'game state reconstructed')
 
+        if throttled:
+            await asyncio.sleep(self.RECOVER_THROTTLE_S)
+        self.game_dirty = False
+
     async def _before_run(self) -> None:
         # reduce the possibility of losing initial event_socket packets
         # (we are still sound in this case, but some time is wasted waiting for next SYNC)
         await asyncio.sleep(.2)
 
-        await self._sync_with_reducer()
+        await self._sync_with_reducer(throttled=False)
 
     async def _mainloop(self) -> None:
         self.log('info', 'worker.mainloop', 'started to receive events')
         while True:
             try:
-                event = await glitter.Event.next(self.event_socket)
+                cond = glitter.Event.next(self.event_socket)
+                event = await asyncio.wait_for(cond, glitter.SYNC_TIMEOUT_MS/1000)
             except Exception as e:
                 self.log('error', 'worker.mainloop', f'exception during event receive, will recover: {utils.get_traceback(e)}')
                 await self._sync_with_reducer()
@@ -95,7 +101,7 @@ class Worker(StateContainerBase):
                 await self._sync_with_reducer()
             else:
                 self.state_counter = event.state_counter
-                self.process_event(event)
+                await self.process_event(event)
                 async with self.state_counter_cond:
                     self.state_counter_cond.notify_all()
 
@@ -116,7 +122,7 @@ class Worker(StateContainerBase):
         self.log('debug', 'worker.perform_action', f'state counter synced to {self.state_counter}')
         return rep
 
-    def process_event(self, event: glitter.Event) -> None:
+    async def process_event(self, event: glitter.Event) -> None:
         if event.type!=glitter.EventType.SYNC:
             self.log('info', 'worker.process_event', f'got event {event.type}')
-        super().process_event(event)
+        await super().process_event(event)

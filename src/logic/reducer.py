@@ -47,7 +47,7 @@ class Reducer(StateContainerBase):
 
     @on_action(glitter.ActionType.REG_USER)
     async def on_reg_user(self, req: glitter.RegUserReq) -> Optional[str]:
-        if (req['login_type'], req['login_identity']) in self.game.users.user_by_login_key:
+        if (req['login_type'], req['login_identity']) in self._game.users.user_by_login_key:
             return 'user already exists'
 
         with self.SqlSession() as session:
@@ -61,7 +61,7 @@ class Reducer(StateContainerBase):
             session.add(user)
             session.flush()
             uid = user.id
-            assert uid is not None
+            assert uid is not None, 'created user not in db'
 
             profile = UserProfileStore(
                 user_id=uid,
@@ -69,7 +69,7 @@ class Reducer(StateContainerBase):
             )
             session.add(profile)
             session.flush()
-            assert profile.id is not None
+            assert profile.id is not None, 'created profile not in db'
 
             user.token = utils.sign_token(uid)
             user.profile_id = profile.id
@@ -91,7 +91,7 @@ class Reducer(StateContainerBase):
             # clone old profile
 
             profile = user.profile
-            assert profile is not None
+            assert profile is not None, 'original profile not found for this user'
 
             session.expunge(profile)
             make_transient(profile)
@@ -107,7 +107,7 @@ class Reducer(StateContainerBase):
 
             # link to the user
 
-            assert profile.id is not None
+            assert profile.id is not None, 'updated profile not in db'
             user.profile_id = profile.id
 
             session.commit()
@@ -126,7 +126,7 @@ class Reducer(StateContainerBase):
             )
             session.add(submission)
             sid = submission.id
-            assert sid is not None
+            assert sid is not None, 'created submission not in db'
 
             session.commit()
             self.state_counter += 1
@@ -146,7 +146,7 @@ class Reducer(StateContainerBase):
 
     async def emit_event(self, event: glitter.Event) -> None:
         self.log('info', 'reducer.emit_event', f'emit event {event.type}')
-        self.process_event(event)
+        await self.process_event(event)
         await event.send(self.event_socket)
 
     async def emit_sync(self) -> None:
@@ -184,12 +184,12 @@ class Reducer(StateContainerBase):
                 if err is not None:
                     self.log('warning', 'reducer.handle_action', f'error: {err}')
             except Exception as e:
-                self.log('error', 'reducer.handle_action', f'exception: {utils.get_traceback(e)}')
+                self.log('critical', 'reducer.handle_action', f'exception, will report as interal error: {utils.get_traceback(e)}')
                 err = 'internal error'
 
             if self.state_counter!=old_counter:
                 self.log('debug', 'reducer.mainloop', f'state counter {old_counter} -> {self.state_counter}')
-            assert self.state_counter-old_counter in [0, 1]
+            assert self.state_counter-old_counter in [0, 1], 'action handler incremented state counter more than once'
 
             if action is not None:
                 await action.reply({

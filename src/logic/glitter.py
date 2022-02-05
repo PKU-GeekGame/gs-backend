@@ -69,7 +69,7 @@ CALL_TIMEOUT_MS = 5000
 class Action:
     def __init__(self, req: SomeActionReq):
         self.req: SomeActionReq = req
-        assert 'type' in self.req
+        assert 'type' in self.req, 'type not in action'
 
     async def _send_req(self, sock: Socket) -> None:
         sent_req = {
@@ -80,9 +80,9 @@ class Action:
     @staticmethod
     async def _recv_rep(sock: Socket) -> ActionRep:
         parts = await sock.recv_multipart() # type: ignore
-        assert len(parts)==1
+        assert len(parts)==1, 'malformed action rep packet: should contain one part'
         rep: ActionRep = json.loads(parts[0].decode('utf-8'))
-        assert 'error_msg' in rep and 'state_counter' in rep
+        assert 'error_msg' in rep and 'state_counter' in rep, 'malformed action rep packet body'
         return rep
 
     # client
@@ -97,10 +97,10 @@ class Action:
     async def listen(cls, sock: Socket) -> Optional[Action]:
         pkt = await sock.recv_multipart() # type: ignore
         try:
-            assert len(pkt)==1
+            assert len(pkt)==1, 'malformed action req packet: should contain one part'
             req_b = pkt[0]
             data = json.loads(req_b.decode('utf-8'))
-            assert 'ssrf_token' in data and 'type' in data
+            assert 'ssrf_token' in data and 'type' in data, 'malformed action req packet body'
             data['type'] = ActionType(data['type'])
             return cls(data)
         except Exception as e:
