@@ -1,19 +1,15 @@
 from __future__ import annotations
 from enum import Enum, unique
 import json
-from typing import TYPE_CHECKING, Dict, Any, Optional, Union, Literal, List
+from dataclasses import dataclass
+from zmq.asyncio import Socket
+import pickle
+from typing import Dict, Any, Optional, List
 
 from .. import utils
+from .. import secret
 
-PROTOCOL_VER = 'alpha.v1'
-
-@unique
-class ActionType(Enum):
-    WORKER_HELLO = 'worker_hello'
-
-    REG_USER = 'reg_user'
-    UPDATE_PROFILE = 'update_profile'
-    SUBMIT_FLAG = 'submit_flag'
+PROTOCOL_VER = 'alpha.v2'
 
 @unique
 class EventType(Enum):
@@ -30,59 +26,54 @@ class EventType(Enum):
     NEW_SUBMISSION = b'\x31'
     TICK_UPDATE = b'\x32'
 
-if TYPE_CHECKING:
-    from zmq.asyncio import Socket
-    from typing_extensions import TypedDict
+@dataclass
+class ActionReq:
+    client: str
+    @property
+    def type(self):
+        return type(self).__name__
 
-    class ActionReq(TypedDict):
-        ssrf_token: str
-    class ActionRep(TypedDict):
-        error_msg: Optional[str]
-        state_counter: int
+@dataclass
+class WorkerHelloReq(ActionReq):
+    protocol_ver: str
 
-    class WorkerHelloReq(ActionReq):
-        type: Literal[ActionType.WORKER_HELLO]
-        protocol_ver: str
+@dataclass
+class RegUserReq(ActionReq):
+    login_type: str
+    login_identity: str
+    login_properties: Any
+    group: str
 
-    class RegUserReq(ActionReq):
-        type: Literal[ActionType.REG_USER]
-        login_type: str
-        login_identity: str
-        login_peoperties: Any
-        group: str
+@dataclass
+class UpdateProfileReq(ActionReq):
+    uid: int
+    profile: Dict[str, str]
 
-    class UpdateProfileReq(ActionReq):
-        type: Literal[ActionType.UPDATE_PROFILE]
-        uid: int
-        profile: Dict[str, str]
+@dataclass
+class SubmitFlagReq(ActionReq):
+    uid: int
+    challenge_id: int
+    flag: str
 
-    class SubmitFlagReq(ActionReq):
-        type: Literal[ActionType.SUBMIT_FLAG]
-        uid: int
-        challenge_id: int
-        flag: str
-
-    SomeActionReq = Union[WorkerHelloReq, RegUserReq, UpdateProfileReq, SubmitFlagReq]
+@dataclass
+class ActionRep:
+    error_msg: Optional[str]
+    state_counter: int
 
 CALL_TIMEOUT_MS = 5000
 
 class Action:
-    def __init__(self, req: SomeActionReq):
-        self.req: SomeActionReq = req
-        assert 'type' in self.req, 'type not in action'
+    def __init__(self, req: ActionReq):
+        self.req: ActionReq = req
 
     async def _send_req(self, sock: Socket) -> None:
-        sent_req = {
-            **self.req,
-            'type': self.req['type'].value,
-        }
-        await sock.send_multipart([json.dumps(sent_req).encode('utf-8')]) # type: ignore
+        await sock.send_multipart([secret.GLITTER_SSRF_TOKEN.encode(), pickle.dumps(self.req)]) # type: ignore
     @staticmethod
     async def _recv_rep(sock: Socket) -> ActionRep:
         parts = await sock.recv_multipart() # type: ignore
         assert len(parts)==1, 'malformed action rep packet: should contain one part'
-        rep: ActionRep = json.loads(parts[0].decode('utf-8'))
-        assert 'error_msg' in rep and 'state_counter' in rep, 'malformed action rep packet body'
+        rep = pickle.loads(parts[0])
+        assert isinstance(rep, ActionRep)
         return rep
 
     # client
@@ -97,11 +88,10 @@ class Action:
     async def listen(cls, sock: Socket) -> Optional[Action]:
         pkt = await sock.recv_multipart() # type: ignore
         try:
-            assert len(pkt)==1, 'malformed action req packet: should contain one part'
-            req_b = pkt[0]
-            data = json.loads(req_b.decode('utf-8'))
-            assert 'ssrf_token' in data and 'type' in data, 'malformed action req packet body'
-            data['type'] = ActionType(data['type'])
+            assert len(pkt)==2, 'action req packet should contain one part'
+            assert pkt[0]==secret.GLITTER_SSRF_TOKEN.encode(), 'invalid ssrf token'
+            data = pickle.loads(pkt[1])
+            assert isinstance(data, ActionReq), 'malformed action req packet body'
             return cls(data)
         except Exception as e:
             print(utils.get_traceback(e))
@@ -112,7 +102,7 @@ class Action:
             return None
 
     async def reply(self, rep: ActionRep, sock: Socket) -> None:
-        await sock.send_multipart([json.dumps(rep).encode('utf-8')]) # type: ignore
+        await sock.send_multipart([pickle.dumps(rep)]) # type: ignore
 
 SYNC_INTERVAL_S = 3
 SYNC_TIMEOUT_MS = 7000

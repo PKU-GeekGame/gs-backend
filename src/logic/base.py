@@ -44,7 +44,8 @@ class StateContainerBase(ABC):
 
         self.game_dirty: bool = True
 
-    def get_game(self) -> Optional[Game]:
+    @property
+    def game(self) -> Optional[Game]:
         if self.game_dirty:
             return None
         return self._game

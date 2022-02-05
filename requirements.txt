@@ -11,6 +11,9 @@ pytz~=2021.3
 pyzmq~=22.3.0
 pyopenssl~=22.0.0
 
+# api
+sanic[ext]~=21.12.1
+
 # admin
 flask~=2.0.2
 flask-sqlalchemy~=2.5.1

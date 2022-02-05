@@ -36,27 +36,28 @@ class Reducer(StateContainerBase):
         self.log('info', 'reducer.before_run', 'started to initialize game')
         self.init_game()
 
-    @on_action(glitter.ActionType.WORKER_HELLO)
+    @on_action(glitter.WorkerHelloReq)
     async def on_worker_hello(self, req: glitter.WorkerHelloReq) -> Optional[str]:
-        client_ver = req.get('protocol_ver')
+        client_ver = req.protocol_ver
         if client_ver!=glitter.PROTOCOL_VER:
-            return f'protocol version mismatch: worker {req["protocol_ver"]}, reducer {glitter.PROTOCOL_VER}'
+            return f'protocol version mismatch: worker {req.protocol_ver}, reducer {glitter.PROTOCOL_VER}'
         else:
             await self.emit_sync()
             return None
 
-    @on_action(glitter.ActionType.REG_USER)
+    @on_action(glitter.RegUserReq)
     async def on_reg_user(self, req: glitter.RegUserReq) -> Optional[str]:
-        if (req['login_type'], req['login_identity']) in self._game.users.user_by_login_key:
+        if (req.login_type, req.login_identity) in self._game.users.user_by_login_key:
             return 'user already exists'
 
         with self.SqlSession() as session:
             user = UserStore(
-                login_type=req['login_type'],
-                login_identity=req['login_identity'],
-                login_peoperties=req['login_peoperties'],
+                login_type=req.login_type,
+                login_identity=req.login_identity,
+                login_properties=req.login_properties,
                 enabled=True,
-                group=req['group'],
+                group=req.group,
+                auth_token=utils.gen_random_str(48, crypto=True),
             )
             session.add(user)
             session.flush()
@@ -80,9 +81,9 @@ class Reducer(StateContainerBase):
         await self.emit_event(glitter.Event(glitter.EventType.UPDATE_USER, self.state_counter, uid))
         return None
 
-    @on_action(glitter.ActionType.UPDATE_PROFILE)
+    @on_action(glitter.UpdateProfileReq)
     async def on_update_profile(self, req: glitter.UpdateProfileReq) -> Optional[str]:
-        uid = int(req['uid'])
+        uid = int(req.uid)
         with self.SqlSession() as session:
             user = session.execute(select(UserStore).where(UserStore.id==uid)).scalar()  # type: ignore
             if user is None:
@@ -116,13 +117,13 @@ class Reducer(StateContainerBase):
         await self.emit_event(glitter.Event(glitter.EventType.UPDATE_USER, self.state_counter, uid))
         return None
 
-    @on_action(glitter.ActionType.SUBMIT_FLAG)
+    @on_action(glitter.SubmitFlagReq)
     async def on_submit_flag(self, req: glitter.SubmitFlagReq) -> Optional[str]:
         with self.SqlSession() as session:
             submission = SubmissionStore(
-                user_id=int(req['uid']),
-                challenge_id=int(req['challenge_id']),
-                flag=str(req['flag']),
+                user_id=int(req.uid),
+                challenge_id=int(req.challenge_id),
+                flag=str(req.flag),
             )
             session.add(submission)
             sid = submission.id
@@ -135,13 +136,10 @@ class Reducer(StateContainerBase):
         return None
 
     async def handle_action(self, action: glitter.Action) -> Optional[str]:
-        if action.req.get('ssrf_token')!=secret.GLITTER_SSRF_TOKEN:
-            return f'packet validation failed'
+        async def default(_self: Any, req: glitter.ActionReq) -> Optional[str]:
+            return f'unknown action: {req.type}'
 
-        async def default(_self: Any, req: glitter.SomeActionReq) -> Optional[str]:
-            return f'unknown action: {req["type"]}'
-
-        listener: Callable[[Any, glitter.SomeActionReq], Awaitable[Optional[str]]] = action_listeners.get(action.req['type'], default)
+        listener: Callable[[Any, glitter.ActionReq], Awaitable[Optional[str]]] = action_listeners.get(type(action.req), default)
         return await listener(self, action.req)
 
     async def emit_event(self, event: glitter.Event) -> None:
@@ -171,7 +169,7 @@ class Reducer(StateContainerBase):
             if action is None:
                 continue
 
-            self.log('info', 'reducer.mainloop', f'got action {action.req["type"]}')
+            self.log('info', 'reducer.mainloop', f'got action {action.req.type} from {action.req.client}')
 
             old_counter = self.state_counter
 
@@ -192,9 +190,6 @@ class Reducer(StateContainerBase):
             assert self.state_counter-old_counter in [0, 1], 'action handler incremented state counter more than once'
 
             if action is not None:
-                await action.reply({
-                    'error_msg': err,
-                    'state_counter': self.state_counter,
-                }, self.action_socket)
+                await action.reply(glitter.ActionRep(error_msg=err, state_counter=self.state_counter),self.action_socket)
 
             await self.emit_sync()

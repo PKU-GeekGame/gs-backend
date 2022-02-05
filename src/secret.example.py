@@ -14,3 +14,5 @@ TOKEN_SIGNING_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, 
 # see https://stackoverflow.com/questions/6024003/why-doesnt-zeromq-work-on-localhost
 GLITTER_ACTION_SOCKET_ADDR = 'tcp://127.0.0.1:5601'
 GLITTER_EVENT_SOCKET_ADDR = 'tcp://127.0.0.1:5602'
+
+API_DEBUG_MODE = False

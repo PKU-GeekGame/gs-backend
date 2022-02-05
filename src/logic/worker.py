@@ -3,7 +3,7 @@ import zmq
 from zmq.asyncio import Socket
 import asyncio
 
-from .base import StateContainerBase, make_callback_decorator
+from .base import StateContainerBase
 from . import glitter
 from .. import utils
 from .. import secret
@@ -36,19 +36,17 @@ class Worker(StateContainerBase):
 
         while True:
             try:
-                hello_res = await glitter.Action({
-                    'type': glitter.ActionType.WORKER_HELLO,
-                    'ssrf_token': secret.GLITTER_SSRF_TOKEN,
-                    'protocol_ver': glitter.PROTOCOL_VER,
-                }).call(self.action_socket)
+                hello_res = await glitter.Action(
+                    glitter.WorkerHelloReq(client=self.process_name, protocol_ver=glitter.PROTOCOL_VER)
+                ).call(self.action_socket)
             except Exception as e:
                 self.log('error', 'reducer.before_run',
                     f'exception during handshake, will try again: {utils.get_traceback(e)}')
                 await asyncio.sleep(self.RECOVER_INTERVAL_S)
             else:
-                if hello_res['error_msg'] is not None:
-                    self.log('critical', 'worker.before_run', f'handshake failure: {hello_res["error_msg"]}')
-                    raise RuntimeError(f'handshake failure: {hello_res["error_msg"]}')
+                if hello_res.error_msg is not None:
+                    self.log('critical', 'worker.before_run', f'handshake failure: {hello_res.error_msg}')
+                    raise RuntimeError(f'handshake failure: {hello_res.error_msg}')
 
                 break
 
@@ -105,18 +103,18 @@ class Worker(StateContainerBase):
                 async with self.state_counter_cond:
                     self.state_counter_cond.notify_all()
 
-    async def perform_action(self, req: glitter.SomeActionReq) -> glitter.ActionRep:
-        self.log('info', 'worker.perform_action', f'call {req["type"]}')
+    async def perform_action(self, req: glitter.ActionReq) -> glitter.ActionRep:
+        self.log('info', 'worker.perform_action', f'call {req.type}')
         rep = await glitter.Action(req).call(self.action_socket)
-        self.log('debug', 'worker.perform_action', f'called {req["type"]}, state counter is {rep["state_counter"]}')
+        self.log('debug', 'worker.perform_action', f'called {req.type}, state counter is {rep.state_counter}')
 
         # sync state after call
         try:
             async with self.state_counter_cond:
-                cond = self.state_counter_cond.wait_for(lambda: self.state_counter>=rep['state_counter'])
+                cond = self.state_counter_cond.wait_for(lambda: self.state_counter>=rep.state_counter)
                 await asyncio.wait_for(cond, glitter.CALL_TIMEOUT_MS/1000)
         except asyncio.TimeoutError:
-            self.log('error', 'worker.perform_action', f'state sync timeout: {self.state_counter} -> {rep["state_counter"]}')
+            self.log('error', 'worker.perform_action', f'state sync timeout: {self.state_counter} -> {rep.state_counter}')
             raise RuntimeError('timed out syncing state with reducer')
 
         self.log('debug', 'worker.perform_action', f'state counter synced to {self.state_counter}')

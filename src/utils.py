@@ -10,14 +10,17 @@ import pytz
 import base64
 import OpenSSL.crypto
 import traceback
-from typing import Union
 import asyncio
+import secrets
+from typing import Union
 
 from . import secret
 
-def gen_random_str(length: int = 32) -> str:
-    ALPHABET='qwertyuiopasdfghjkzxcvbnmQWERTYUPASDFGHJKLZXCVBNM23456789'
-    return ''.join([random.choice(ALPHABET) for _ in range(length)])
+def gen_random_str(length: int = 32, *, crypto: bool = False) -> str:
+    choice = secrets.choice if crypto else random.choice
+    alphabet = 'qwertyuiopasdfghjkzxcvbnmQWERTYUPASDFGHJKLZXCVBNM23456789'
+
+    return ''.join([choice(alphabet) for _ in range(length)])
 
 def render_template(template_str: str) -> str:
     return markdown.markdown(template_str, extensions=[
