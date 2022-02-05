@@ -1,7 +1,7 @@
 from __future__ import annotations
-from sqlalchemy import Column, String, UniqueConstraint, JSON, Integer, ForeignKey, Boolean, Index
-from sqlalchemy.orm import relationship
-from typing import TYPE_CHECKING
+from sqlalchemy import Column, String, UniqueConstraint, JSON, Integer, ForeignKey, Boolean
+from sqlalchemy.orm import relationship, validates
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # noinspection PyUnresolvedReferences
@@ -34,3 +34,11 @@ class UserStore(Table):
     def __repr__(self) -> str:
         nick = '(no profile)' if self.profile is None else self.profile.nickname_or_null
         return f'[#{self.id} {self.login_type}:{self.login_identity} {nick!r}]'
+
+    @validates('login_properties')
+    def validate_login_properties(self, _key: str, login_properties: Any) -> Any:
+        assert isinstance(login_properties, dict), 'login_properties should be a dict'
+        for k in login_properties.keys():
+            assert isinstance(k, str), 'login_properties key should be string'
+
+        return login_properties

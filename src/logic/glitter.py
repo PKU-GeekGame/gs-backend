@@ -30,7 +30,7 @@ class EventType(Enum):
 class ActionReq:
     client: str
     @property
-    def type(self):
+    def type(self) -> str:
         return type(self).__name__
 
 @dataclass
@@ -41,7 +41,7 @@ class WorkerHelloReq(ActionReq):
 class RegUserReq(ActionReq):
     login_type: str
     login_identity: str
-    login_properties: Any
+    login_properties: Dict[str, Any]
     group: str
 
 @dataclass
@@ -101,7 +101,8 @@ class Action:
             }).encode('utf-8')])
             return None
 
-    async def reply(self, rep: ActionRep, sock: Socket) -> None:
+    @staticmethod
+    async def reply(rep: ActionRep, sock: Socket) -> None:
         await sock.send_multipart([pickle.dumps(rep)]) # type: ignore
 
 SYNC_INTERVAL_S = 3

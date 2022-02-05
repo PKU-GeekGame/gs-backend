@@ -7,7 +7,7 @@ from typing import Optional, Any
 
 from . import auth
 from ..logic import Worker
-from ..state import Game, User
+from ..state import User
 from .. import utils
 from .. import secret
 
@@ -22,7 +22,7 @@ def get_cur_user(req: Request) -> Optional[User]:
 
     game = req.app.ctx.worker.game
     if game is None:
-        req.app.ctx.worker.log('warning', 'app.get_cur_user', 'skipping user detection because game is not available')
+        req.app.ctx.worker.log('warning', 'api.app.get_cur_user', 'game is not available, skipping user detection')
     else:
         auth_token = req.cookies.get('auth_token', None)
         if auth_token is not None:

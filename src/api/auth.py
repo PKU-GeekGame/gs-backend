@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from sanic import Blueprint, response, Request, HTTPResponse
 from sanic_ext import validate
+from typing import Dict, Any
 
 from ..logic import Worker, glitter
 from ..state import User
@@ -17,7 +18,10 @@ def login(user: User) -> HTTPResponse:
     res.cookies['auth_token']['max-age'] = LOGIN_MAX_AGE_S
     return res
 
-async def register_or_login(worker: Worker, type: str, identity: str, properties: dict, group: str) -> HTTPResponse:
+async def register_or_login(worker: Worker, type: str, identity: str, properties: Dict[str, Any], group: str) -> HTTPResponse:
+    if worker.game is None:
+        worker.log('warning', 'api.auth.register_or_login', 'game is not available')
+        return response.text('game is not available')
     user = worker.game.users.user_by_login_key.get((type, identity))
 
     if user is None:  # reg new user
