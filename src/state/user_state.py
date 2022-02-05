@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Optional, Dict, Set
+from typing import TYPE_CHECKING, List, Optional, Dict, Set, Tuple
 
 if TYPE_CHECKING:
     from . import Game, Submission, Flag, Challenge
@@ -13,11 +13,13 @@ class Users(WithGameLifecycle):
 
         self.list: List[User] = []
         self.user_by_id: Dict[int, User] = {}
+        self.user_by_login_key: Dict[Tuple[str, str], User] = {}
 
         self.on_store_reload(stores)
 
     def _update_aux_dicts(self) -> None:
-        self.user_by_id = {ch._store.id: ch for ch in self.list}
+        self.user_by_id = {u._store.id: u for u in self.list}
+        self.user_by_login_key = {(u._store.login_type, u._store.login_identity): u for u in self.list}
 
     def on_store_reload(self, stores: List[UserStore]) -> None:
         self._stores = stores

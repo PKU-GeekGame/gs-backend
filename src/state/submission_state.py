@@ -14,8 +14,6 @@ class Submission:
 
         self.matched_flag: Optional[Flag] = self._find_matched_flag()
 
-        self._game.log('info', 'new_submission', repr(self))
-
     def _find_matched_flag(self) -> Optional[Flag]:
         if self.challenge is None:
             return None

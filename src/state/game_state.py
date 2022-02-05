@@ -51,7 +51,10 @@ class Game(WithGameLifecycle):
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission._store.id in self._processed_submissions:
-            return # already processed this submission
+            self.log('warning', 'game.on_scoreboard_update', f'dropping processed submission #{submission._store.id}')
+            return
+
+        self.log('debug' if in_batch else 'info', 'game.on_scoreboard_update', f'received submission #{submission._store.id}')
 
         self.submissions.append(submission)
         self._processed_submissions.add(submission._store.id)

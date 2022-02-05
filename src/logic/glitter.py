@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import Enum, unique
 import json
-from typing import TYPE_CHECKING, Dict, Any, Optional, Union, Literal
+from typing import TYPE_CHECKING, Dict, Any, Optional, Union, Literal, List
 
 from .. import utils
 
@@ -64,9 +64,6 @@ if TYPE_CHECKING:
 
     SomeActionReq = Union[WorkerHelloReq, RegUserReq, UpdateProfileReq, SubmitFlagReq]
 
-ACTION_SOCKET = 'tcp://localhost:5601'
-EVENT_SOCKET = 'tcp://localhost:5602'
-
 CALL_TIMEOUT_MS = 5000
 
 class Action:
@@ -75,13 +72,17 @@ class Action:
         assert 'type' in self.req
 
     async def _send_req(self, sock: Socket) -> None:
-        await sock.send_multipart([json.dumps(self.req).encode('utf-8')]) # type: ignore
+        sent_req = {
+            **self.req,
+            'type': self.req['type'].value,
+        }
+        await sock.send_multipart([json.dumps(sent_req).encode('utf-8')]) # type: ignore
     @staticmethod
     async def _recv_rep(sock: Socket) -> ActionRep:
         parts = await sock.recv_multipart() # type: ignore
         assert len(parts)==1
         rep: ActionRep = json.loads(parts[0].decode('utf-8'))
-        assert 'error_msg' in rep and 'state_timestamp' in rep
+        assert 'error_msg' in rep and 'state_counter' in rep
         return rep
 
     # client
@@ -96,23 +97,25 @@ class Action:
     async def listen(cls, sock: Socket) -> Optional[Action]:
         pkt = await sock.recv_multipart() # type: ignore
         try:
-            req_b = pkt
-            req: SomeActionReq = json.loads(req_b.decode('utf-8'))
-            assert 'ssrf_token' in req and 'type' in req
-            return cls(req)
+            assert len(pkt)==1
+            req_b = pkt[0]
+            data = json.loads(req_b.decode('utf-8'))
+            assert 'ssrf_token' in data and 'type' in data
+            data['type'] = ActionType(data['type'])
+            return cls(data)
         except Exception as e:
-            utils.get_traceback(e)
+            print(utils.get_traceback(e))
             sock.send_multipart([json.dumps({ # type: ignore
                 'error_msg': 'malformed packet',
                 'state_counter': -1,
             }).encode('utf-8')])
             return None
 
-    async def reply(self, rep: ActionRep) -> None:
-        await self.sock.send_multipart([json.dumps(rep).encode('utf-8')]) # type: ignore
+    async def reply(self, rep: ActionRep, sock: Socket) -> None:
+        await sock.send_multipart([json.dumps(rep).encode('utf-8')]) # type: ignore
 
-SYNC_INTERVAL_S = 2
-SYNC_TIMEOUT_MS = 5000
+SYNC_INTERVAL_S = 3
+SYNC_TIMEOUT_MS = 7000
 
 class Event:
     def __init__(self, type: EventType, state_counter: int, data: int):
@@ -125,6 +128,7 @@ class Event:
     @classmethod
     async def next(cls, sock: Socket) -> Event:
         type, ts, id = await sock.recv_multipart() # type: ignore
+        type = EventType(type)
         cnt = int(ts.decode('utf-8'))
         data = int(id.decode('utf-8'))
         return cls(type=type, state_counter=cnt, data=data)
@@ -132,4 +136,9 @@ class Event:
     # server
 
     async def send(self, sock: Socket) -> None:
-        await sock.send_multipart([self.type, str(self.state_counter).encode('utf-8'), str(self.data).encode('utf-8')]) # type: ignore
+        data: List[bytes] = [
+            self.type.value,
+            str(self.state_counter).encode('utf-8'),
+            str(self.data).encode('utf-8'),
+        ]
+        await sock.send_multipart(data) # type: ignore

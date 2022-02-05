@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from zmq.asyncio import Context
 from abc import ABC, abstractmethod
-from typing import Type, TypeVar, List, Optional
+from typing import Type, TypeVar, List, Optional, Dict, Callable, Any, Tuple
 
 from . import glitter
 from ..state import *
@@ -10,6 +10,24 @@ from ..store import *
 from .. import secret
 
 T = TypeVar('T', bound=Table)
+CbMethod = Callable[[Any, Any], Any]
+
+def make_callback_decorator() -> Tuple[Callable[[Any], Callable[[CbMethod], CbMethod]], Dict[Any, CbMethod]]:
+    listeners: Dict[Any, CbMethod] = {}
+
+    def decorator(event_name: Any) -> Callable[[CbMethod], CbMethod]:
+        def wrapper(fn: CbMethod) -> CbMethod:
+            if fn is not listeners.get(event_name, fn):
+                raise RuntimeError('event listener already registered:', event_name)
+
+            listeners[event_name] = fn
+            return fn
+
+        return wrapper
+
+    return decorator, listeners
+
+on_event, event_listeners = make_callback_decorator()
 
 class StateContainerBase(ABC):
     def __init__(self, process_name: str):
@@ -34,6 +52,14 @@ class StateContainerBase(ABC):
         self.game.on_tick_change()
         self.reload_scoreboard_if_needed()
 
+    @abstractmethod
+    async def _before_run(self) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def _mainloop(self) -> None:
+        raise NotImplementedError()
+
     async def run_forever(self) -> None:
         await self._before_run()
 
@@ -42,13 +68,46 @@ class StateContainerBase(ABC):
 
         await self._mainloop()
 
-    @abstractmethod
-    async def _before_run(self) -> None:
-        raise NotImplementedError()
+    @on_event(glitter.EventType.SYNC)
+    def on_sync(self, event: glitter.Event) -> None:
+        pass
 
-    @abstractmethod
-    async def _mainloop(self) -> None:
-        raise NotImplementedError()
+    @on_event(glitter.EventType.RELOAD_GAME_POLICY)
+    def on_reload_game_policy(self, _event: glitter.Event) -> None:
+        self.game.policy.on_store_reload(self.load_all_data(GamePolicyStore))
+
+    @on_event(glitter.EventType.RELOAD_TRIGGER)
+    def on_reload_trigger(self, _event: glitter.Event) -> None:
+        self.game.trigger.on_store_reload(self.load_all_data(TriggerStore))
+
+    @on_event(glitter.EventType.RELOAD_SUBMISSION)
+    def on_reload_submission(self, _event: glitter.Event) -> None:
+        self.game.need_reloading_scoreboard = True
+        self.reload_scoreboard_if_needed()
+
+    @on_event(glitter.EventType.UPDATE_ANNOUNCEMENT)
+    def on_update_announcement(self, event: glitter.Event) -> None:
+        self.game.announcements.on_store_update(event.data, self.load_one_data(AnnouncementStore, event.data))
+
+    @on_event(glitter.EventType.UPDATE_CHALLENGE)
+    def on_update_challenge(self, event: glitter.Event) -> None:
+        self.game.challenges.on_store_update(event.data, self.load_one_data(ChallengeStore, event.data))
+
+    @on_event(glitter.EventType.UPDATE_USER)
+    def on_update_user(self, event: glitter.Event) -> None:
+        self.game.users.on_store_update(event.data, self.load_one_data(UserStore, event.data))
+
+    @on_event(glitter.EventType.NEW_SUBMISSION)
+    def on_new_submission(self, event: glitter.Event) -> None:
+        sub_store = self.load_one_data(SubmissionStore, event.data)
+        assert sub_store is not None
+        sub = Submission(self.game, sub_store)
+        self.game.on_scoreboard_update(sub, in_batch=False)
+
+    @on_event(glitter.EventType.TICK_UPDATE)
+    def on_tick_update(self, event: glitter.Event) -> None:
+        self.game.cur_tick = event.data
+        self.game.on_tick_change()
 
     def reload_scoreboard_if_needed(self) -> None:
         if not self.game.need_reloading_scoreboard:
@@ -74,41 +133,15 @@ class StateContainerBase(ABC):
         with self.SqlSession() as session:
             return session.execute(select(cls)).scalars().all() # type: ignore
 
-    def load_one_data(self, cls: Type[Table], id: int) -> Optional[T]:
+    def load_one_data(self, cls: Type[T], id: int) -> Optional[T]:
         with self.SqlSession() as session:
             return session.execute(select(cls).where(cls.id==id)).scalar() # type: ignore
 
     def process_event(self, event: glitter.Event) -> None:
-        if event.type==glitter.EventType.SYNC:
-            pass
+        def default(_self: Any, e: glitter.Event) -> None:
+            self.log('warning', 'base.process_event', f'unknown event: {e.type!r}')
 
-        elif event.type==glitter.EventType.RELOAD_GAME_POLICY:
-            self.game.policy.on_store_reload(self.load_all_data(GamePolicyStore))
-        elif event.type==glitter.EventType.RELOAD_TRIGGER:
-            self.game.trigger.on_store_reload(self.load_all_data(TriggerStore))
-        elif event.type==glitter.EventType.RELOAD_SUBMISSION:
-            self.game.need_reloading_scoreboard = True
-            self.reload_scoreboard_if_needed()
-
-        elif event.type==glitter.EventType.UPDATE_ANNOUNCEMENT:
-            self.game.announcements.on_store_update(event.data, self.load_one_data(TriggerStore, event.data))
-        elif event.type==glitter.EventType.UPDATE_CHALLENGE:
-            self.game.challenges.on_store_update(event.data, self.load_one_data(ChallengeStore, event.data))
-        elif event.type==glitter.EventType.UPDATE_USER:
-            self.game.users.on_store_update(event.data, self.load_one_data(UserStore, event.data))
-
-        elif event.type==glitter.EventType.NEW_SUBMISSION:
-            sub_store = self.load_one_data(SubmissionStore, event.data)
-            assert sub_store is not None
-            sub = Submission(self.game, sub_store)
-            self.game.on_scoreboard_update(sub, in_batch=False)
-        elif event.type==glitter.EventType.TICK_UPDATE:
-            self.game.cur_tick = event.data
-            self.game.on_tick_change()
-
-        else:
-            self.log('warning', 'base.process_event', f'unknown event: {event.type!r}')
-
-        ### done
+        listener = event_listeners.get(event.type, default)
+        listener(self, event)
 
         self.reload_scoreboard_if_needed()

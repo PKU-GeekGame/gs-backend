@@ -11,6 +11,7 @@ import base64
 import OpenSSL.crypto
 import traceback
 from typing import Union
+import asyncio
 
 from . import secret
 
@@ -37,3 +38,10 @@ def sign_token(uid: int) -> str:
 
 def get_traceback(e: Exception) -> str:
     return repr(e) + '\n' + ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+
+def fix_zmq_asyncio_windows() -> None:
+    # RuntimeError: Proactor event loop does not implement add_reader family of methods required for zmq.
+    # zmq will work with proactor if tornado >= 6.1 can be found.
+    # Use `asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())` or install 'tornado>=6.1' to avoid this error.
+    if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
