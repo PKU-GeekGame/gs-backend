@@ -9,6 +9,7 @@ from typing import Type, TypeVar, List, Optional, Dict, Callable, Any, Tuple
 from . import glitter
 from ..state import *
 from ..store import *
+from .. import utils
 from .. import secret
 
 T = TypeVar('T', bound=Table)
@@ -51,19 +52,25 @@ class StateContainerBase(ABC):
             return None
         return self._game
 
-    def init_game(self) -> None:
-        self._game = Game(
-            logger=self.log,
-            cur_tick=0,
-            game_policy_stores=self.load_all_data(GamePolicyStore),
-            trigger_stores=self.load_all_data(TriggerStore),
-            challenge_stores=self.load_all_data(ChallengeStore),
-            announcement_stores=self.load_all_data(AnnouncementStore),
-            user_stores=self.load_all_data(UserStore),
-        )
-        self._game.on_tick_change()
-        self.reload_scoreboard_if_needed()
-        self.game_dirty = False
+    async def init_game(self, tick: int) -> None:
+        while True:
+            try:
+                self._game = Game(
+                    logger=self.log,
+                    cur_tick=tick,
+                    game_policy_stores=self.load_all_data(GamePolicyStore),
+                    trigger_stores=self.load_all_data(TriggerStore),
+                    challenge_stores=self.load_all_data(ChallengeStore),
+                    announcement_stores=self.load_all_data(AnnouncementStore),
+                    user_stores=self.load_all_data(UserStore),
+                )
+                self._game.on_tick_change()
+                self.reload_scoreboard_if_needed()
+            except Exception as e:
+                self.log('error', 'base.init_game', f'exception during initialization, will try again: {utils.get_traceback(e)}')
+                await asyncio.sleep(self.RECOVER_THROTTLE_S)
+            else:
+                break
 
     @abstractmethod
     async def _before_run(self) -> None:
@@ -84,7 +91,10 @@ class StateContainerBase(ABC):
 
     @on_event(glitter.EventType.SYNC)
     def on_sync(self, event: glitter.Event) -> None:
-        pass
+        if self._game.cur_tick!=event.data:
+            self.log('error', 'base.on_sync', f'tick is inconsistent: ours {self._game.cur_tick}, synced {event.data}')
+            self._game.cur_tick = event.data
+            self._game.on_tick_change()
 
     @on_event(glitter.EventType.RELOAD_GAME_POLICY)
     def on_reload_game_policy(self, _event: glitter.Event) -> None:
@@ -97,7 +107,6 @@ class StateContainerBase(ABC):
     @on_event(glitter.EventType.RELOAD_SUBMISSION)
     def on_reload_submission(self, _event: glitter.Event) -> None:
         self._game.need_reloading_scoreboard = True
-        self.reload_scoreboard_if_needed()
 
     @on_event(glitter.EventType.UPDATE_ANNOUNCEMENT)
     def on_update_announcement(self, event: glitter.Event) -> None:
@@ -159,9 +168,10 @@ class StateContainerBase(ABC):
 
         try:
             listener(self, event)
+            self.reload_scoreboard_if_needed()
         except Exception as e:
             self.log('critical', 'base.process_event', f'exception during event listener, will recover: {e!r}')
-            self.init_game()
+            self.game_dirty = True
+            await self.init_game(self._game.cur_tick)
+            self.game_dirty = False
             await asyncio.sleep(self.RECOVER_THROTTLE_S)
-
-        self.reload_scoreboard_if_needed()

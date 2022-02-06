@@ -54,10 +54,16 @@ class Worker(StateContainerBase):
 
         while True:
             try:
-                event = await glitter.Event.next(self.event_socket)
+                # need to reconstruct current tick from a sync frame
+                while True:
+                    event = await glitter.Event.next(self.event_socket)
+                    if event.type==glitter.EventType.SYNC:
+                        break
+
+                self.log('info', 'worker.sync_with_reducer', f'got sync data, tick={event.data}, count={event.state_counter}')
                 self.state_counter = event.state_counter
-                self.log('info', 'worker.sync_with_reducer', f'got state counter {self.state_counter}')
-                self.init_game()
+                await self.init_game(event.data)
+
                 async with self.state_counter_cond:
                     self.state_counter_cond.notify_all()
             except Exception as e:

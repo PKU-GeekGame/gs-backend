@@ -27,8 +27,9 @@ class GamePolicy(WithGameLifecycle):
                 ret = s
         return ret
 
-    def get_policy_at_time(self, timestamp_s: float) -> Optional[GamePolicyStore]:
-        return self.get_policy_at_tick(self._game.trigger.get_tick_at_time(timestamp_s))
+    def get_policy_at_time(self, timestamp_s: int) -> Optional[GamePolicyStore]:
+        tick = self._game.trigger.get_tick_at_time(timestamp_s)[0]
+        return self.get_policy_at_tick(tick)
 
     def on_tick_change(self) -> None:
         self.cur_policy = self.get_policy_at_tick(self._game.cur_tick)

@@ -5,10 +5,12 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm.session import make_transient
 import asyncio
+import time
 from typing import Callable, Any, Awaitable
 
 from . import glitter
 from .base import StateContainerBase, make_callback_decorator
+from ..state import Trigger
 from ..store import *
 from .. import utils
 from .. import secret
@@ -34,7 +36,9 @@ class Reducer(StateContainerBase):
 
     async def _before_run(self) -> None:
         self.log('info', 'reducer.before_run', 'started to initialize game')
-        self.init_game()
+        await self.init_game(0)
+        await self._update_tick()
+        self.game_dirty = False
 
     @on_action(glitter.WorkerHelloReq)
     async def on_worker_hello(self, req: glitter.WorkerHelloReq) -> Optional[str]:
@@ -135,6 +139,30 @@ class Reducer(StateContainerBase):
         await self.emit_event(glitter.Event(glitter.EventType.NEW_SUBMISSION, self.state_counter, sid))
         return None
 
+    async def _update_tick(self, ts: Optional[int] = None) -> int: # return: when it expires
+        if ts is None:
+            ts = int(time.time())
+
+        old_tick = self._game.cur_tick
+        new_tick, expires = self._game.trigger.get_tick_at_time(ts)
+
+        self.log('info', 'reducer.update_tick', f'set tick {old_tick} -> {new_tick}')
+
+        self._game.cur_tick = new_tick
+        if new_tick!=old_tick:
+            self.state_counter += 1
+            await self.emit_event(glitter.Event(glitter.EventType.TICK_UPDATE, self.state_counter, new_tick))
+
+        return expires
+
+    async def _tick_updater_daemon(self) -> None:
+        ts = time.time()
+        while True:
+            expires = await self._update_tick(int(ts))
+            self.log('info', 'reducer.tick_updater_daemon', f'next tick in {"+INF" if expires==Trigger.TS_INF_S else int(expires-ts)} seconds')
+            await asyncio.sleep(expires-ts+.2)
+            ts = expires
+
     async def handle_action(self, action: glitter.Action) -> Optional[str]:
         async def default(_self: Any, req: glitter.ActionReq) -> Optional[str]:
             return f'unknown action: {req.type}'
@@ -149,10 +177,12 @@ class Reducer(StateContainerBase):
 
     async def emit_sync(self) -> None:
         #self.log('debug', 'reducer.emit_sync', f'emit sync ({self.state_counter})')
-        await glitter.Event(glitter.EventType.SYNC, self.state_counter, 0).send(self.event_socket)
+        await glitter.Event(glitter.EventType.SYNC, self.state_counter, self._game.cur_tick).send(self.event_socket)
 
     async def _mainloop(self) -> None:
         self.log('info', 'reducer.mainloop', 'started to receive actions')
+        _tick_updater_task = asyncio.create_task(self._tick_updater_daemon())
+
         while True:
             try:
                 future = glitter.Action.listen(self.action_socket)
