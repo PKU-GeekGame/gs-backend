@@ -51,17 +51,15 @@ class Reducer(StateContainerBase):
 
     @on_action(glitter.RegUserReq)
     async def on_reg_user(self, req: glitter.RegUserReq) -> Optional[str]:
-        if (req.login_type, req.login_identity) in self._game.users.user_by_login_key:
+        if req.login_key in self._game.users.user_by_login_key:
             return 'user already exists'
 
         with self.SqlSession() as session:
             user = UserStore(
-                login_type=req.login_type,
-                login_identity=req.login_identity,
+                login_key=req.login_key,
                 login_properties=req.login_properties,
                 enabled=True,
                 group=req.group,
-                auth_token=utils.gen_random_str(48, crypto=True),
             )
             session.add(user)
             session.flush()
@@ -77,6 +75,7 @@ class Reducer(StateContainerBase):
             assert profile.id is not None, 'created profile not in db'
 
             user.token = utils.sign_token(uid)
+            user.auth_token = f'{uid}_{utils.gen_random_str(48, crypto=True)}'
             user.profile_id = profile.id
 
             session.commit()

@@ -44,7 +44,7 @@ class Submission:
         return score
 
     def __repr__(self) -> str:
-        return f'[Sub#{self._store.id} User#{self.user._store.id} Ch={self._store.challenge_key!r} Flag={self.matched_flag!r}]'
+        return f'[Sub#{self._store.id} U#{self.user._store.id} Ch={self._store.challenge_key!r} Flag={self.matched_flag!r}]'
 
 if TYPE_CHECKING:
     from . import Game, Challenge, Flag, User

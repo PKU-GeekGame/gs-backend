@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 from .. import utils
 from .. import secret
 
-PROTOCOL_VER = 'alpha.v2'
+PROTOCOL_VER = 'glitter.alpha.v2'
 
 @unique
 class EventType(Enum):
@@ -39,8 +39,7 @@ class WorkerHelloReq(ActionReq):
 
 @dataclass
 class RegUserReq(ActionReq):
-    login_type: str
-    login_identity: str
+    login_key: str
     login_properties: Dict[str, Any]
     group: str
 

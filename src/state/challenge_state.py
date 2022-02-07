@@ -118,4 +118,4 @@ class Challenge(WithGameLifecycle):
             self.tot_cur_score += flag.cur_score
 
     def __repr__(self) -> str:
-        return f'[#{self._store.id} {self._store.key}: {self._store.title}]'
+        return f'[Ch#{self._store.id} {self._store.key}: {self._store.title}]'

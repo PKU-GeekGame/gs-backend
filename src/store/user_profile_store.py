@@ -64,4 +64,4 @@ class UserProfileStore(Table):
         return None
 
     def __repr__(self) -> str:
-        return f'[{self.nickname_or_null!r} qq={self.qq_or_null!r} email={self.email_or_null!r}]'
+        return f'[U#{self.user_id} {self.nickname_or_null!r} qq={self.qq_or_null!r} email={self.email_or_null!r}]'

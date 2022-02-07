@@ -21,6 +21,9 @@ class Trigger:
     def get_tick_at_time(self, timestamp_s: int) -> Tuple[int, int]: # (current tick, timestamp when it expires)
         assert timestamp_s<self.TS_INF_S, 'you are in the future'
 
+        if not self._stores:
+            return 0, self.TS_INF_S
+
         idx = 0
         for i, store in enumerate(self._stores):
             if store.timestamp_s<=timestamp_s:
@@ -30,5 +33,5 @@ class Trigger:
         if idx<len(self._stores)-1:
             expires = self._stores[idx+1].timestamp_s
 
-        assert expires>self._stores[idx].timestamp_s # always true because timestamp is unique and sorted
+        assert self._stores[idx].timestamp_s<expires # always true because timestamp is unique and sorted
         return self._stores[idx].tick, expires

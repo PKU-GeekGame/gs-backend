@@ -13,15 +13,15 @@ class Users(WithGameLifecycle):
 
         self.list: List[User] = []
         self.user_by_id: Dict[int, User] = {}
-        self.user_by_login_key: Dict[Tuple[str, str], User] = {}
+        self.user_by_login_key: Dict[str, User] = {}
         self.user_by_auth_token: Dict[str, User] = {}
 
         self.on_store_reload(stores)
 
     def _update_aux_dicts(self) -> None:
         self.user_by_id = {u._store.id: u for u in self.list}
-        self.user_by_login_key = {(u._store.login_type, u._store.login_identity): u for u in self.list}
-        self.user_by_auth_token = {u._store.auth_token: u for u in self.list}
+        self.user_by_login_key = {u._store.login_key: u for u in self.list}
+        self.user_by_auth_token = {u._store.auth_token: u for u in self.list if u._store.auth_token is not None}
 
     def on_store_reload(self, stores: List[UserStore]) -> None:
         self._stores = stores
@@ -58,8 +58,10 @@ class User(WithGameLifecycle):
 
         self.passed_flags: Set[Flag] = set()
         self.passed_challs: Set[Challenge] = set()
-        self.last_succ_submission: Optional[Submission] = None
         self.succ_submissions: List[Submission] = []
+        self.submissions: List[Submission] = []
+        self.tot_score: int = 0
+        self.tot_score_by_cat: Dict[str, int] = {}
 
         self.on_store_reload(self._store)
 
@@ -72,11 +74,14 @@ class User(WithGameLifecycle):
     def on_scoreboard_reset(self) -> None:
         self.passed_flags = set()
         self.passed_challs = set()
-        self.last_succ_submission = None
         self.succ_submissions = []
+        self.submissions = []
+        self._update_tot_score()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission._store.user_id==self._store.id: # always true as delegated from Users
+            self.submissions.append(submission)
+
             if submission.matched_flag is not None:
                 ch = submission.matched_flag.challenge
 
@@ -84,8 +89,31 @@ class User(WithGameLifecycle):
                 if self in ch.passed_users:
                     self.passed_challs.add(ch)
 
-                self.last_succ_submission = submission
                 self.succ_submissions.append(submission)
+
+        if submission.matched_flag is not None and not in_batch:
+            self._update_tot_score()
+
+    def on_scoreboard_batch_update_done(self) -> None:
+        self._update_tot_score()
+
+    def _update_tot_score(self) -> None:
+        self.tot_score = 0
+        self.tot_score_by_cat = {}
+
+        for f in self.passed_flags:
+            cat = f.challenge._store.category
+            self.tot_score += f.cur_score
+            self.tot_score_by_cat.setdefault(cat, 0)
+            self.tot_score_by_cat[cat] += f.cur_score
+
+    @property
+    def last_succ_submission(self) -> Optional[Submission]:
+        return self.succ_submissions[-1] if len(self.succ_submissions)>0 else None
+
+    @property
+    def last_submission(self) -> Optional[Submission]:
+        return self.submissions[-1] if len(self.submissions)>0 else None
 
     def get_tot_score(self) -> int:
         tot = 0
