@@ -23,8 +23,8 @@ def wish_endpoint(bp: Blueprint, uri: str) -> Callable[[WishHandler], RouteHandl
             retval = (await retval_) if isawaitable(retval_) else retval_
 
             return response.json({
+                'error': None, # may be overridden by retval
                 **retval,
-                'error': None,
             })
 
         return bp.route(uri, ['POST'])(wrapped)

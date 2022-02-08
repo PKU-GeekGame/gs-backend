@@ -87,25 +87,25 @@ class Reducer(StateContainerBase):
     @on_action(glitter.UpdateProfileReq)
     async def on_update_profile(self, req: glitter.UpdateProfileReq) -> Optional[str]:
         uid = int(req.uid)
+
         with self.SqlSession() as session:
-            user = session.execute(select(UserStore).where(UserStore.id==uid)).scalar()  # type: ignore
+            user: Optional[UserStore] = session.execute(select(UserStore).where(UserStore.id==uid)).scalar()  # type: ignore
             if user is None:
                 return 'user not found'
 
-            # clone old profile
+            if 1000*time.time()-user.profile.timestamp_ms<1000:
+                return '请求太频繁'
 
-            profile = user.profile
-            assert profile is not None, 'original profile not found for this user'
+            # create profile
 
-            session.expunge(profile)
-            make_transient(profile)
-            profile.id = None
-            profile.timestamp_ms = None
+            profile = UserProfileStore(user_id=user.id)
+            for k, v in req.profile.items():
+                setattr(profile, f'{str(k)}_or_null', str(v))
 
-            # write into db
+            err = profile.check_profile(user.group)
+            if err is not None:
+                return err
 
-            for k, v in profile.items():
-                setattr(user, str(k), str(v))
             session.add(profile)
             session.flush()
 
@@ -114,6 +114,22 @@ class Reducer(StateContainerBase):
             assert profile.id is not None, 'updated profile not in db'
             user.profile_id = profile.id
 
+            session.commit()
+            self.state_counter += 1
+
+        await self.emit_event(glitter.Event(glitter.EventType.UPDATE_USER, self.state_counter, uid))
+        return None
+
+    @on_action(glitter.AgreeTermReq)
+    async def on_agree_term(self, req: glitter.AgreeTermReq) -> Optional[str]:
+        uid = int(req.uid)
+
+        with self.SqlSession() as session:
+            user: Optional[UserStore] = session.execute(select(UserStore).where(UserStore.id==uid)).scalar()  # type: ignore
+            if user is None:
+                return 'user not found'
+
+            user.terms_agreed = True
             session.commit()
             self.state_counter += 1
 
@@ -211,8 +227,8 @@ class Reducer(StateContainerBase):
                 if err is not None:
                     self.log('warning', 'reducer.handle_action', f'error: {err}')
             except Exception as e:
-                self.log('critical', 'reducer.handle_action', f'exception, will report as interal error: {utils.get_traceback(e)}')
-                err = 'internal error'
+                self.log('critical', 'reducer.handle_action', f'exception, will report as internal error: {utils.get_traceback(e)}')
+                err = '内部错误，已记录日志'
 
             if self.state_counter!=old_counter:
                 self.log('debug', 'reducer.mainloop', f'state counter {old_counter} -> {self.state_counter}')

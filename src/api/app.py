@@ -2,7 +2,7 @@ from sanic import Sanic
 import os
 import asyncio
 from sanic.request import Request
-from sanic import response, HTTPResponse
+from sanic import response, HTTPResponse, Blueprint
 from sanic.exceptions import SanicException
 from typing import Optional, Any
 
@@ -72,5 +72,6 @@ async def hello(req: Request) -> HTTPResponse:
 
 from .endpoint import auth
 from .endpoint import wish
-app.blueprint(auth.bp)
-app.blueprint(wish.bp)
+from .endpoint import template
+svc = Blueprint.group(auth.bp, wish.bp, template.bp, url_prefix='/service')
+app.blueprint(svc)

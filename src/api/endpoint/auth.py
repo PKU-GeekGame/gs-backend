@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 from sanic import Blueprint, Request, HTTPResponse, response
-from sanic_ext import validate
-from typing import Dict, Any
 
 from ..auth import auth_endpoint, AuthResponse
-from ...logic import Worker, glitter
+from ...logic import Worker
 from ... import secret
 
 bp = Blueprint('auth', url_prefix='/auth')

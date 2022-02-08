@@ -49,6 +49,10 @@ class UpdateProfileReq(ActionReq):
     profile: Dict[str, str]
 
 @dataclass
+class AgreeTermReq(ActionReq):
+    uid: int
+
+@dataclass
 class SubmitFlagReq(ActionReq):
     uid: int
     challenge_id: int

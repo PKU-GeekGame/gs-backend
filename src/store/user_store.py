@@ -13,7 +13,7 @@ class UserStore(Table):
 
     MAX_TOKEN_LEN = 512
 
-    login_key = Column(String(128), nullable=False, unique=True)
+    login_key = Column(String(192), nullable=False, unique=True)
     login_properties = Column(JSON, nullable=False)
 
     enabled = Column(Boolean, nullable=False, default=True)
