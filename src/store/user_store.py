@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import Column, String, UniqueConstraint, JSON, Integer, ForeignKey, Boolean
+from sqlalchemy import Column, String, JSON, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, validates
 from typing import TYPE_CHECKING, Any
 

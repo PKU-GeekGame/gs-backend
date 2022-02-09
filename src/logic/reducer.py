@@ -3,7 +3,6 @@ import zmq
 from zmq.asyncio import Socket
 from typing import Optional
 from sqlalchemy import select
-from sqlalchemy.orm.session import make_transient
 import asyncio
 import time
 from typing import Callable, Any, Awaitable

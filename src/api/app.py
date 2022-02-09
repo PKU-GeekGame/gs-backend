@@ -66,10 +66,6 @@ async def handle_error(req: Request, exc: Exception) -> HTTPResponse:
 
 app.error_handler.add(Exception, handle_error)
 
-@app.route('/hello')
-async def hello(req: Request) -> HTTPResponse:
-    return response.text('hello')
-
 from .endpoint import auth
 from .endpoint import wish
 from .endpoint import template

@@ -27,6 +27,6 @@ def wish_endpoint(bp: Blueprint, uri: str) -> Callable[[WishHandler], RouteHandl
                 **retval,
             })
 
-        return bp.route(uri, ['POST'])(wrapped)
+        return bp.route(uri, ['POST'])(wrapped) # type: ignore
 
     return decorator

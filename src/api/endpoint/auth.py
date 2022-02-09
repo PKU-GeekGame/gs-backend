@@ -10,7 +10,7 @@ bp = Blueprint('auth', url_prefix='/auth')
 @bp.route('/logout')
 async def auth_logout(_req: Request) -> HTTPResponse:
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
-    del res.cookies['auth_token']
+    del res.cookies['auth_token'] # type: ignore
     return res
 
 @dataclass
@@ -18,5 +18,5 @@ class AuthManualParam:
     identity: str
 
 @auth_endpoint(bp, '/manual', AuthManualParam)
-async def auth_manual(_req: Request, query: AuthManualParam, worker: Worker) -> AuthResponse:
+async def auth_manual(_req: Request, query: AuthManualParam, _worker: Worker) -> AuthResponse:
     return f'manual:{query.identity}', {}, 'staff'

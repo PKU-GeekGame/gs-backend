@@ -18,7 +18,7 @@ AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 def login(user: User) -> HTTPResponse:
     chk = user.check_login()
     if chk is not None:
-        return response.text(chk[1])
+        raise AuthError(chk[1])
 
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
     res.cookies['auth_token'] = user._store.auth_token
@@ -36,7 +36,7 @@ class AuthError(Exception):
 async def register_or_login(worker: Worker, login_key: str, properties: Dict[str, Any], group: str) -> HTTPResponse:
     if worker.game is None:
         worker.log('warning', 'api.auth.register_or_login', 'game is not available')
-        raise AuthError('后端服务暂时不可用')
+        raise AuthError('服务暂时不可用')
     user = worker.game.users.user_by_login_key.get(login_key)
 
     if user is None:  # reg new user
@@ -50,7 +50,7 @@ async def register_or_login(worker: Worker, login_key: str, properties: Dict[str
             user = worker.game.users.user_by_login_key.get(login_key)
             assert user is not None, 'user should be created'
         else:
-            raise response.text(f'注册账户失败：{rep.error_msg}')
+            raise AuthError(f'注册账户失败：{rep.error_msg}')
 
     return login(user)
 
@@ -78,6 +78,6 @@ def auth_endpoint(bp: Blueprint, uri: str, query: Optional[Type[Any]] = None) ->
 
         wrapped = validate(query=query)(wrapped)
 
-        return bp.route(uri, ['GET'])(wrapped)
+        return bp.route(uri, ['GET'])(wrapped) # type: ignore
 
     return decorator

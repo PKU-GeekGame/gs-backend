@@ -93,17 +93,23 @@ async def agree_term(_req: Request, worker: Worker, user: Optional[User]) -> Dic
 
 @wish_endpoint(bp, '/announcements')
 async def announcements(_req: Request, worker: Worker) -> Dict[str, Any]:
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
     return {
         'list': [{
             'id': ann._store.id,
             'title': ann.title,
             'timestamp_s': ann.timestamp_s,
             'content': ann.content,
-        } for ann in worker.game.announcements.list] ,
+        } for ann in worker.game.announcements.list],
     }
 
 @wish_endpoint(bp, '/triggers')
 async def triggers(_req: Request, worker: Worker) -> Dict[str, Any]:
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
     return {
         'current': worker.game.cur_tick,
         'list': [{
