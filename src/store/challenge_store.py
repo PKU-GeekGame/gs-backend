@@ -21,13 +21,14 @@ class ChallengeStore(Table):
     @validates('flags')
     def validate_flags(self, _key: str, flags: Any) -> Any:
         assert isinstance(flags, list), 'flags should be list'
+        assert len(flags)>0, 'flags should not be empty'
 
         for flag in flags:
             assert isinstance(flag, dict), 'flag should be dict'
 
+            assert 'name' in flag, 'flag should have name'
             assert 'type' in flag, 'flag should have type'
             assert 'val' in flag, 'flag should have val'
-            assert 'name' in flag, 'flag should have name'
             assert 'base_score' in flag, 'flag should have base_score'
 
             assert isinstance(flag['type'], str), 'flag type should be str'
@@ -44,6 +45,22 @@ class ChallengeStore(Table):
         for action in actions:
             assert isinstance(action, dict), 'action should be dict'
 
-            # todo: what is in an action?
+            assert 'name' in action, 'action should have name'
+            assert 'type' in action, 'action should have type'
+
+            assert isinstance(action['name'], str), 'action name should be str'
+            assert isinstance(action['type'], str), 'action type should be str'
+
+            if action['type']=='webpage':
+                assert 'url' in action, 'webpage action should have url'
+                assert isinstance(action['url'], str), 'webpage action url should be str'
+
+            elif action['type']=='terminal':
+                assert 'port' in action, 'terminal action should have port'
+                assert isinstance(action['port'], int), 'terminal action port should be int'
+
+            elif action['type']=='attachment':
+                assert 'filename' in action, 'attachment action should have filename'
+                assert isinstance(action['filename'], str), 'attachment action filename should be str'
 
         return actions

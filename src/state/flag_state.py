@@ -79,3 +79,12 @@ class Flag(WithGameLifecycle):
 
     def __repr__(self) -> str:
         return f'[{self.challenge._store.key}#{self.idx}]'
+
+    def describe_json(self, user: User) -> Dict[str, Any]:
+        return {
+            'name': self.name,
+            'base_score': self.base_score,
+            'cur_score': self.cur_score,
+            'passed_users_count': len(self.passed_users),
+            'status': 'passed' if user in self.passed_users else 'untouched',
+        }

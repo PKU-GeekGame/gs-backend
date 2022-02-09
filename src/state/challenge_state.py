@@ -67,6 +67,7 @@ class Challenge(WithGameLifecycle):
         self.desc: str = ''
 
         self.passed_users: Set[User] = set()
+        self.touched_users: Set[User] = set()
 
         self.tot_base_score: int = 0
         self.tot_cur_score: int = 0
@@ -89,6 +90,7 @@ class Challenge(WithGameLifecycle):
 
     def on_scoreboard_reset(self) -> None:
         self.passed_users = set()
+        self.touched_users = set()
 
         for flag in self.flags:
             flag.on_scoreboard_reset()
@@ -100,6 +102,7 @@ class Challenge(WithGameLifecycle):
             all_passed = True
             for flag in self.flags:
                 flag.on_scoreboard_update(submission, in_batch)
+
                 if submission.user not in flag.passed_users:
                     all_passed = False
 
@@ -108,6 +111,7 @@ class Challenge(WithGameLifecycle):
 
             if submission.matched_flag is not None:
                 self._update_tot_score()
+                self.touched_users.add(submission.user)
 
     def _update_tot_score(self) -> None:
         self.tot_base_score = 0

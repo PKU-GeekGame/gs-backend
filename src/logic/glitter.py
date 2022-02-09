@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from zmq.asyncio import Socket
 import pickle
+import asyncio
 from typing import Dict, Any, Optional, List
 
 from .. import utils
@@ -66,6 +67,7 @@ class ActionRep:
 CALL_TIMEOUT_MS = 5000
 
 class Action:
+    _lock: Optional[asyncio.Lock] = None
     def __init__(self, req: ActionReq):
         self.req: ActionReq = req
 
@@ -82,8 +84,13 @@ class Action:
     # client
 
     async def call(self, sock: Socket) -> ActionRep:
-        await self._send_req(sock)
-        return await self._recv_rep(sock)
+        if Action._lock is None:
+            Action._lock = asyncio.Lock()
+
+        async with self._lock:
+            await self._send_req(sock)
+            ret = await self._recv_rep(sock)
+            return ret
 
     # server
 
@@ -108,7 +115,7 @@ class Action:
     async def reply(rep: ActionRep, sock: Socket) -> None:
         await sock.send_multipart([pickle.dumps(rep)]) # type: ignore
 
-SYNC_INTERVAL_S = 3
+SYNC_INTERVAL_S = 2
 SYNC_TIMEOUT_MS = 7000
 
 class Event:

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Dict, Any
 
 from .. import utils
 
@@ -39,6 +39,14 @@ class Announcement:
 
     def __repr__(self) -> str:
         return repr(self._store)
+
+    def describe_json(self) -> Dict[str, Any]:
+        return {
+            'id': self._store.id,
+            'title': self.title,
+            'timestamp_s': self.timestamp_s,
+            'content': self.content,
+        }
 
 if TYPE_CHECKING:
     from . import Game

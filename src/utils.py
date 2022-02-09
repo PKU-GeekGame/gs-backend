@@ -1,5 +1,8 @@
 import random
 import markdown
+from xml.etree import ElementTree
+from markdown.postprocessors import Postprocessor
+from markdown.extensions import Extension
 from markdown.extensions.codehilite import CodeHiliteExtension
 from markdown.extensions.md_in_html import MarkdownInHtmlExtension
 from markdown.extensions.tables import TableExtension
@@ -22,14 +25,26 @@ def gen_random_str(length: int = 32, *, crypto: bool = False) -> str:
 
     return ''.join([choice(alphabet) for _ in range(length)])
 
+class LinkTargetExtension(Extension):
+    class LinkTargetProcessor(Postprocessor):
+        def run(self, text: str) -> str:
+            return text.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ')
+
+    def extendMarkdown(self, md: markdown.Markdown) -> None:
+        md.postprocessors.register(self.LinkTargetProcessor(), 'link-target-processor', 100)
+
+md = markdown.Markdown(extensions=[
+    FencedCodeExtension(),
+    CodeHiliteExtension(guess_lang=False, use_pygments=True, noclasses=True),
+    MarkdownInHtmlExtension(),
+    TableExtension(),
+    SaneListExtension(),
+    LinkTargetExtension(),
+], output_format='html')
+
 def render_template(template_str: str) -> str:
-    return markdown.markdown(template_str, extensions=[
-        FencedCodeExtension(),
-        CodeHiliteExtension(guess_lang=False, use_pygments=True, noclasses=True),
-        MarkdownInHtmlExtension(),
-        TableExtension(),
-        SaneListExtension(),
-    ], output_format='html')
+    md.reset()
+    return md.convert(template_str)
 
 def format_timestamp(timestamp_s: Union[float, int]) -> str:
     date = datetime.datetime.fromtimestamp(timestamp_s, pytz.timezone('Asia/Shanghai'))

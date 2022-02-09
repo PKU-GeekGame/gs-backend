@@ -20,6 +20,7 @@ class ScoreBoard(Board):
 
         self.group: Optional[List[str]] = group
         self.board: List[ScoreBoardItemType] = []
+        self.uid_to_rank: Dict[int, int] = {}
 
         self._summarized: object = self._summarize()
 
@@ -44,6 +45,7 @@ class ScoreBoard(Board):
 
         b = [(u, u.get_tot_score()) for u in self._game.users.list]
         self.board = sorted([x for x in b if is_valid(x)], key=sorter)
+        self.uid_to_rank = {user._store.id: idx+1 for idx, (user, _score) in enumerate(self.board)}
 
     def _summarize(self) -> object:
         pass # todo
