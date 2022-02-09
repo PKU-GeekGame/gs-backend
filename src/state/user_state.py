@@ -121,25 +121,25 @@ class User(WithGameLifecycle):
             tot += f.cur_score
         return tot
 
-    def check_login(self) -> Optional[str]:
+    def check_login(self) -> Optional[Tuple[str, str]]:
         if not self._store.enabled:
-            return '账号不允许登录'
+            return 'USER_DISABLED', '账号不允许登录'
         return None
 
-    def check_update_profile(self) -> Optional[str]:
+    def check_update_profile(self) -> Optional[Tuple[str, str]]:
         if self.check_login() is not None:
             return self.check_login()
         if not self._store.terms_agreed:
-            return '请先阅读比赛须知'
+            return 'SHOULD_AGREE_TERMS', '请阅读参赛须知'
         if self._store.group=='banned':
-            return '此用户组被禁止参赛'
+            return 'USER_BANNED', '此用户组被禁止参赛'
         return None
 
-    def check_play_game(self) -> Optional[str]:
+    def check_play_game(self) -> Optional[Tuple[str, str]]:
         if self.check_update_profile() is not None:
             return self.check_update_profile()
         if self._store.profile.check_profile(self._store.group) is not None:
-            return self._store.profile.check_profile(self._store.group)
+            return 'SHOULD_UPDATE_PROFILE', '请完善个人信息'
         return None
 
     def __repr__(self) -> str:

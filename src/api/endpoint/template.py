@@ -10,6 +10,7 @@ bp = Blueprint('template', url_prefix='/template')
 FILES = [
     'game',
     'terms',
+    'faq',
 ]
 TEMPLATE_PATH = pathlib.Path('data/templates')
 assert TEMPLATE_PATH.is_dir()

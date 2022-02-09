@@ -36,7 +36,7 @@ async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dic
         },
         'feature': {
             'push': True,
-            'game': user is not None and user.check_play_game() is not None,
+            'game': user is not None,
         },
     }
 
@@ -53,6 +53,10 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
     if 1000*time.time()-user._store.profile.timestamp_ms < 1000:
         return {'error': 'RATE_LIMIT', 'error_msg': '请求太频繁'}
 
+    err = user.check_update_profile()
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+
     required_fields = user._store.profile.PROFILE_FOR_GROUP.get(user._store.group, [])
     profile = {}
     for field in required_fields:
@@ -68,7 +72,7 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
     if rep.error_msg is not None:
         return {'error': 'REDUCER_ERROR', 'error_msg': rep.error_msg}
 
-    return {'error': None}
+    return {}
 
 @wish_endpoint(bp, '/agree_term')
 async def agree_term(_req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
@@ -76,7 +80,7 @@ async def agree_term(_req: Request, worker: Worker, user: Optional[User]) -> Dic
         return {'error': 'NO_USER', 'error_msg': '未登录'}
 
     if user._store.terms_agreed:
-        return {'error': None}
+        return {}
 
     rep = await worker.perform_action(glitter.AgreeTermReq(
         client=worker.process_name,
@@ -85,4 +89,37 @@ async def agree_term(_req: Request, worker: Worker, user: Optional[User]) -> Dic
     if rep.error_msg is not None:
         return {'error': 'REDUCER_ERROR', 'error_msg': rep.error_msg}
 
-    return {'error': None}
+    return {}
+
+@wish_endpoint(bp, '/announcements')
+async def announcements(_req: Request, worker: Worker) -> Dict[str, Any]:
+    return {
+        'list': [{
+            'id': ann._store.id,
+            'title': ann.title,
+            'timestamp_s': ann.timestamp_s,
+            'content': ann.content,
+        } for ann in worker.game.announcements.list] ,
+    }
+
+@wish_endpoint(bp, '/triggers')
+async def triggers(_req: Request, worker: Worker) -> Dict[str, Any]:
+    return {
+        'current': worker.game.cur_tick,
+        'list': [{
+            'timestamp_s': trigger.timestamp_s,
+            'name': trigger.name,
+            'status': 'prs' if trigger.tick==worker.game.cur_tick else 'ftr' if trigger.tick>worker.game.cur_tick else 'pst',
+        } for trigger in worker.game.trigger._stores]
+    }
+
+@wish_endpoint(bp, '/game')
+async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+    if user is None:
+        return {'error': 'NO_USER', 'error_msg': '未登录'}
+
+    err = user.check_play_game()
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+
+    return {}

@@ -18,7 +18,7 @@ AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 def login(user: User) -> HTTPResponse:
     chk = user.check_login()
     if chk is not None:
-        return response.text(chk)
+        return response.text(chk[1])
 
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
     res.cookies['auth_token'] = user._store.auth_token

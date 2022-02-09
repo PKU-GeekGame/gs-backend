@@ -15,4 +15,4 @@ TOKEN_SIGNING_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, 
 GLITTER_ACTION_SOCKET_ADDR = 'tcp://127.0.0.1:5601'
 GLITTER_EVENT_SOCKET_ADDR = 'tcp://127.0.0.1:5602'
 
-FRONTEND_PORTAL_URL = '/portal/' # redirected to this after (successful or failed) login
+FRONTEND_PORTAL_URL = '/' # redirected to this after (successful or failed) login

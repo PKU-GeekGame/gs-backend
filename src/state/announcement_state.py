@@ -33,8 +33,9 @@ class Announcement:
         self._game: Game = game
         self._store: AnnouncementStore = store
 
-        self.content = utils.render_template(self._store.content_template)
-        self.time_str = utils.format_timestamp(self._store.timestamp_s)
+        self.title = store.title
+        self.content = utils.render_template(store.content_template)
+        self.timestamp_s = store.timestamp_s
 
     def __repr__(self) -> str:
         return repr(self._store)
