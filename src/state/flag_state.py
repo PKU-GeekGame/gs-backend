@@ -1,5 +1,4 @@
 from __future__ import annotations
-import re
 import hashlib
 import string
 from functools import lru_cache
@@ -31,8 +30,6 @@ def leet_flag(flag: str, uid: int) -> str:
 
 class Flag(WithGameLifecycle):
     TYPES = ['static', 'leet']
-    VAL_FLAG = re.compile(r'^flag{[\x20-\x7e]{0,100}}$') # todo: move check to reducer or api
-    MAX_FLAG_LEN = 110
 
     def __init__(self, game: Game, descriptor: Dict[str, Any], chall: Challenge, idx: int):
         self._game: Game = game
@@ -62,9 +59,6 @@ class Flag(WithGameLifecycle):
             raise ValueError(f'Unknown flag type: {self.type}')
 
     def validate_flag(self, user: User, flag: str) -> bool:
-        if len(flag)>self.MAX_FLAG_LEN or not self.VAL_FLAG.match(flag):
-            return False
-
         return flag==self.correct_flag(user)
 
     def on_scoreboard_reset(self) -> None:

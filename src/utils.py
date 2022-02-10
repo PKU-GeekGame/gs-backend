@@ -1,6 +1,5 @@
 import random
 import markdown
-from xml.etree import ElementTree
 from markdown.postprocessors import Postprocessor
 from markdown.extensions import Extension
 from markdown.extensions.codehilite import CodeHiliteExtension
@@ -33,7 +32,7 @@ class LinkTargetExtension(Extension):
     def extendMarkdown(self, md: markdown.Markdown) -> None:
         md.postprocessors.register(self.LinkTargetProcessor(), 'link-target-processor', 100)
 
-md = markdown.Markdown(extensions=[
+markdown_processor = markdown.Markdown(extensions=[
     FencedCodeExtension(),
     CodeHiliteExtension(guess_lang=False, use_pygments=True, noclasses=True),
     MarkdownInHtmlExtension(),
@@ -43,8 +42,8 @@ md = markdown.Markdown(extensions=[
 ], output_format='html')
 
 def render_template(template_str: str) -> str:
-    md.reset()
-    return md.convert(template_str)
+    markdown_processor.reset()
+    return markdown_processor.convert(template_str)
 
 def format_timestamp(timestamp_s: Union[float, int]) -> str:
     date = datetime.datetime.fromtimestamp(timestamp_s, pytz.timezone('Asia/Shanghai'))

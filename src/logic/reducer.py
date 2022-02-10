@@ -137,20 +137,33 @@ class Reducer(StateContainerBase):
 
     @on_action(glitter.SubmitFlagReq)
     async def on_submit_flag(self, req: glitter.SubmitFlagReq) -> Optional[str]:
+        ch = self._game.challenges.chall_by_id.get(int(req.challenge_id), None)
+        if not ch:
+            return 'challenge not found'
+
         with self.SqlSession() as session:
             submission = SubmissionStore(
                 user_id=int(req.uid),
-                challenge_id=int(req.challenge_id),
+                challenge_key=ch._store.key,
                 flag=str(req.flag),
             )
             session.add(submission)
-            sid = submission.id
-            assert sid is not None, 'created submission not in db'
-
             session.commit()
             self.state_counter += 1
 
+            sid = submission.id
+            assert sid is not None, 'created submission not in db'
+
         await self.emit_event(glitter.Event(glitter.EventType.NEW_SUBMISSION, self.state_counter, sid))
+
+        sub = self._game.submissions.get(sid, None)
+        assert sub is not None, 'submission not found'
+
+        if sub.duplicate_submission:
+            return '已经提交过此Flag'
+        if sub.matched_flag is None:
+            return 'Flag错误'
+
         return None
 
     async def _update_tick(self, ts: Optional[int] = None) -> int: # return: when it expires

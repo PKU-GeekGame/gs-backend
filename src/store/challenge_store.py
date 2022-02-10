@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, JSON
 from sqlalchemy.orm import validates
-from typing import Any
+import re
+from typing import Any, Optional, Tuple
 
 from . import Table
 
@@ -17,6 +18,9 @@ class ChallengeStore(Table):
 
     actions = Column(JSON, nullable=False)
     flags = Column(JSON, nullable=False)
+
+    VAL_FLAG = re.compile(r'^flag{[\x20-\x7e]{0,100}}$')
+    MAX_FLAG_LEN = 110
 
     @validates('flags')
     def validate_flags(self, _key: str, flags: Any) -> Any:
@@ -47,7 +51,6 @@ class ChallengeStore(Table):
 
             assert 'name' in action, 'action should have name'
             assert 'type' in action, 'action should have type'
-
             assert isinstance(action['name'], str), 'action name should be str'
             assert isinstance(action['type'], str), 'action type should be str'
 
@@ -56,7 +59,9 @@ class ChallengeStore(Table):
                 assert isinstance(action['url'], str), 'webpage action url should be str'
 
             elif action['type']=='terminal':
+                assert 'host' in action, 'terminal action should have host'
                 assert 'port' in action, 'terminal action should have port'
+                assert isinstance(action['host'], str), 'terminal action host should be str'
                 assert isinstance(action['port'], int), 'terminal action port should be int'
 
             elif action['type']=='attachment':
@@ -64,3 +69,11 @@ class ChallengeStore(Table):
                 assert isinstance(action['filename'], str), 'attachment action filename should be str'
 
         return actions
+
+    @classmethod
+    def check_submitted_flag(cls, flag: str) -> Optional[Tuple[str, str]]:
+        if len(flag)>cls.MAX_FLAG_LEN:
+            return 'FLAG_LEN', 'Flag过长'
+        elif cls.VAL_FLAG.match(flag) is None:
+            return 'FLAG_PATTERN', 'Flag格式错误'
+        return None

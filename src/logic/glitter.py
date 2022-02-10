@@ -87,7 +87,7 @@ class Action:
         if Action._lock is None:
             Action._lock = asyncio.Lock()
 
-        async with self._lock:
+        async with Action._lock:
             await self._send_req(sock)
             ret = await self._recv_rep(sock)
             return ret

@@ -53,9 +53,8 @@ class Challenges(WithGameLifecycle):
             ch.on_scoreboard_reset()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
-        for ch in self.list:
-            if submission.challenge is not None and submission.challenge._store.id==ch._store.id:
-                ch.on_scoreboard_update(submission, in_batch)
+        if submission.challenge is not None:
+            submission.challenge.on_scoreboard_update(submission, in_batch)
 
 class Challenge(WithGameLifecycle):
     def __init__(self, game: Game, store: ChallengeStore):

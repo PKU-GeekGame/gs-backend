@@ -2,12 +2,12 @@ from sanic import Blueprint, Request
 from sanic_ext import validate
 from dataclasses import dataclass
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 
 from ..wish import wish_endpoint
-from ...state import User, ScoreBoard
+from ...state import User, ScoreBoard, Submission
 from ...logic import Worker, glitter
-from ...store import UserProfileStore
+from ...store import UserProfileStore, ChallengeStore
 
 bp = Blueprint('endpoint', url_prefix='/wish')
 
@@ -50,12 +50,12 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
     if user is None:
         return {'error': 'NO_USER', 'error_msg': '未登录'}
 
-    if 1000*time.time()-user._store.profile.timestamp_ms < 1000:
-        return {'error': 'RATE_LIMIT', 'error_msg': '请求太频繁'}
-
     err = user.check_update_profile()
     if err is not None:
         return {'error': err[0], 'error_msg': err[1]}
+
+    if 1000*time.time()-user._store.profile.timestamp_ms < 1000:
+        return {'error': 'RATE_LIMIT', 'error_msg': '请求太频繁'}
 
     required_fields = user._store.profile.PROFILE_FOR_GROUP.get(user._store.group, [])
     fields = {}
@@ -66,9 +66,9 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
         setattr(profile, f'{field}_or_null', str(body.profile[field]))
         fields[field] = str(body.profile[field])
 
-    err = profile.check_profile(user._store.group)
-    if err is not None:
-        return {'error': 'INVALID_PARAM', 'error_msg': err}
+    chk = profile.check_profile(user._store.group)
+    if chk is not None:
+        return {'error': 'INVALID_PARAM', 'error_msg': chk}
 
     rep = await worker.perform_action(glitter.UpdateProfileReq(
         client=worker.process_name,
@@ -129,11 +129,11 @@ CAT_COLORS = {
 FALLBACK_CAT_COLOR = '#000000'
 
 def reorder_by_cat(values: Dict[str, Any]) -> Dict[str, Any]:
-    out = {}
+    out: Dict[str, Any] = {}
     for cat in CAT_COLORS.keys():
         if cat in values:
             out[cat] = None
-    for k, v in values:
+    for k, v in values.items():
         out[k] = v
     return out
 
@@ -173,7 +173,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
 
         'user_info': {
             'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
-            'status_line': f'当前总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
+            'status_line': f'总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
         },
 
         'writeup_info': None if not policy.can_submit_writeup else {
@@ -181,4 +181,87 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
         },
 
         'last_announcement': worker.game.announcements.list[0].describe_json() if worker.game.announcements.list else None,
+    }
+
+@dataclass
+class SubmitFlagParam:
+    challenge_id: int
+    flag: str
+
+@wish_endpoint(bp, '/submit_flag')
+@validate(json=SubmitFlagParam)
+async def submit_flag(_req: Request, body: SubmitFlagParam, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+    if user is None:
+        return {'error': 'NO_USER', 'error_msg': '未登录'}
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    err = user.check_play_game()
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+
+    err = ChallengeStore.check_submitted_flag(body.flag)
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+
+    last_sub = user.last_submission
+    if last_sub is not None:
+        delta = time.time()-last_sub._store.timestamp_ms/1000
+        if delta<10:
+            return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {10-delta:.1f} 秒'}
+
+    rep = await worker.perform_action(glitter.SubmitFlagReq(
+        client=worker.process_name,
+        uid=user._store.id,
+        challenge_id=body.challenge_id,
+        flag=body.flag,
+    ))
+    if rep.error_msg is not None:
+        return {'error': 'REDUCER_ERROR', 'error_msg': rep.error_msg}
+
+    return {}
+
+@dataclass
+class GetTouchedUsersParam:
+    challenge_id: int
+
+@wish_endpoint(bp, '/get_touched_users')
+@validate(json=GetTouchedUsersParam)
+async def get_touched_users(_req: Request, body: GetTouchedUsersParam, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+    if user is None:
+        return {'error': 'NO_USER', 'error_msg': '未登录'}
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    err = user.check_play_game()
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+
+    ch = worker.game.challenges.chall_by_id.get(body.challenge_id, None)
+    if ch is None:
+        return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+
+    users: Dict[User, List[Submission]] = {}
+    users_sort_key: List[Tuple[Tuple[int, int], User]] = []
+    for u in ch.touched_users:
+        li = []
+        tot_score = 0
+        last_sub_ts = 0
+        for f in ch.flags:
+            sub = u.passed_flags.get(f, None)
+            if sub is not None:
+                li.append(sub)
+                last_sub_ts = max(last_sub_ts, sub._store.timestamp_ms)
+                tot_score += sub.gained_score()
+        users[u] = li
+        users_sort_key.append(((-tot_score, last_sub_ts), u))
+
+    users_sort_key.sort(key=lambda x: x[0])
+
+    return {
+        'list': [{
+            'nickname': u._store.profile.nickname_or_null or '',
+            'group_disp': group_disp(u._store.group),
+            'flags': [int(sub._store.timestamp_ms/1000) for sub in users[u]],
+        } for _sort_key, u in users_sort_key],
     }

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Optional, Dict, Set, Tuple
+from typing import TYPE_CHECKING, List, Optional, Dict, Tuple
 
 if TYPE_CHECKING:
     from . import Game, Submission, Flag, Challenge
@@ -51,13 +51,17 @@ class Users(WithGameLifecycle):
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         submission.user.on_scoreboard_update(submission, in_batch)
 
+    def on_scoreboard_batch_update_done(self) -> None:
+        for user in self.list:
+            user.on_scoreboard_batch_update_done()
+
 class User(WithGameLifecycle):
     def __init__(self, game: Game, store: UserStore):
         self._game: Game = game
         self._store: UserStore = store
 
-        self.passed_flags: Set[Flag] = set()
-        self.passed_challs: Set[Challenge] = set()
+        self.passed_flags: Dict[Flag, Submission] = {}
+        self.passed_challs: Dict[Challenge, Submission] = {}
         self.succ_submissions: List[Submission] = []
         self.submissions: List[Submission] = []
         self.tot_score: int = 0
@@ -72,8 +76,8 @@ class User(WithGameLifecycle):
         self._store = store
 
     def on_scoreboard_reset(self) -> None:
-        self.passed_flags = set()
-        self.passed_challs = set()
+        self.passed_flags = {}
+        self.passed_challs = {}
         self.succ_submissions = []
         self.submissions = []
         self._update_tot_score()
@@ -85,9 +89,9 @@ class User(WithGameLifecycle):
             if submission.matched_flag is not None:
                 ch = submission.matched_flag.challenge
 
-                self.passed_flags.add(submission.matched_flag)
+                self.passed_flags[submission.matched_flag] = submission
                 if self in ch.passed_users:
-                    self.passed_challs.add(ch)
+                    self.passed_challs[ch] = submission
 
                 self.succ_submissions.append(submission)
 
@@ -101,7 +105,7 @@ class User(WithGameLifecycle):
         self.tot_score = 0
         self.tot_score_by_cat = {}
 
-        for f in self.passed_flags:
+        for f in self.passed_flags.keys():
             cat = f.challenge._store.category
             self.tot_score += f.cur_score
             self.tot_score_by_cat.setdefault(cat, 0)
@@ -117,7 +121,7 @@ class User(WithGameLifecycle):
 
     def get_tot_score(self) -> int:
         tot = 0
-        for f in self.passed_flags:
+        for f in self.passed_flags.keys():
             tot += f.cur_score
         return tot
 
@@ -139,7 +143,7 @@ class User(WithGameLifecycle):
         if self.check_update_profile() is not None:
             return self.check_update_profile()
         if self._store.profile.check_profile(self._store.group) is not None:
-            return 'SHOULD_UPDATE_PROFILE', '请完善个人信息'
+            return 'SHOULD_UPDATE_PROFILE', '请完善个人资料'
         return None
 
     def __repr__(self) -> str:
