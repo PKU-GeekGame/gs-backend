@@ -31,12 +31,12 @@ def leet_flag(flag: str, uid: int) -> str:
 class Flag(WithGameLifecycle):
     TYPES = ['static', 'leet']
 
-    def __init__(self, game: Game, descriptor: Dict[str, Any], chall: Challenge, idx: int):
+    def __init__(self, game: Game, descriptor: Dict[str, Any], chall: Challenge, idx0: int):
         self._game: Game = game
         self._store: Dict[str, Any] = descriptor
 
         self.challenge = chall
-        self.idx = idx
+        self.idx0 = idx0
         self.type: str = descriptor['type']
         self.val: str = descriptor['val']
         self.name: str = descriptor['name']
@@ -72,7 +72,7 @@ class Flag(WithGameLifecycle):
             self._update_cur_score()
 
     def __repr__(self) -> str:
-        return f'[{self.challenge._store.key}#{self.idx}]'
+        return f'[{self.challenge._store.key}#{self.idx0+1}]'
 
     def describe_json(self, user: User) -> Dict[str, Any]:
         return {

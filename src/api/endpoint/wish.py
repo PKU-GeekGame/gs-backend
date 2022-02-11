@@ -11,21 +11,13 @@ from ...store import UserProfileStore, ChallengeStore
 
 bp = Blueprint('endpoint', url_prefix='/wish')
 
-def group_disp(g: str) -> str:
-    return {
-        'pku': '北京大学',
-        'other': '校外选手',
-        'staff': '工作人员',
-        'banned': '已封禁',
-    }.get(g, f'({g})')
-
 @wish_endpoint(bp, '/game_info')
 async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dict[str, Any]:
     return {
         'user': None if user is None else {
             'id': user._store.id,
             'group': user._store.group,
-            'group_disp': group_disp(user._store.group),
+            'group_disp': user._store.group_disp(),
             'token': user._store.token,
             'profile': {
                 field: (
@@ -168,7 +160,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
             'tot_base_score': ch.tot_base_score,
             'tot_cur_score': ch.tot_cur_score,
             'passed_users_count': len(ch.passed_users),
-            'status': 'passed' if user in ch.passed_users else 'partial' if user in ch.touched_users else  'untouched',
+            'status': ch.user_status(user),
         } for ch in worker.game.challenges.list if ch.cur_effective],
 
         'user_info': {
@@ -221,13 +213,8 @@ async def submit_flag(_req: Request, body: SubmitFlagParam, worker: Worker, user
 
     return {}
 
-@dataclass
-class GetTouchedUsersParam:
-    challenge_id: int
-
-@wish_endpoint(bp, '/get_touched_users')
-@validate(json=GetTouchedUsersParam)
-async def get_touched_users(_req: Request, body: GetTouchedUsersParam, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+@wish_endpoint(bp, '/get_touched_users/<challenge_id:int>')
+async def get_touched_users(_req: Request, challenge_id: int, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
     if user is None:
         return {'error': 'NO_USER', 'error_msg': '未登录'}
     if worker.game is None:
@@ -237,7 +224,7 @@ async def get_touched_users(_req: Request, body: GetTouchedUsersParam, worker: W
     if err is not None:
         return {'error': err[0], 'error_msg': err[1]}
 
-    ch = worker.game.challenges.chall_by_id.get(body.challenge_id, None)
+    ch = worker.game.challenges.chall_by_id.get(challenge_id, None)
     if ch is None:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
@@ -261,7 +248,21 @@ async def get_touched_users(_req: Request, body: GetTouchedUsersParam, worker: W
     return {
         'list': [{
             'nickname': u._store.profile.nickname_or_null or '',
-            'group_disp': group_disp(u._store.group),
+            'group_disp': u._store.group_disp(),
             'flags': [int(sub._store.timestamp_ms/1000) for sub in users[u]],
         } for _sort_key, u in users_sort_key],
+    }
+
+@wish_endpoint(bp, '/board/<board_name:str>')
+async def get_board(_req: Request, board_name: str, worker: Worker) -> Dict[str, Any]:
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    b = worker.game.boards.get(board_name, None)
+    if b is None:
+        return {'error': 'NOT_FOUND', 'error_msg': '排行榜不存在'}
+
+    return {
+        **b.summarized,
+        'type': b.board_type,
     }

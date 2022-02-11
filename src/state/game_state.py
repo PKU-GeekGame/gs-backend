@@ -25,10 +25,10 @@ class Game(WithGameLifecycle):
         self.challenges: Challenges = Challenges(self, challenge_stores)
         self.users: Users = Users(self, user_stores)
         self.boards: Dict[str, Board] = {
-            'score_all': ScoreBoard(self, ['staff', 'pku', 'other']),
-            'score_pku': ScoreBoard(self, ['pku']),
-            'first_all': FirstBloodBoard(self, ['staff', 'pku', 'other']),
-            'first_pku': FirstBloodBoard(self, ['pku']),
+            'score_pku': ScoreBoard(self, ['pku'], False),
+            'first_pku': FirstBloodBoard(self, ['pku'], False),
+            'score_all': ScoreBoard(self, ['staff', 'pku', 'other'], True),
+            'first_all': FirstBloodBoard(self, ['staff', 'pku', 'other'], True),
         }
 
     def on_tick_change(self) -> None:

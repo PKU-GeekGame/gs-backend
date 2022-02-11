@@ -36,3 +36,12 @@ class UserStore(Table):
             assert isinstance(k, str), 'login_properties key should be string'
 
         return login_properties
+
+    def group_disp(self) -> str:
+        g = self.group
+        return {
+            'pku': '北京大学',
+            'other': '校外选手',
+            'staff': '工作人员',
+            'banned': '已封禁',
+        }.get(g, f'({g})')

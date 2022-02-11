@@ -105,11 +105,13 @@ class User(WithGameLifecycle):
         self.tot_score = 0
         self.tot_score_by_cat = {}
 
-        for f in self.passed_flags.keys():
+        for f, sub in self.passed_flags.items():
             cat = f.challenge._store.category
-            self.tot_score += f.cur_score
+            score = sub.gained_score()
+
+            self.tot_score += score
             self.tot_score_by_cat.setdefault(cat, 0)
-            self.tot_score_by_cat[cat] += f.cur_score
+            self.tot_score_by_cat[cat] += score
 
     @property
     def last_succ_submission(self) -> Optional[Submission]:
@@ -118,12 +120,6 @@ class User(WithGameLifecycle):
     @property
     def last_submission(self) -> Optional[Submission]:
         return self.submissions[-1] if len(self.submissions)>0 else None
-
-    def get_tot_score(self) -> int:
-        tot = 0
-        for f in self.passed_flags.keys():
-            tot += f.cur_score
-        return tot
 
     def check_login(self) -> Optional[Tuple[str, str]]:
         if not self._store.enabled:

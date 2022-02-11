@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Dict, Optional, Set
+from typing import TYPE_CHECKING, List, Dict, Optional, Set, Union, Literal
 
 if TYPE_CHECKING:
     from . import Game, Submission, User
@@ -119,6 +119,14 @@ class Challenge(WithGameLifecycle):
         for flag in self.flags:
             self.tot_base_score += flag.base_score
             self.tot_cur_score += flag.cur_score
+
+    def user_status(self, user: User) -> Union[Literal['passed'], Literal['partial'], Literal['untouched']]:
+        if user in self.passed_users:
+            return 'passed'
+        elif user in self.touched_users:
+            return 'partial'
+        else:
+            return 'untouched'
 
     def __repr__(self) -> str:
         return f'[Ch#{self._store.id} {self._store.key}: {self._store.title}]'
