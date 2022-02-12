@@ -9,7 +9,7 @@ from ..logic import glitter
 from ..logic.reducer import Reducer
 from .. import store
 
-class ViewBase(sqla.ModelView):
+class ViewBase(sqla.ModelView): # type: ignore
     form_base_class = SecureForm
     edit_template = 'edit_ace.html'
     create_template = 'create_ace.html'
@@ -19,9 +19,9 @@ class ViewBase(sqla.ModelView):
         loop: asyncio.AbstractEventLoop = current_app.config['reducer_loop']
         reducer: Reducer = current_app.config['reducer_obj']
 
-        async def task():
+        async def task() -> None:
             reducer.state_counter += 1
-            event = glitter.Event(event_type, reducer.state_counter, id)
+            event = glitter.Event(event_type, reducer.state_counter, id or 0)
             await reducer.emit_event(event)
 
         asyncio.run_coroutine_threadsafe(task(), loop)

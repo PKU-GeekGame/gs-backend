@@ -1,48 +1,48 @@
-import wtforms
+import wtforms # type: ignore
 from markupsafe import Markup
-import json
-import flask_admin.form
+import flask_admin.form # type: ignore
 import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from .. import store
 from .. import utils
 
-def timestamp_s_formatter(view: Any, context: Any, model: Any, name: str) -> str:
+def timestamp_s_formatter(_view: Any, _context: Any, model: Any, name: str) -> str:
     return utils.format_timestamp(getattr(model, name))
 
-def timestamp_ms_formatter(view: Any, context: Any, model: Any, name: str) -> str:
+def timestamp_ms_formatter(_view: Any, _context: Any, model: Any, name: str) -> str:
     return utils.format_timestamp(getattr(model, name)/1000)
 
-class TimestampSField(wtforms.fields.IntegerField):
+# noinspection PyAttributeOutsideInit
+class TimestampSField(wtforms.fields.IntegerField): # type: ignore
     widget = wtforms.widgets.DateTimeLocalInput()
-    def _value(self):
+    def _value(self) -> str:
         if self.data is not None:
             return datetime.datetime.isoformat(datetime.datetime.fromtimestamp(self.data))
         else:
             return ''
-    def process_formdata(self, valuelist):
+    def process_formdata(self, valuelist: List[str]) -> None:
         if valuelist:
             self.data = datetime.datetime.fromisoformat(valuelist[0]).timestamp()
         else:
-            self.data = None
+            self.data = None # type: ignore
 
-class TimestampMsField(wtforms.fields.IntegerField):
+# noinspection PyAttributeOutsideInit
+class TimestampMsField(wtforms.fields.IntegerField): # type: ignore
     widget = wtforms.widgets.DateTimeLocalInput()
-
-    def _value(self):
+    def _value(self) -> str:
         if self.data is not None:
             return datetime.datetime.isoformat(datetime.datetime.fromtimestamp(self.data/1000))
         else:
             return ''
-    def process_formdata(self, valuelist):
+    def process_formdata(self, valuelist: List[str]) -> None:
         if valuelist:
             self.data = datetime.datetime.fromisoformat(valuelist[0]).timestamp()*1000
         else:
-            self.data = None
+            self.data = None # type: ignore
 
-class AceInput(wtforms.widgets.TextArea):
-    def __init__(self):
+class AceInput(wtforms.widgets.TextArea): # type: ignore
+    def __init__(self) -> None:
         self.unique_id: str = utils.gen_random_str(8)
 
     def script_body(self) -> str:
@@ -53,7 +53,7 @@ class AceInput(wtforms.widgets.TextArea):
             {'}'});
         '''
 
-    def __call__(self, field, **kwargs) -> Markup:
+    def __call__(self, field: wtforms.fields.StringField, **kwargs: Any) -> Markup:
         return Markup(f'''
             <textarea {wtforms.widgets.html_params(name=field.name, id=field.id, **kwargs)} data-ace-id={self.unique_id} readonly>
             {Markup.escape(field._value())}
@@ -102,7 +102,7 @@ class JsonListInputWithSnippets(SyntaxHighlightInput):
             {'}'});
         '''
 
-    def __call__(self, field, **kwargs):
+    def __call__(self, field: wtforms.fields.StringField, **kwargs: Any) -> Markup:
         base_markup = super().__call__(field, **kwargs)
 
         snippets = [
@@ -126,11 +126,11 @@ class JsonListInputWithSnippets(SyntaxHighlightInput):
             {"".join(snippets)}
         ''')
 
-class MarkdownField(wtforms.fields.TextAreaField):
+class MarkdownField(wtforms.fields.TextAreaField): # type: ignore
     widget = SyntaxHighlightInput('markdown')
 
-class FlagsField(flask_admin.form.JSONField):
+class FlagsField(flask_admin.form.JSONField): # type: ignore
     widget = JsonListInputWithSnippets(store.ChallengeStore.FLAG_SNIPPETS)
 
-class ActionsField(flask_admin.form.JSONField):
+class ActionsField(flask_admin.form.JSONField): # type: ignore
     widget = JsonListInputWithSnippets(store.ChallengeStore.ACTION_SNIPPETS)

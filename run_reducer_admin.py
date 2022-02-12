@@ -24,12 +24,12 @@ def reducer_thread(loop: asyncio.AbstractEventLoop, reducer: Reducer):
 if __name__=='__main__':
     utils.fix_zmq_asyncio_windows()
 
-    loop = asyncio.new_event_loop()
+    l = asyncio.new_event_loop()
     r = Reducer(f'reducer-{os.getpid()}')
-    threading.Thread(target=reducer_thread, args=(loop, r), daemon=True).start()
+    threading.Thread(target=reducer_thread, args=(l, r), daemon=True).start()
 
     reducer_started_event.wait()
 
-    app.config['reducer_loop'] = loop
+    app.config['reducer_loop'] = l
     app.config['reducer_obj'] = r
     app.run(host='127.0.0.1', port=ADMIN_PORT, debug=False)

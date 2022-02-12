@@ -76,7 +76,7 @@ class ChallengeStore(Table):
         return actions
 
     ACTION_SNIPPETS = {
-        'webpage': '''{"name": "题目网页", "type": "webpage", "url" : "http://"}''',
+        'webpage': '''{"name": "题目网页", "type": "webpage", "url" : "https://"}''',
         'terminal': '''{"name": "题目", "type": "terminal", "host" : "", "port" : 0}''',
         'attachment': '''{"name": "题目附件", "type": "attachment", "filename" : ""}''',
     }

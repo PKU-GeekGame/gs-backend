@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, request
+from flask import Flask, redirect, request
 from sqlalchemy import select
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate # type: ignore
@@ -20,20 +20,22 @@ app.config['SECRET_KEY'] = secret.ADMIN_SESSION_SECRET
 db = SQLAlchemy(app, model_class=store.SqlBase)
 migrate = Migrate(app, db)
 
-def secured(cls): # type: ignore
-    class SecuredView(cls):
+def secured(cls: Any) -> Any:
+    # noinspection PyMethodMayBeStatic
+    class SecuredView(cls): # type: ignore
         def is_accessible(self) -> bool:
             auth_token = request.cookies.get('auth_token', None)
             if not auth_token:
                 return False
 
             user: Optional[store.UserStore] = \
-                db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar()
+                db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar() # type: ignore
             if user is None or user.group not in secret.ADMIN_GROUPS or user.id not in secret.ADMIN_UIDS:
                 return False
 
             return True
 
+        # noinspection PyUnusedLocal
         def inaccessible_callback(self, name: str, **kwargs: Any) -> Any:
             return redirect('/')
 
