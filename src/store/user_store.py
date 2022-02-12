@@ -19,15 +19,29 @@ class UserStore(Table):
     enabled = Column(Boolean, nullable=False, default=True)
     group = Column(String(32), nullable=False)
     token = Column(String(MAX_TOKEN_LEN), nullable=True) # initialized in register logic
-    auth_token = Column(String(128), nullable=True, unique=True) # initialized in register logic
+    auth_token = Column(String(128), nullable=True, unique=True, index=True) # initialized in register logic
 
     profile_id = Column(Integer, ForeignKey('user_profile.id'), nullable=True) # initialized in register logic
     profile: UserProfileStore = relationship('UserProfileStore', lazy='joined', foreign_keys=[profile_id]) # type: ignore
     terms_agreed = Column(Boolean, nullable=False, default=False)
 
+    GROUPS = {
+        'pku': '北京大学',
+        'other': '校外选手',
+        'staff': '工作人员',
+        'banned': '已封禁',
+    }
+
     def __repr__(self) -> str:
         nick = '(no profile)' if self.profile is None else self.profile.nickname_or_null
         return f'[U#{self.id} {self.login_key} {nick!r}]'
+
+    @validates('token', 'auth_token', 'profile_id')
+    def validate_not_null(self, key: str, new_value: Any) -> Any:
+        old_value = getattr(self, key)
+        if old_value is not None and new_value is None:
+            raise ValueError(f'{key} should not be null')
+        return new_value
 
     @validates('login_properties')
     def validate_login_properties(self, _key: str, login_properties: Any) -> Any:
@@ -39,9 +53,4 @@ class UserStore(Table):
 
     def group_disp(self) -> str:
         g = self.group
-        return {
-            'pku': '北京大学',
-            'other': '校外选手',
-            'staff': '工作人员',
-            'banned': '已封禁',
-        }.get(g, f'({g})')
+        return self.GROUPS.get(g, f'({g})')

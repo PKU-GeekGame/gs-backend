@@ -191,6 +191,8 @@ async def submit_flag(_req: Request, body: SubmitFlagParam, worker: Worker, user
     err = user.check_play_game()
     if err is not None:
         return {'error': err[0], 'error_msg': err[1]}
+    if not worker.game.policy.cur_policy.can_submit_flag:
+        return {'error': 'POLICY_ERROR', 'error_msg': '现在不允许提交Flag'}
 
     err = ChallengeStore.check_submitted_flag(body.flag)
     if err is not None:

@@ -29,8 +29,6 @@ def leet_flag(flag: str, uid: int) -> str:
     return 'flag{'+rcont+'}'
 
 class Flag(WithGameLifecycle):
-    TYPES = ['static', 'leet']
-
     def __init__(self, game: Game, descriptor: Dict[str, Any], chall: Challenge, idx0: int):
         self._game: Game = game
         self._store: Dict[str, Any] = descriptor

@@ -35,12 +35,17 @@ class ChallengeStore(Table):
             assert 'val' in flag, 'flag should have val'
             assert 'base_score' in flag, 'flag should have base_score'
 
-            assert isinstance(flag['type'], str), 'flag type should be str'
+            assert flag['type'] in ['static', 'leet'], 'unknown flag type'
             assert isinstance(flag['val'], str), 'flag val should be str'
             assert isinstance(flag['name'], str), 'flag name should be str'
             assert isinstance(flag['base_score'], int), 'flag base_score should be int'
 
         return flags
+
+    FLAG_SNIPPETS = {
+        'static': '''{"name": "", "type": "static", "val" : "flag{}", "base_score": 100}''',
+        'leet': '''{"name": "", "type": "leet", "val" : "flag{}", "base_score": 100}''',
+    }
 
     @validates('actions')
     def validate_actions(self, _key: str, actions: Any) -> Any:
@@ -69,6 +74,12 @@ class ChallengeStore(Table):
                 assert isinstance(action['filename'], str), 'attachment action filename should be str'
 
         return actions
+
+    ACTION_SNIPPETS = {
+        'webpage': '''{"name": "题目网页", "type": "webpage", "url" : "http://"}''',
+        'terminal': '''{"name": "题目", "type": "terminal", "host" : "", "port" : 0}''',
+        'attachment': '''{"name": "题目附件", "type": "attachment", "filename" : ""}''',
+    }
 
     @classmethod
     def check_submitted_flag(cls, flag: str) -> Optional[Tuple[str, str]]:

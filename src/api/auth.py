@@ -22,7 +22,7 @@ def login(user: User) -> HTTPResponse:
 
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
     res.cookies['auth_token'] = user._store.auth_token
-    #res.cookies['auth_token']['samesite'] = 'None' # it requires secure
+    res.cookies['auth_token']['samesite'] = 'Lax'
     res.cookies['auth_token']['max-age'] = LOGIN_MAX_AGE_S
     return res
 

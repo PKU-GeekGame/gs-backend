@@ -96,9 +96,6 @@ class Worker(StateContainerBase):
                 await self._sync_with_reducer()
                 continue
 
-            if event.type!=glitter.EventType.SYNC:
-                self.log('info', 'worker.mainloop', f'got event {event.type} ({event.state_counter})')
-
             # in rare cases when zeromq reaches high-water-mark, we may lose packets!
             if event.state_counter not in [self.state_counter, self.state_counter+1]:
                 self.log('error', 'worker.mainloop', f'state counter mismatch, will recover: worker {self.state_counter} reducer {event.state_counter}')
@@ -128,5 +125,5 @@ class Worker(StateContainerBase):
 
     async def process_event(self, event: glitter.Event) -> None:
         if event.type!=glitter.EventType.SYNC:
-            self.log('info', 'worker.process_event', f'got event {event.type}')
+            self.log('info', 'worker.process_event', f'got event {event.type} {event.data} (count={event.state_counter})')
         await super().process_event(event)

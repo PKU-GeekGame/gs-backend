@@ -60,5 +60,8 @@ def fix_zmq_asyncio_windows() -> None:
     # RuntimeError: Proactor event loop does not implement add_reader family of methods required for zmq.
     # zmq will work with proactor if tornado >= 6.1 can be found.
     # Use `asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())` or install 'tornado>=6.1' to avoid this error.
-    if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    try:
+        if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except AttributeError:
+        pass

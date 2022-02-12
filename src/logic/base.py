@@ -149,10 +149,11 @@ class StateContainerBase(ABC):
     def log(self, level: str, module: str, message: str) -> None:
         print(f'{self.process_name} [{level}] {module}: {message}')
 
-        # with self.Session() as session:
-        #     log = LogStore(level=level, process=self.process_name, module=module, message=message)
-        #     session.add(log)
-        #     session.commit()
+        if level!='debug':
+            with self.SqlSession() as session:
+                log = LogStore(level=level, process=self.process_name, module=module, message=message)
+                session.add(log)
+                session.commit()
 
     def load_all_data(self, cls: Type[T]) -> List[T]:
         with self.SqlSession() as session:

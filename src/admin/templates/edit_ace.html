@@ -1,0 +1,15 @@
+{% extends 'admin/model/edit.html' %}
+
+{% block head %}
+    {{ super() }}
+    <script src="{{ config.ADMIN_URL }}/static/ace-build/ace.js" charset="utf-8"></script>
+    <style>
+        .ace-editor {
+            width: 100%;
+            height: 20em;
+        }
+        textarea[data-ace-id] {
+            display: none;
+        }
+    </style>
+{% endblock %}

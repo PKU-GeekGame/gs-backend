@@ -6,7 +6,7 @@ from . import Table
 class LogStore(Table):
     __tablename__ = 'log'
 
-    timestamp_s = Column(BigInteger, nullable=False, default=lambda: int(time.time()))
+    timestamp_ms = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
     level = Column(String(32), nullable=False)
     process = Column(String(32), nullable=False)
     module = Column(String(32), nullable=False)

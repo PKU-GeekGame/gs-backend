@@ -2,10 +2,11 @@ import OpenSSL.crypto
 
 DB_CONNECTOR = 'mysql+pymysql://username:password@host:port/database'
 
+ADMIN_UIDS = [1]
+ADMIN_GROUPS = ['staff']
+
 ADMIN_SESSION_SECRET = '...'
-
 FLAG_LEET_SALT = '...'
-
 GLITTER_SSRF_TOKEN = '...'
 
 TOKEN_SIGNING_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, '-----BEGIN EC PRIVATE KEY-----\n...')
@@ -16,3 +17,4 @@ GLITTER_ACTION_SOCKET_ADDR = 'tcp://127.0.0.1:5601'
 GLITTER_EVENT_SOCKET_ADDR = 'tcp://127.0.0.1:5602'
 
 FRONTEND_PORTAL_URL = '/' # redirected to this after (successful or failed) login
+ADMIN_URL = '/manage' # prefix of all admin urls
