@@ -38,7 +38,7 @@ app.ext.add_dependency(Optional[User], get_cur_user)
 
 @app.before_server_start
 async def setup_game_state(cur_app: Sanic, _loop: Any) -> None:
-    worker = Worker(f'worker-{os.getpid()}')
+    worker = Worker(cur_app.config.get('WORKER_NAME', f'worker-{os.getpid()}'))
     cur_app.ctx.worker = worker
     await worker._before_run()
     cur_app.ctx._worker_task = asyncio.create_task(worker._mainloop())
@@ -71,3 +71,7 @@ from .endpoint import wish
 from .endpoint import template
 svc = Blueprint.group(auth.bp, wish.bp, template.bp, url_prefix='/service')
 app.blueprint(svc)
+
+def start(port: int, worker_name: str) -> None:
+    app.config.WORKER_NAME = worker_name
+    app.run(host='127.0.0.1', port=port, workers=1, debug=False)
