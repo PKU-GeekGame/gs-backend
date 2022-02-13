@@ -22,6 +22,13 @@ class ChallengeStore(Table):
     VAL_FLAG = re.compile(r'^flag{[\x20-\x7e]{0,100}}$')
     MAX_FLAG_LEN = 110
 
+    CAT_COLORS = {
+        'Misc': '#7e2d86',
+        'Web': '#2d8664',
+        'Binary': '#864a2d',
+        'Algorithm': '#2f2d86',
+    }
+
     @validates('flags')
     def validate_flags(self, _key: str, flags: Any) -> Any:
         assert isinstance(flags, list), 'flags should be list'

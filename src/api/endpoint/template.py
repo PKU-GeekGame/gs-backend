@@ -1,9 +1,9 @@
 from sanic import Blueprint, Request, HTTPResponse, response
-import pathlib
 from typing import Dict, Tuple
 
-from ... import utils
 from ...logic.worker import Worker
+from ... import utils
+from ... import secret
 
 bp = Blueprint('template', url_prefix='/template')
 
@@ -12,7 +12,7 @@ FILES = [
     'terms',
     'faq',
 ]
-TEMPLATE_PATH = pathlib.Path('data/templates')
+TEMPLATE_PATH = secret.TEMPLATE_PATH
 assert TEMPLATE_PATH.is_dir()
 
 def etagged_response(req: Request, etag: str, html_body: str) -> HTTPResponse:

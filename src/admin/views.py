@@ -1,8 +1,11 @@
-from flask_admin.contrib import sqla # type: ignore
+from flask_admin.contrib import sqla, fileadmin # type: ignore
 from flask_admin.form import SecureForm # type: ignore
-from flask import current_app
+from flask_admin.babel import lazy_gettext # type: ignore
+from flask_admin.model.template import macro # type: ignore
+from wtforms import validators # type: ignore
+from flask import current_app, flash
 import asyncio
-from typing import Any, Optional
+from typing import Any, Optional, Type
 
 from . import fields
 from ..logic import glitter
@@ -13,6 +16,7 @@ class ViewBase(sqla.ModelView): # type: ignore
     form_base_class = SecureForm
     edit_template = 'edit_ace.html'
     create_template = 'create_ace.html'
+    details_modal_template = 'details_break_word.html'
 
     @staticmethod
     def emit_event(event_type: glitter.EventType, id: Optional[int] = None) -> None:
@@ -35,9 +39,6 @@ class ViewBase(sqla.ModelView): # type: ignore
     def after_model_delete(self, model: Any) -> None:
         self.after_model_touched(model)
 
-
-
-
 class AnnouncementView(ViewBase):
     column_formatters = {
         'timestamp_s': fields.timestamp_s_formatter,
@@ -46,6 +47,7 @@ class AnnouncementView(ViewBase):
         'timestamp_s': fields.TimestampSField,
         'content_template': fields.MarkdownField,
     }
+    column_default_sort = ('id', True)
 
     def after_model_touched(self, model: store.AnnouncementStore) -> None:
         self.emit_event(glitter.EventType.UPDATE_ANNOUNCEMENT, model.id)
@@ -55,10 +57,18 @@ class ChallengeView(ViewBase):
     details_modal = True
 
     column_exclude_list = ['desc_template']
+    column_default_sort = 'sorting_index'
+    column_formatters = {
+        'actions': lambda _v, _c, model, _n: '；'.join([f'[{a["type"]}] {a["name"]}' for a in model.actions]),
+        'flags': lambda _v, _c, model, _n: '；'.join([f'[{f["type"]} {f["base_score"]}] {f["name"]}' for f in model.flags]),
+    }
     form_overrides = {
         'desc_template': fields.MarkdownField,
         'actions': fields.ActionsField,
         'flags': fields.FlagsField,
+    }
+    form_choices = {
+        'category': [(x, x) for x in store.ChallengeStore.CAT_COLORS.keys()],
     }
 
     def after_model_touched(self, model: store.ChallengeStore) -> None:
@@ -72,6 +82,7 @@ class LogView(ViewBase):
     can_create = False
     can_edit = False
     can_delete = False
+    can_view_details = True
 
     page_size = 100
     can_set_page_size = True
@@ -82,19 +93,29 @@ class LogView(ViewBase):
 
     column_formatters = {
         'timestamp_ms': fields.timestamp_ms_formatter,
+        'level': macro('status_label'),
+        'message': macro('in_pre'),
     }
 
 class SubmissionView(ViewBase):
     can_create = False
-    can_edit = False
     can_delete = False
 
+    column_display_pk = True
     page_size = 100
     can_set_page_size = True
+    column_searchable_list = ['id']
+    column_default_sort = ('id', True)
 
     column_formatters = {
         'timestamp_ms': fields.timestamp_ms_formatter,
     }
+
+    def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
+        flash('WARNING: editing past submissions will reload the scoreboard', 'warning')
+
+    def after_model_touched(self, model: store.ChallengeStore) -> None:
+        self.emit_event(glitter.EventType.RELOAD_SUBMISSION)
 
 class TriggerView(ViewBase):
     column_formatters = {
@@ -111,11 +132,13 @@ class UserProfileView(ViewBase):
     can_create = False
     can_delete = False
 
+    column_display_pk = True
     page_size = 100
     can_set_page_size = True
 
-    column_searchable_list = ['nickname_or_null', 'qq_or_null']
-    column_filters = ['user_id']
+    column_searchable_list = ['id']
+    column_filters = ['user_id', 'qq_or_null', 'comment_or_null']
+    column_default_sort = ('id', True)
     column_formatters = {
         'timestamp_ms': fields.timestamp_ms_formatter,
     }
@@ -127,7 +150,11 @@ class UserView(ViewBase):
     can_create = False
     can_delete = False
     can_export = True
+    can_view_details = True
+    details_modal = True
 
+    column_exclude_list = ['token', 'auth_token']
+    column_display_pk = True
     page_size = 100
     can_set_page_size = True
 
@@ -153,3 +180,21 @@ VIEWS = {
     'UserStore': UserView,
     'UserProfileStore': UserProfileView,
 }
+
+class TemplateView(fileadmin.FileAdmin): # type: ignore
+    can_upload = False
+    can_mkdir = False
+    can_delete = False
+    can_delete_dirs = False
+    can_rename = False
+    editable_extensions = ['md']
+
+    form_base_class = SecureForm
+    edit_template = 'edit_ace.html'
+    create_template = 'create_ace.html'
+
+    def get_edit_form(self) -> Type[Any]:
+        class EditForm(self.form_base_class): # type: ignore
+            content = fields.MarkdownField(lazy_gettext('Content'), (validators.InputRequired(),))
+
+        return EditForm

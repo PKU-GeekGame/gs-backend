@@ -1,0 +1,104 @@
+{% extends 'admin/base.html' %}
+
+{% macro in_pre(model, column) %}
+    <samp style="white-space: pre">{{ model[column] }}</samp>
+{% endmacro %}
+
+{% macro status_label(model, column) %}
+    {% set s = model[column] %}
+    <span class="label
+        label-{% if s=='critical' %}danger{% elif s=='error' %}warning{% elif s=='warning' %}primary{% elif s=='success' %}success{% else %}default{% endif %}
+    ">{{ s }}</span>
+{% endmacro %}
+
+{% block head_css %}
+    {{ super() }}
+{% endblock %}
+
+{% macro menu(menu_root=None) %}
+    {% if menu_root is none %}
+        {% set menu_root = admin_view.admin.menu() %}
+    {% endif %}
+    {% for item in menu_root %}
+        {% if item.is_category() %}
+            {% set children = item.get_children() %}
+            {% if children %}
+                {% set class_name = item.get_class_name() or '' %}
+                <a class="list-group-item disabled">
+                    {{ layout.menu_icon(item) }}{{ item.name }}
+                    <i class="glyphicon glyphicon-chevron-down small"></i>
+                </a>
+                {% for child in children %}
+                    {% if child.is_category() %}
+                        {# not supported yet #}
+                    {% else %}
+                        {% set class_name = child.get_class_name() %}
+                        <a
+                            class="list-group-item{% if child.is_active(admin_view) %} active{% endif %}{% if class_name %} {{ class_name }}{% endif %}"
+                            href="{{ child.get_url() }}"
+                            {% if child.target %}target="{{ child.target }}"{% endif %}
+                            style="padding-left: 3em; padding-right: 0"
+                        >
+                            {{ layout.menu_icon(child) }}{{ child.name }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% else %}
+            {% if item.is_accessible() and item.is_visible() %}
+                {% set class_name = item.get_class_name() %}
+                <a
+                    class="list-group-item{% if item.is_active(admin_view) %} active{% endif %}{% if class_name %} {{ class_name }}{% endif %}"
+                    href="{{ item.get_url() }}"
+                    {% if item.target %}target="{{ item.target }}"{% endif %}
+                >
+                    {{ layout.menu_icon(item) }}{{ item.name }}
+                </a>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+
+{% block page_body %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-2">
+                {% block brand %}
+                    <h2>
+                        <a href="{{ admin_view.admin.url }}">{{ admin_view.admin.name }}</a>
+                    </h2>
+                    <br>
+                {% endblock %}
+                <div class="list-group">
+
+                    {% block main_menu %}
+                        {{ menu() }}
+                    {% endblock %}
+
+                    {% block menu_links %}
+                        {# not supported #}
+                        {# layout.menu_links() #}
+                    {% endblock %}
+
+                    {% block access_control %}
+                    {% endblock %}
+                </div>
+            </div>
+
+            <div class="col-lg-10">
+                <h2>
+                    {% if admin_view.category %}{{ admin_view.category }} - {% endif %}{{ admin_view.name }}
+                </h2>
+                <br>
+
+                {% block messages %}
+                    {{ layout.messages() }}
+                {% endblock %}
+
+                {# store the jinja2 context for form_rules rendering logic #}
+                {% set render_ctx = h.resolve_ctx() %}
+                {% block body %}{% endblock %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

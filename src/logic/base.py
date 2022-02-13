@@ -39,7 +39,7 @@ class StateContainerBase(ABC):
         self.process_name: str = process_name
         self.SqlSession = sessionmaker(create_engine(secret.DB_CONNECTOR, future=True), expire_on_commit=False, future=True)
 
-        self.log('info', 'base.__init__', f'{self.process_name} started')
+        self.log('debug', 'base.__init__', f'{self.process_name} started')
 
         self.glitter_ctx: Context = Context() # type: ignore
 

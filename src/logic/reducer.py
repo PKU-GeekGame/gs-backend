@@ -173,10 +173,10 @@ class Reducer(StateContainerBase):
         old_tick = self._game.cur_tick
         new_tick, expires = self._game.trigger.get_tick_at_time(ts)
 
-        self.log('info', 'reducer.update_tick', f'set tick {old_tick} -> {new_tick}')
-
         self._game.cur_tick = new_tick
         if new_tick!=old_tick:
+            self.log('info', 'reducer.update_tick', f'set tick {old_tick} -> {new_tick}')
+
             self.state_counter += 1
             await self.emit_event(glitter.Event(glitter.EventType.TICK_UPDATE, self.state_counter, new_tick))
 
@@ -186,7 +186,7 @@ class Reducer(StateContainerBase):
         ts = time.time()
         while True:
             expires = await self._update_tick(int(ts))
-            self.log('info', 'reducer.tick_updater_daemon', f'next tick in {"+INF" if expires==Trigger.TS_INF_S else int(expires-ts)} seconds')
+            self.log('debug', 'reducer.tick_updater_daemon', f'next tick in {"+INF" if expires==Trigger.TS_INF_S else int(expires-ts)} seconds')
             await asyncio.sleep(expires-ts+.2)
             ts = expires
 
@@ -207,7 +207,7 @@ class Reducer(StateContainerBase):
         await glitter.Event(glitter.EventType.SYNC, self.state_counter, self._game.cur_tick).send(self.event_socket)
 
     async def _mainloop(self) -> None:
-        self.log('info', 'reducer.mainloop', 'started to receive actions')
+        self.log('success', 'reducer.mainloop', 'started to receive actions')
         _tick_updater_task = asyncio.create_task(self._tick_updater_daemon())
 
         while True:
@@ -226,7 +226,10 @@ class Reducer(StateContainerBase):
             if action is None:
                 continue
 
-            self.log('info', 'reducer.mainloop', f'got action {action.req.type} from {action.req.client}')
+            if isinstance(action.req, glitter.WorkerHelloReq):
+                self.log('debug', 'reducer.mainloop', f'got worker hello from {action.req.client}')
+            else:
+                self.log('info', 'reducer.mainloop', f'got action {action.req.type} from {action.req.client}')
 
             old_counter = self.state_counter
 

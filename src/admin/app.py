@@ -7,7 +7,7 @@ from flask_admin.form import SecureForm # type: ignore
 from flask_admin.contrib.sqla import ModelView # type: ignore
 from typing import Any, Optional
 
-from .views import VIEWS
+from .views import VIEWS, TemplateView
 from .. import secret
 from .. import store
 
@@ -17,6 +17,7 @@ app.config['ADMIN_URL'] = secret.ADMIN_URL
 app.config['SQLALCHEMY_DATABASE_URI'] = secret.DB_CONNECTOR
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = secret.ADMIN_SESSION_SECRET
+
 db = SQLAlchemy(app, model_class=store.SqlBase)
 migrate = Migrate(app, db)
 
@@ -51,14 +52,17 @@ admin = Admin(
     app,
     index_view=secured(AdminIndexView)(url=f'{secret.ADMIN_URL}/admin'),
     url=f'{secret.ADMIN_URL}/admin',
-    template_mode='bootstrap3'
+    template_mode='bootstrap3',
+    base_template='base.html',
 )
 for model_name in dir(store):
     if model_name.endswith('Store'):
         print('- added model:', model_name)
         admin.add_view(secured(VIEWS.get(model_name, ModelView))(
-            getattr(store, model_name), db.session, name=remove_suffix(model_name, 'Store')
+            getattr(store, model_name), db.session, name=remove_suffix(model_name, 'Store'), category='Models',
         ))
+
+admin.add_view(secured(TemplateView)(secret.TEMPLATE_PATH, name='Template', category='Files'))
 
 @app.route(f'{secret.ADMIN_URL}')
 def index() -> Any:

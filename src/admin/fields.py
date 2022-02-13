@@ -47,17 +47,16 @@ class AceInput(wtforms.widgets.TextArea): # type: ignore
 
     def script_body(self) -> str:
         return f'''
-            editor.getSession().setValue(textarea.value.trim());
-            editor.getSession().on('change', ()=>{'{'}
-                textarea.value = editor.getSession().getValue();
+            editor.session.setValue(textarea.value.trim());
+            editor.session.on('change', ()=>{'{'}
+                textarea.value = editor.session.getValue();
             {'}'});
+            textarea.value = editor.session.getValue();
         '''
 
     def __call__(self, field: wtforms.fields.StringField, **kwargs: Any) -> Markup:
         return Markup(f'''
-            <textarea {wtforms.widgets.html_params(name=field.name, id=field.id, **kwargs)} data-ace-id={self.unique_id} readonly>
-            {Markup.escape(field._value())}
-            </textarea>
+            <textarea {wtforms.widgets.html_params(name=field.name, id=field.id, **kwargs)} data-ace-id={self.unique_id} readonly>{Markup.escape(field._value())}</textarea>
             <div class="ace-editor" id="{self.unique_id}"></div>
             
             <script>
@@ -65,7 +64,7 @@ class AceInput(wtforms.widgets.TextArea): # type: ignore
                     let textarea = document.querySelector('[data-ace-id="{self.unique_id}"]');
                     let editor = ace.edit('{self.unique_id}');
                     window.editor_{self.unique_id} = editor;
-                    editor.setTheme("ace/theme/github");
+                    editor.setTheme("ace/theme/sqlserver");
                     editor.session.setUseWrapMode(true);
                     editor.session.setUseSoftTabs(true);
                     {self.script_body()}
@@ -93,13 +92,15 @@ class JsonListInputWithSnippets(SyntaxHighlightInput):
         return f'''
             editor.session.setMode("ace/mode/json");
             try {'{'}
-                editor.session.setValue(JSON.stringify(JSON.parse(textarea.value||[]), null, "\t"));
+                let val = JSON.parse(textarea.value);
+                editor.session.setValue(JSON.stringify((val.length ? val : []), null, "\t"));
             {'}'} catch(e) {'{'}
-                editor.session.setValue(textarea.value.trim()||[]);
+                editor.session.setValue(textarea.value.trim()||"[]");
             {'}'};
-            editor.getSession().on('change', ()=>{'{'}
+            editor.session.on('change', ()=>{'{'}
                 textarea.value = editor.session.getValue();
             {'}'});
+            textarea.value = editor.session.getValue();
         '''
 
     def __call__(self, field: wtforms.fields.StringField, **kwargs: Any) -> Markup:

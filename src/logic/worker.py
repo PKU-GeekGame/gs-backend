@@ -32,7 +32,7 @@ class Worker(StateContainerBase):
 
     async def _sync_with_reducer(self, *, throttled: bool = True) -> None:
         self.game_dirty = True
-        self.log('info', 'reducer.sync_with_reducer', 'sent handshake')
+        self.log('debug', 'reducer.sync_with_reducer', 'sent handshake')
 
         while True:
             try:
@@ -50,7 +50,7 @@ class Worker(StateContainerBase):
 
                 break
 
-        self.log('info', 'worker.sync_with_reducer', f'begin sync')
+        self.log('debug', 'worker.sync_with_reducer', f'begin sync')
 
         while True:
             try:
@@ -86,11 +86,15 @@ class Worker(StateContainerBase):
         await self._sync_with_reducer(throttled=False)
 
     async def _mainloop(self) -> None:
-        self.log('info', 'worker.mainloop', 'started to receive events')
+        self.log('success', 'worker.mainloop', 'started to receive events')
         while True:
             try:
                 cond = glitter.Event.next(self.event_socket)
                 event = await asyncio.wait_for(cond, glitter.SYNC_TIMEOUT_MS/1000)
+            except asyncio.exceptions.TimeoutError as e:
+                self.log('warning', 'worker.mainloop', f'event receive timeout, will recover: {utils.get_traceback(e)}')
+                await self._sync_with_reducer()
+                continue
             except Exception as e:
                 self.log('error', 'worker.mainloop', f'exception during event receive, will recover: {utils.get_traceback(e)}')
                 await self._sync_with_reducer()
@@ -98,7 +102,10 @@ class Worker(StateContainerBase):
 
             # in rare cases when zeromq reaches high-water-mark, we may lose packets!
             if event.state_counter not in [self.state_counter, self.state_counter+1]:
-                self.log('error', 'worker.mainloop', f'state counter mismatch, will recover: worker {self.state_counter} reducer {event.state_counter}')
+                if event.state_counter<self.state_counter:
+                    self.log('warning', 'worker.mainloop', f'state counter mismatch, maybe reducer restarted, will recover: worker {self.state_counter} reducer {event.state_counter}')
+                else:
+                    self.log('error', 'worker.mainloop', f'state counter mismatch, maybe lost event, will recover: worker {self.state_counter} reducer {event.state_counter}')
                 await self._sync_with_reducer()
             else:
                 self.state_counter = event.state_counter

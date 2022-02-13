@@ -47,7 +47,10 @@ def render_template(template_str: str) -> str:
 
 def format_timestamp(timestamp_s: Union[float, int]) -> str:
     date = datetime.datetime.fromtimestamp(timestamp_s, pytz.timezone('Asia/Shanghai'))
-    return date.strftime('%Y-%m-%d %H:%M:%S')
+    t = date.strftime('%Y-%m-%d %H:%M:%S')
+    if isinstance(timestamp_s, float):
+        t += f'.{int((timestamp_s%1)*1000):03d}'
+    return t
 
 def sign_token(uid: int) -> str:
     sig = base64.b64encode(OpenSSL.crypto.sign(secret.TOKEN_SIGNING_KEY, str(uid).encode(), 'sha256')).decode()

@@ -112,17 +112,11 @@ async def triggers(_req: Request, worker: Worker) -> Dict[str, Any]:
         } for trigger in worker.game.trigger._stores]
     }
 
-CAT_COLORS = {
-    'Misc': '#7e2d86',
-    'Web': '#2d8664',
-    'Binary': '#864a2d',
-    'Algorithm': '#2f2d86',
-}
 FALLBACK_CAT_COLOR = '#000000'
 
 def reorder_by_cat(values: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
-    for cat in CAT_COLORS.keys():
+    for cat in ChallengeStore.CAT_COLORS.keys():
         if cat in values:
             out[cat] = None
     for k, v in values.items():
@@ -151,7 +145,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
             'id': ch._store.id,
             'title': ch._store.title,
             'category': ch._store.category,
-            'category_color': CAT_COLORS.get(ch._store.category, FALLBACK_CAT_COLOR),
+            'category_color': ChallengeStore.CAT_COLORS.get(ch._store.category, FALLBACK_CAT_COLOR),
 
             'desc': ch.desc,
             'actions': ch._store.actions,
