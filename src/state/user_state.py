@@ -150,6 +150,7 @@ class User(WithGameLifecycle):
             return self.check_play_game()
         if len(self.passed_flags)==0:
             return 'NO_PASSED_FLAGS', '此账号没有通过任何题目，无法提交 Writeup'
+        return None
 
     def writeup_required(self) -> bool:
         board = self._game.boards['score_pku']

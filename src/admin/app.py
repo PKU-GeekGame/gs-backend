@@ -33,7 +33,7 @@ def secured(cls: Any) -> Any:
 
             user: Optional[store.UserStore] = \
                 db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar() # type: ignore
-            if not secret.IS_ADMIN(user):
+            if user is None or not secret.IS_ADMIN(user):
                 return False
 
             return True

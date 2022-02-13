@@ -76,4 +76,4 @@ app.blueprint(svc)
 
 def start(idx0: int, worker_name: str) -> None:
     app.config.WORKER_NAME = worker_name
-    app.run(**secret.WORKER_API_SERVER_KWARGS(idx0), workers=1)
+    app.run(**secret.WORKER_API_SERVER_KWARGS(idx0), workers=1) # type: ignore
