@@ -1,13 +1,18 @@
 from sanic import Blueprint, Request
+from sanic.request import File
 from sanic_ext import validate
 from dataclasses import dataclass
 import time
+import json
+import re
+import hashlib
 from typing import Optional, Dict, Any, List, Tuple
 
 from ..wish import wish_endpoint
 from ...state import User, ScoreBoard, Submission
 from ...logic import Worker, glitter
 from ...store import UserProfileStore, ChallengeStore
+from ... import secret
 
 bp = Blueprint('endpoint', url_prefix='/wish')
 
@@ -46,8 +51,9 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
     if err is not None:
         return {'error': err[0], 'error_msg': err[1]}
 
-    if 1000*time.time()-user._store.profile.timestamp_ms < 1000:
-        return {'error': 'RATE_LIMIT', 'error_msg': '请求太频繁'}
+    delta = time.time() - user._store.profile.timestamp_ms/1000
+    if delta<3:
+        return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {2-delta:.1f} 秒'}
 
     required_fields = user._store.profile.PROFILE_FOR_GROUP.get(user._store.group, [])
     fields = {}
@@ -162,10 +168,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
             'status_line': f'总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
         },
 
-        'writeup_info': None if not policy.can_submit_writeup else {
-            # todo
-        },
-
+        'show_writeup': policy.can_submit_writeup,
         'last_announcement': worker.game.announcements.list[0].describe_json() if worker.game.announcements.list else None,
     }
 
@@ -262,3 +265,129 @@ async def get_board(_req: Request, board_name: str, worker: Worker) -> Dict[str,
         **b.summarized,
         'type': b.board_type,
     }
+
+@wish_endpoint(bp, '/submissions')
+async def get_submissions(_req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+    if user is None:
+        return {'error': 'NO_USER', 'error_msg': '未登录'}
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    err = user.check_play_game()
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+
+    def get_overrides(sub: Submission) -> List[str]:
+        ret: List[str] = []
+
+        if sub.duplicate_submission:
+            ret.append('重复提交')
+
+        if sub._store.score_override_or_null is not None:
+            ret.append(f'分数 = {sub._store.score_override_or_null}')
+        elif sub._store.precentage_override_or_null is not None:
+            ret.append(f'分数 * {sub._store.precentage_override_or_null}%')
+
+        return ret
+
+    return {
+        'list': [{
+            'idx': idx, # row key
+            'challenge_title': sub.challenge._store.title if sub.challenge else None,
+            'matched_flag': sub.matched_flag.name if sub.matched_flag else None,
+            'gained_score': sub.gained_score(),
+            'overrides': get_overrides(sub),
+            'timestamp_s': int(sub._store.timestamp_ms/1000),
+        } for idx, sub in enumerate(user.submissions[::-1])],
+    }
+
+file_ext_re = re.compile(r'^.*?((?:\.[a-z0-9]+)+)$')
+def get_file_ext(filename: str) -> str:
+    m = file_ext_re.match(filename.lower())
+    return '.bin' if m is None else m.group(1)
+
+@wish_endpoint(bp, '/writeup', methods=['POST', 'PUT'])
+async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+    if user is None:
+        return {'error': 'NO_USER', 'error_msg': '未登录'}
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    err = user.check_submit_writeup()
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+    if not worker.game.policy.cur_policy.can_submit_writeup:
+        return {'error': 'POLICY_ERROR', 'error_msg': '暂时不允许提交Writeup'}
+
+    user_writeup_dir_path = secret.WRITEUP_PATH / str(user._store.id)
+    user_writeup_metadata_path = user_writeup_dir_path / 'metadata.json'
+
+    if req.method=='POST':
+        metadata: Optional[Dict[str, Any]] = None
+        if user_writeup_metadata_path.is_file():
+            with user_writeup_metadata_path.open('r') as f:
+                metadata = json.load(f)
+
+        return {
+            'writeup_required': user.writeup_required(),
+            'submitted_metadata': None if metadata is None else {
+                k: metadata[k]
+                for k in ['filename', 'size', 'sha256', 'publish', 'rights']
+            },
+            'max_size_mb': secret.WRITEUP_MAX_SIZE_MB,
+        }
+
+    elif req.method=='PUT':
+        if user_writeup_metadata_path.is_file():
+            with user_writeup_metadata_path.open('r') as f:
+                filename = json.load(f)['filename']
+            assert '/' not in filename and '\\' not in filename
+
+            old_file = user_writeup_dir_path/filename
+            if old_file.is_file():
+                delta = time.time() - old_file.stat().st_mtime
+                if delta<60:
+                    return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {60-delta:.1f} 秒'}
+
+        file: Optional[File] = req.files.get('file', None)
+        publish = req.form.get('publish', None)
+        rights = req.form.get('rights', None)
+
+        if (
+            publish is None or publish not in ['Always-Yes', 'Always-No', 'Maybe']
+            or rights is None or rights not in ['CC0', 'CC-BY-NC', 'All-Rights-Reserved']
+            or file is None
+        ):
+            return {'error': 'INVALID_ARGUMENT', 'error_msg': '参数错误'}
+
+        if len(file.body)>secret.WRITEUP_MAX_SIZE_MB*1024*1024:
+            return {'error': 'FILE_TOO_LARGE', 'error_msg': 'Writeup 文件太大'}
+
+        timestamp_ms = int(time.time()*1000)
+        filename = f'{user._store.id}_writeup_{timestamp_ms}{get_file_ext(file.name)}'
+        assert '/' not in filename and '\\' not in filename
+
+        user_writeup_dir_path.mkdir(parents=True, exist_ok=True)
+
+        with (user_writeup_dir_path / filename).open('wb') as f:
+            f.write(file.body)
+        with (user_writeup_dir_path / filename).open('rb') as f:
+            sha256 = hashlib.sha256(f.read()).hexdigest()
+
+        metadata = {
+            'publish': publish,
+            'rights': rights,
+            'timestamp_ms': timestamp_ms,
+            'size': len(file.body),
+            'filename': filename,
+            'original_filename': file.name,
+            'sha256': sha256,
+        }
+
+        with user_writeup_metadata_path.open('w') as f:
+            json.dump(metadata, f, indent=2)
+
+        return {}
+
+    else:
+        return {'error': 'HTTP_METHOD_ERROR', 'error_msg': '不支持的 HTTP 方法'}

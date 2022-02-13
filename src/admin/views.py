@@ -198,3 +198,22 @@ class TemplateView(fileadmin.FileAdmin): # type: ignore
             content = fields.MarkdownField(lazy_gettext('Content'), (validators.InputRequired(),))
 
         return EditForm
+
+class WriteupView(fileadmin.FileAdmin): # type: ignore
+    can_upload = False
+    can_mkdir = False
+    can_delete = True
+    can_delete_dirs = False
+    can_rename = False
+    can_download = True
+    editable_extensions = ['json']
+
+    form_base_class = SecureForm
+    edit_template = 'edit_ace.html'
+    create_template = 'create_ace.html'
+
+    def get_edit_form(self) -> Type[Any]:
+        class EditForm(self.form_base_class): # type: ignore
+            content = fields.JsonField(lazy_gettext('Content'), (validators.InputRequired(),))
+
+        return EditForm

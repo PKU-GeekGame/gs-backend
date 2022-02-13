@@ -130,6 +130,9 @@ class JsonListInputWithSnippets(SyntaxHighlightInput):
 class MarkdownField(wtforms.fields.TextAreaField): # type: ignore
     widget = SyntaxHighlightInput('markdown')
 
+class JsonField(wtforms.fields.TextAreaField): # type: ignore
+    widget = SyntaxHighlightInput('json')
+
 class FlagsField(flask_admin.form.JSONField): # type: ignore
     widget = JsonListInputWithSnippets(store.ChallengeStore.FLAG_SNIPPETS)
 

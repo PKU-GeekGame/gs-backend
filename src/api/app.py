@@ -9,13 +9,15 @@ from typing import Optional, Any
 from ..logic import Worker
 from ..state import User
 from .. import utils
+from .. import secret
 
 utils.fix_zmq_asyncio_windows()
 
 app = Sanic('guiding-star-backend')
 app.config.DEBUG = False
 app.config.OAS = False
-app.config.KEEP_ALIVE_TIMEOUT = 60
+app.config.KEEP_ALIVE_TIMEOUT = 15
+app.config.REQUEST_MAX_SIZE = 1024*1024*(1+secret.WRITEUP_MAX_SIZE_MB)
 
 def get_cur_user(req: Request) -> Optional[User]:
     user = None
@@ -72,6 +74,6 @@ from .endpoint import template
 svc = Blueprint.group(auth.bp, wish.bp, template.bp, url_prefix='/service')
 app.blueprint(svc)
 
-def start(port: int, worker_name: str) -> None:
+def start(idx0: int, worker_name: str) -> None:
     app.config.WORKER_NAME = worker_name
-    app.run(host='127.0.0.1', port=port, workers=1, debug=False)
+    app.run(**secret.WORKER_API_SERVER_KWARGS(idx0), workers=1)

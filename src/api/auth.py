@@ -12,7 +12,7 @@ from .. import secret
 
 LOGIN_MAX_AGE_S = 86400*30
 
-AuthResponse = Union[str, Tuple[str, Dict[str, Any], str]] #
+AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]] #
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
 def login(user: User) -> HTTPResponse:
@@ -58,12 +58,11 @@ def auth_endpoint(bp: Blueprint, uri: str, query: Optional[Type[Any]] = None) ->
     def decorator(fn: AuthHandler) -> RouteHandler:
         @wraps(fn)
         async def wrapped(req: Request, *args: Any, **kwargs: Any) -> HTTPResponse:
-            retval_ = fn(req, *args, **kwargs)
-            retval = (await retval_) if isawaitable(retval_) else retval_
-
             try:
-                if isinstance(retval, str):
-                    raise AuthError(retval)
+                retval_ = fn(req, *args, **kwargs)
+                retval = (await retval_) if isawaitable(retval_) else retval_
+                if isinstance(retval, User):
+                    return login(retval)
                 else:
                     login_key, properties, group = retval
                     return await register_or_login(req.app.ctx.worker, login_key, properties, group)

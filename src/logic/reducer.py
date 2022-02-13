@@ -92,7 +92,7 @@ class Reducer(StateContainerBase):
             if user is None:
                 return 'user not found'
 
-            if 1000*time.time()-user.profile.timestamp_ms<1000:
+            if 1000*time.time()-user.profile.timestamp_ms<2900:
                 return '请求太频繁'
 
             # create profile

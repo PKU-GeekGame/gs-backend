@@ -6,8 +6,9 @@ from flask_admin import Admin, AdminIndexView # type: ignore
 from flask_admin.form import SecureForm # type: ignore
 from flask_admin.contrib.sqla import ModelView # type: ignore
 from typing import Any, Optional
+from functools import wraps
 
-from .views import VIEWS, TemplateView
+from .views import VIEWS, TemplateView, WriteupView
 from .. import secret
 from .. import store
 
@@ -23,6 +24,7 @@ migrate = Migrate(app, db)
 
 def secured(cls: Any) -> Any:
     # noinspection PyMethodMayBeStatic
+    @wraps(cls, updated=())
     class SecuredView(cls): # type: ignore
         def is_accessible(self) -> bool:
             auth_token = request.cookies.get('auth_token', None)
@@ -31,7 +33,7 @@ def secured(cls: Any) -> Any:
 
             user: Optional[store.UserStore] = \
                 db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar() # type: ignore
-            if user is None or user.group not in secret.ADMIN_GROUPS or user.id not in secret.ADMIN_UIDS:
+            if not secret.IS_ADMIN(user):
                 return False
 
             return True
@@ -63,6 +65,7 @@ for model_name in dir(store):
         ))
 
 admin.add_view(secured(TemplateView)(secret.TEMPLATE_PATH, name='Template', category='Files'))
+admin.add_view(secured(WriteupView)(secret.WRITEUP_PATH, name='Writeup', category='Files'))
 
 @app.route(f'{secret.ADMIN_URL}')
 def index() -> Any:

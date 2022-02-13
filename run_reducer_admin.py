@@ -5,8 +5,7 @@ import threading
 from src.logic.reducer import Reducer
 from src.admin.app import app
 from src import utils
-
-ADMIN_PORT = 5000
+from src import secret
 
 reducer_started_event = threading.Event()
 
@@ -32,4 +31,4 @@ if __name__=='__main__':
 
     app.config['reducer_loop'] = l
     app.config['reducer_obj'] = r
-    app.run(host='127.0.0.1', port=ADMIN_PORT, debug=False)
+    app.run(**secret.REDUCER_ADMIN_SERVER_KWARGS)

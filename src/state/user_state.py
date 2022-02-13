@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from . import Game, Submission, Flag, Challenge
     from ..store import *
 from . import WithGameLifecycle
+from ..state import ScoreBoard
 
 class Users(WithGameLifecycle):
     def __init__(self, game: Game, stores: List[UserStore]):
@@ -56,6 +57,8 @@ class Users(WithGameLifecycle):
             user.on_scoreboard_batch_update_done()
 
 class User(WithGameLifecycle):
+    WRITEUP_REQUIRED_RANK = 35
+
     def __init__(self, game: Game, store: UserStore):
         self._game: Game = game
         self._store: UserStore = store
@@ -141,6 +144,21 @@ class User(WithGameLifecycle):
         if self._store.profile.check_profile(self._store.group) is not None:
             return 'SHOULD_UPDATE_PROFILE', '请完善个人资料'
         return None
+
+    def check_submit_writeup(self) -> Optional[Tuple[str, str]]:
+        if self.check_play_game() is not None:
+            return self.check_play_game()
+        if len(self.passed_flags)==0:
+            return 'NO_PASSED_FLAGS', '此账号没有通过任何题目，无法提交 Writeup'
+
+    def writeup_required(self) -> bool:
+        board = self._game.boards['score_pku']
+        assert isinstance(board, ScoreBoard)
+
+        return (
+            self._store.group=='pku'
+            and board.uid_to_rank.get(self._store.id, self.WRITEUP_REQUIRED_RANK+1)<=self.WRITEUP_REQUIRED_RANK
+        )
 
     def __repr__(self) -> str:
         return repr(self._store)
