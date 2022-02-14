@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Dict, Callable
+from typing import TYPE_CHECKING, List, Dict
 
 if TYPE_CHECKING:
     from ..logic.base import StateContainerBase

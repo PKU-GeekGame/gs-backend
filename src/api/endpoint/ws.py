@@ -7,7 +7,7 @@ from .. import get_cur_user
 bp = Blueprint('ws', url_prefix='/ws')
 
 @bp.websocket('/push')
-async def push(req: Request, ws: WebsocketImplProtocol):
+async def push(req: Request, ws: WebsocketImplProtocol) -> None:
     # xxx: cannot use dependency injection in websocket handlers
     # see https://github.com/sanic-org/sanic-ext/issues/61
     worker = req.app.ctx.worker

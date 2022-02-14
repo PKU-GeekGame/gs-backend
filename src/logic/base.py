@@ -206,7 +206,7 @@ class StateContainerBase(ABC):
 
         self.next_message_id += 1
 
-        async def notify_waiters():
+        async def notify_waiters() -> None:
             async with self.message_cond:
                 self.message_cond.notify_all()
 

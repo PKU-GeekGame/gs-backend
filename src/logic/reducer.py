@@ -32,7 +32,7 @@ class Reducer(StateContainerBase):
         self.event_socket.bind(secret.GLITTER_EVENT_SOCKET_ADDR) # type: ignore
 
         self.state_counter: int = 1
-        self.tick_updater_task: Optional[asyncio.Task] = None
+        self.tick_updater_task: Optional[asyncio.Task[None]] = None
 
     async def _before_run(self) -> None:
         await super()._before_run()
