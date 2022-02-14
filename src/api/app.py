@@ -1,11 +1,13 @@
 from sanic import Sanic
 import os
 import asyncio
+import logging
 from sanic.request import Request
 from sanic import response, HTTPResponse, Blueprint
 from sanic.exceptions import SanicException
 from typing import Optional, Any
 
+from . import get_cur_user
 from ..logic import Worker
 from ..state import User
 from .. import utils
@@ -19,28 +21,13 @@ app.config.OAS = False
 app.config.KEEP_ALIVE_TIMEOUT = 15
 app.config.REQUEST_MAX_SIZE = 1024*1024*(1+secret.WRITEUP_MAX_SIZE_MB)
 
-def get_cur_user(req: Request) -> Optional[User]:
-    user = None
-
-    game = req.app.ctx.worker.game
-    if game is None:
-        req.app.ctx.worker.log('warning', 'app.get_cur_user', 'game is not available, skipping user detection')
-    else:
-        auth_token = req.cookies.get('auth_token', None)
-        if auth_token is not None:
-            user = game.users.user_by_auth_token.get(auth_token, None)
-            if user is not None and user.check_login() is not None:
-                # user not allowed to log in
-                user = None
-
-    return user
-
 app.ext.add_dependency(Worker, lambda req: req.app.ctx.worker)
 app.ext.add_dependency(Optional[User], get_cur_user)
 
 @app.before_server_start
 async def setup_game_state(cur_app: Sanic, _loop: Any) -> None:
-    worker = Worker(cur_app.config.get('WORKER_NAME', f'worker-{os.getpid()}'))
+    logging.getLogger('sanic.root').setLevel(logging.INFO)
+    worker = Worker(cur_app.config.get('WORKER_NAME', f'worker-{os.getpid()}'), receiving_messages=True)
     cur_app.ctx.worker = worker
     await worker._before_run()
     cur_app.ctx._worker_task = asyncio.create_task(worker._mainloop())
@@ -71,7 +58,8 @@ app.error_handler.add(Exception, handle_error)
 from .endpoint import auth
 from .endpoint import wish
 from .endpoint import template
-svc = Blueprint.group(auth.bp, wish.bp, template.bp, url_prefix='/service')
+from .endpoint import ws
+svc = Blueprint.group(auth.bp, wish.bp, template.bp, ws.bp, url_prefix='/service')
 app.blueprint(svc)
 
 def start(idx0: int, worker_name: str) -> None:

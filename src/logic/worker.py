@@ -11,8 +11,8 @@ from .. import secret
 class Worker(StateContainerBase):
     RECOVER_INTERVAL_S = 3
 
-    def __init__(self, process_name: str):
-        super().__init__(process_name)
+    def __init__(self, process_name: str, receiving_messages: bool = False):
+        super().__init__(process_name, receiving_messages)
 
         self.action_socket: Socket = self.glitter_ctx.socket(zmq.REQ) # type: ignore
         self.event_socket: Socket = self.glitter_ctx.socket(zmq.SUB) # type: ignore
@@ -79,6 +79,8 @@ class Worker(StateContainerBase):
         self.game_dirty = False
 
     async def _before_run(self) -> None:
+        await super()._before_run()
+
         # reduce the possibility of losing initial event_socket packets
         # (we are still sound in this case, but some time is wasted waiting for next SYNC)
         await asyncio.sleep(.2)

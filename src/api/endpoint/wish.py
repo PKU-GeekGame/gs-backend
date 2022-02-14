@@ -14,7 +14,7 @@ from ...logic import Worker, glitter
 from ...store import UserProfileStore, ChallengeStore
 from ... import secret
 
-bp = Blueprint('endpoint', url_prefix='/wish')
+bp = Blueprint('wish', url_prefix='/wish')
 
 @wish_endpoint(bp, '/game_info')
 async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dict[str, Any]:
@@ -32,7 +32,7 @@ async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dic
             'terms_agreed': user._store.terms_agreed,
         },
         'feature': {
-            'push': True,
+            'push': user is not None and user.check_play_game() is None,
             'game': user is not None,
         },
     }
@@ -164,8 +164,9 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
         } for ch in worker.game.challenges.list if ch.cur_effective],
 
         'user_info': {
-            'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
             'status_line': f'总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
+            'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
+            'active_board_key': active_board_key,
         },
 
         'show_writeup': policy.can_submit_writeup,

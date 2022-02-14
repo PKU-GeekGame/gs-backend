@@ -32,8 +32,11 @@ class Reducer(StateContainerBase):
         self.event_socket.bind(secret.GLITTER_EVENT_SOCKET_ADDR) # type: ignore
 
         self.state_counter: int = 1
+        self.tick_updater_task: Optional[asyncio.Task] = None
 
     async def _before_run(self) -> None:
+        await super()._before_run()
+
         self.log('info', 'reducer.before_run', 'started to initialize game')
         await self.init_game(0)
         await self._update_tick()
@@ -197,6 +200,14 @@ class Reducer(StateContainerBase):
         listener: Callable[[Any, glitter.ActionReq], Awaitable[Optional[str]]] = action_listeners.get(type(action.req), default)
         return await listener(self, action.req)
 
+    async def process_event(self, event: glitter.Event) -> None:
+        await super().process_event(event)
+        if event.type==glitter.EventType.RELOAD_TRIGGER:
+            # restart tick updater deamon because next tick time may change
+            if self.tick_updater_task is not None:
+                self.tick_updater_task.cancel()
+                self.tick_updater_task = asyncio.create_task(self._tick_updater_daemon())
+
     async def emit_event(self, event: glitter.Event) -> None:
         self.log('info', 'reducer.emit_event', f'emit event {event.type}')
         await self.process_event(event)
@@ -208,7 +219,7 @@ class Reducer(StateContainerBase):
 
     async def _mainloop(self) -> None:
         self.log('success', 'reducer.mainloop', 'started to receive actions')
-        _tick_updater_task = asyncio.create_task(self._tick_updater_daemon())
+        self.tick_updater_task = asyncio.create_task(self._tick_updater_daemon())
 
         while True:
             try:

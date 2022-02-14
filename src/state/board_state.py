@@ -14,8 +14,9 @@ def minmax(x: int, a: int, b: int) -> int:
     return x
 
 class Board(WithGameLifecycle, ABC):
-    def __init__(self, board_type: str):
+    def __init__(self, board_type: str, name: str):
         self.board_type = board_type
+        self.name = name
 
     @property
     @abstractmethod
@@ -26,8 +27,8 @@ class ScoreBoard(Board):
     MAX_DISPLAY_USERS = 100
     MAX_TOPSTAR_USERS = 10
 
-    def __init__(self, game: Game, group: Optional[List[str]], show_group: bool):
-        super().__init__('score')
+    def __init__(self, name: str, game: Game, group: Optional[List[str]], show_group: bool):
+        super().__init__('score', name)
         self._game = game
 
         self.show_group: bool = show_group
@@ -114,8 +115,8 @@ class ScoreBoard(Board):
         self._summarized = self._summarize()
 
 class FirstBloodBoard(Board):
-    def __init__(self, game: Game, group: Optional[List[str]], show_group: bool):
-        super().__init__('firstblood')
+    def __init__(self, name: str, game: Game, group: Optional[List[str]], show_group: bool):
+        super().__init__('firstblood', name)
         self._game = game
 
         self.show_group: bool = show_group
@@ -160,9 +161,29 @@ class FirstBloodBoard(Board):
             assert submission.challenge is not None, 'submission matched flag to no challenge'
 
             if self.group is None or submission.user._store.group in self.group:
-                self.flag_board.setdefault(submission.matched_flag, submission)
+                passed_all_flags = submission.challenge in submission.user.passed_challs
 
-                if submission.challenge in submission.user.passed_challs:
-                    self.chall_board.setdefault(submission.challenge, submission)
+                if submission.matched_flag not in self.flag_board:
+                    self.flag_board[submission.matched_flag] = submission
+
+                    if not in_batch and not passed_all_flags:
+                        self._game.worker.emit_local_message({
+                            'type': 'flag_first_blood',
+                            'board_name': self.name,
+                            'nickname': submission.user._store.profile.nickname_or_null,
+                            'challenge': submission.challenge._store.title,
+                            'flag': submission.matched_flag.name,
+                        }, self.group)
+
+                if submission.challenge not in self.chall_board and passed_all_flags:
+                    self.chall_board[submission.challenge] = submission
+
+                    if not in_batch:
+                        self._game.worker.emit_local_message({
+                            'type': 'challenge_first_blood',
+                            'board_name': self.name,
+                            'nickname': submission.user._store.profile.nickname_or_null,
+                            'challenge': submission.challenge._store.title,
+                        }, self.group)
 
                 self._summarized = self._summarize()

@@ -24,6 +24,11 @@ class Announcements:
         if new_store is None:
             self.list = other_anns
         else:
+            if len(other_anns)==len(self.list): # created announcement
+                self._game.worker.emit_local_message({
+                    'type': 'new_announcement',
+                    'title': new_store.title,
+                })
             self.list = other_anns+[Announcement(self._game, new_store)]
 
         self._sort_list()

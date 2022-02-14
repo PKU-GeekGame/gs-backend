@@ -16,6 +16,9 @@ def timestamp_ms_formatter(_view: Any, _context: Any, model: Any, name: str) -> 
 # noinspection PyAttributeOutsideInit
 class TimestampSField(wtforms.fields.IntegerField): # type: ignore
     widget = wtforms.widgets.DateTimeLocalInput()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.flags.step = 1
     def _value(self) -> str:
         if self.data is not None:
             return datetime.datetime.isoformat(datetime.datetime.fromtimestamp(self.data))
@@ -30,6 +33,9 @@ class TimestampSField(wtforms.fields.IntegerField): # type: ignore
 # noinspection PyAttributeOutsideInit
 class TimestampMsField(wtforms.fields.IntegerField): # type: ignore
     widget = wtforms.widgets.DateTimeLocalInput()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.flags.step = 1
     def _value(self) -> str:
         if self.data is not None:
             return datetime.datetime.isoformat(datetime.datetime.fromtimestamp(self.data/1000))

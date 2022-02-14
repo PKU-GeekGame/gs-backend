@@ -34,8 +34,9 @@ on_event, event_listeners = make_callback_decorator()
 
 class StateContainerBase(ABC):
     RECOVER_THROTTLE_S = .5
+    MAX_KEEPING_MESSAGES = 20
 
-    def __init__(self, process_name: str):
+    def __init__(self, process_name: str, receiving_messages: bool = False):
         self.process_name: str = process_name
         self.SqlSession = sessionmaker(create_engine(secret.DB_CONNECTOR, future=True), expire_on_commit=False, future=True)
 
@@ -48,6 +49,11 @@ class StateContainerBase(ABC):
 
         self.game_dirty: bool = True
 
+        self.local_messages: Dict[int, Tuple[Optional[List[str]], Dict[str, Any]]] = {}
+        self.next_message_id: int = 1
+        self.message_cond: asyncio.Condition = None  # type: ignore
+        self.listening_local_messages: bool = receiving_messages
+
     @property
     def game(self) -> Optional[Game]:
         if self.game_dirty:
@@ -58,7 +64,7 @@ class StateContainerBase(ABC):
         while True:
             try:
                 self._game = Game(
-                    logger=self.log,
+                    worker=self,
                     cur_tick=tick,
                     game_policy_stores=self.load_all_data(GamePolicyStore),
                     trigger_stores=self.load_all_data(TriggerStore),
@@ -74,9 +80,8 @@ class StateContainerBase(ABC):
             else:
                 break
 
-    @abstractmethod
     async def _before_run(self) -> None:
-        raise NotImplementedError()
+        self.message_cond = asyncio.Condition()
 
     @abstractmethod
     async def _mainloop(self) -> None:
@@ -131,8 +136,16 @@ class StateContainerBase(ABC):
 
     @on_event(glitter.EventType.TICK_UPDATE)
     def on_tick_update(self, event: glitter.Event) -> None:
-        self._game.cur_tick = event.data
-        self._game.on_tick_change()
+        old_tick = self._game.cur_tick
+        if old_tick!=event.data:
+            self._game.cur_tick = event.data
+            self._game.on_tick_change()
+
+            if event.data in self._game.trigger.trigger_by_tick:
+                self.emit_local_message({
+                    'type': 'tick_update',
+                    'new_tick_name': self._game.trigger.trigger_by_tick[event.data].name,
+                })
 
     def reload_scoreboard_if_needed(self) -> None:
         if not self._game.need_reloading_scoreboard:
@@ -178,3 +191,23 @@ class StateContainerBase(ABC):
             await self.init_game(self._game.cur_tick)
             self.game_dirty = False
             await asyncio.sleep(self.RECOVER_THROTTLE_S)
+
+    def emit_local_message(self, msg: Dict[str, Any], togroup: Optional[List[str]] = None) -> None:
+        if not self.listening_local_messages:
+            return
+
+        self.log('debug', 'base.emit_local_message', f'emit message {msg.get("type", None)}')
+
+        self.local_messages[self.next_message_id] = (togroup, msg)
+
+        deleted_message = self.next_message_id-self.MAX_KEEPING_MESSAGES
+        if deleted_message in self.local_messages:
+            del self.local_messages[deleted_message]
+
+        self.next_message_id += 1
+
+        async def notify_waiters():
+            async with self.message_cond:
+                self.message_cond.notify_all()
+
+        asyncio.get_event_loop().create_task(notify_waiters())
