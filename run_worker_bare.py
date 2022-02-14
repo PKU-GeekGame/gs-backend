@@ -4,7 +4,7 @@ import threading
 from src.logic.worker import Worker
 from src import utils
 
-def worker_thread(w):
+def worker_thread(w: Worker) -> None:
     asyncio.run(w.run_forever())
     print('-- worker stopped --')
 

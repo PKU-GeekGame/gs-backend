@@ -34,7 +34,7 @@ DB_CONNECTOR = 'mysql+pymysql://username:password@host:port/database'
 TEMPLATE_PATH = pathlib.Path('/path/to/templates').resolve()
 WRITEUP_PATH = pathlib.Path('/path/to/writeups').resolve()
 
-WRITEUP_MAX_SIZE_MB = 50
+WRITEUP_MAX_SIZE_MB = 20
 
 #### INTERNAL PORTS
 

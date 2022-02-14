@@ -9,8 +9,8 @@ from src import secret
 
 reducer_started_event = threading.Event()
 
-def reducer_thread(loop: asyncio.AbstractEventLoop, reducer: Reducer):
-    async def task():
+def reducer_thread(loop: asyncio.AbstractEventLoop, reducer: Reducer) -> None:
+    async def task() -> None:
         await reducer._before_run()
         reducer_started_event.set()
         await reducer._mainloop()
@@ -31,4 +31,4 @@ if __name__=='__main__':
 
     app.config['reducer_loop'] = l
     app.config['reducer_obj'] = r
-    app.run(**secret.REDUCER_ADMIN_SERVER_KWARGS)
+    app.run(**secret.REDUCER_ADMIN_SERVER_KWARGS) # type: ignore

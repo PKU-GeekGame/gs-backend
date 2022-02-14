@@ -12,7 +12,7 @@ from .. import secret
 
 LOGIN_MAX_AGE_S = 86400*30
 
-AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]] #
+AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]]
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
 def login(user: User) -> HTTPResponse:
