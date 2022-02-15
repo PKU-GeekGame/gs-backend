@@ -67,6 +67,6 @@ for model_name in dir(store):
 admin.add_view(secured(TemplateView)(secret.TEMPLATE_PATH, name='Template', category='Files'))
 admin.add_view(secured(WriteupView)(secret.WRITEUP_PATH, name='Writeup', category='Files'))
 
-@app.route(f'{secret.ADMIN_URL}')
+@app.route(f'{secret.ADMIN_URL}/')
 def index() -> Any:
     return redirect(f'{secret.ADMIN_URL}/admin')

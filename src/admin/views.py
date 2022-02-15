@@ -3,8 +3,10 @@ from flask_admin.form import SecureForm # type: ignore
 from flask_admin.babel import lazy_gettext # type: ignore
 from flask_admin.model.template import macro # type: ignore
 from wtforms import validators # type: ignore
+from markupsafe import Markup
 from flask import current_app, flash
 import asyncio
+import json
 from typing import Any, Optional, Type
 
 from . import fields
@@ -153,7 +155,7 @@ class UserView(ViewBase):
     can_view_details = True
     details_modal = True
 
-    column_exclude_list = ['token', 'auth_token']
+    column_exclude_list = ['token', 'auth_token', 'login_properties']
     column_display_pk = True
     page_size = 100
     can_set_page_size = True
@@ -162,6 +164,14 @@ class UserView(ViewBase):
     column_filters = ['group', 'terms_agreed']
     form_choices = {
         'group': list(store.UserStore.GROUPS.items()),
+    }
+    column_formatters_detail = {
+        'login_properties': lambda _v, _c, model, _n: (
+            Markup('<samp style="white-space: pre-wrap">%s</samp>') % json.dumps(model.login_properties, indent=4)
+        ),
+    }
+    form_overrides = {
+        'login_properties': fields.JsonField,
     }
 
     def after_model_touched(self, model: store.UserStore) -> None:
@@ -214,6 +224,6 @@ class WriteupView(fileadmin.FileAdmin): # type: ignore
 
     def get_edit_form(self) -> Type[Any]:
         class EditForm(self.form_base_class): # type: ignore
-            content = fields.JsonField(lazy_gettext('Content'), (validators.InputRequired(),))
+            content = fields.JsonTextField(lazy_gettext('Content'), (validators.InputRequired(),))
 
         return EditForm

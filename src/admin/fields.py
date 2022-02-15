@@ -89,10 +89,20 @@ class SyntaxHighlightInput(AceInput):
             {super().script_body()}
         '''
 
+class JsonFormattedInput(SyntaxHighlightInput):
+    def __init__(self) -> None:
+        super().__init__('json')
+
+    def script_body(self) -> str:
+        return f'''
+            {super().script_body()}
+            editor.session.setValue(JSON.stringify(JSON.parse(textarea.value), null, "\t"));
+        '''
+
 class JsonListInputWithSnippets(SyntaxHighlightInput):
     def __init__(self, snippets: Dict[str, str]):
         self.snippets = snippets
-        super().__init__('javascript')
+        super().__init__('json')
 
     def script_body(self) -> str:
         return f'''
@@ -136,8 +146,12 @@ class JsonListInputWithSnippets(SyntaxHighlightInput):
 class MarkdownField(wtforms.fields.TextAreaField): # type: ignore
     widget = SyntaxHighlightInput('markdown')
 
-class JsonField(wtforms.fields.TextAreaField): # type: ignore
+class JsonTextField(wtforms.fields.TextAreaField): # type: ignore
     widget = SyntaxHighlightInput('json')
+
+# `JsonField` should be used for a JSON sqlalchemy type, while `JsonTextField` should be used for a string type.
+class JsonField(flask_admin.form.JSONField): # type: ignore
+    widget = JsonFormattedInput()
 
 class FlagsField(flask_admin.form.JSONField): # type: ignore
     widget = JsonListInputWithSnippets(store.ChallengeStore.FLAG_SNIPPETS)

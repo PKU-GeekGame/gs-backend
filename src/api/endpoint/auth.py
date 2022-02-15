@@ -127,7 +127,6 @@ async def auth_ms_res(req: Request, http_client: httpx.AsyncClient, worker: Work
     })
     token_json = token_res.json()
     token = token_json.get('access_token', None)
-    refresh_token = token_json.get('refresh_token', None)
     if token is None:
         worker.log('warning', 'api.auth.ms', f'get access_token failed:\n{token_json}')
         raise AuthError('MS Token不存在')
@@ -146,5 +145,4 @@ async def auth_ms_res(req: Request, http_client: httpx.AsyncClient, worker: Work
         'type': 'microsoft',
         'info': info,
         'access_token': token,
-        'refresh_token': refresh_token
     }, 'other'

@@ -1,7 +1,7 @@
 {% extends 'admin/base.html' %}
 
 {% macro in_pre(model, column) %}
-    <samp style="white-space: pre">{{ model[column] }}</samp>
+    <samp style="white-space: pre-wrap">{{ model[column] }}</samp>
 {% endmacro %}
 
 {% macro status_label(model, column) %}
