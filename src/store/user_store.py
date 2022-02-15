@@ -1,6 +1,7 @@
 from __future__ import annotations
-from sqlalchemy import Column, String, JSON, Integer, ForeignKey, Boolean
+from sqlalchemy import Column, String, JSON, Integer, ForeignKey, BigInteger, Boolean
 from sqlalchemy.orm import relationship, validates
+import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -15,6 +16,7 @@ class UserStore(Table):
 
     login_key = Column(String(192), nullable=False, unique=True)
     login_properties = Column(JSON, nullable=False)
+    timestamp_ms = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
 
     enabled = Column(Boolean, nullable=False, default=True)
     group = Column(String(32), nullable=False)
