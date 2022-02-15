@@ -36,7 +36,10 @@ class UserStore(Table):
 
     def __repr__(self) -> str:
         nick = '(no profile)' if self.profile is None else self.profile.nickname_or_null
-        return f'[U#{self.id} {self.login_key} {nick!r}]'
+        login_key = self.login_key
+        if len(login_key)>20:
+            login_key = login_key[:18]+'...'
+        return f'[U#{self.id} {login_key} {nick!r}]'
 
     @validates('token', 'auth_token', 'profile_id')
     def validate_not_null(self, key: str, new_value: Any) -> Any:

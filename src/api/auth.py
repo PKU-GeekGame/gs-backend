@@ -84,12 +84,12 @@ def build_url(url: str, query: Dict[str, str]) -> str:
     query_str = '&'.join(f'{quote(k)}={quote(v)}' for k, v in query.items())
     return f'{url}?{query_str}'
 
-def oauth2_redirect(url: str, client_id: str, redirect_url: str) -> HTTPResponse:
+def oauth2_redirect(url: str, params: Dict[str, str], redirect_url: str) -> HTTPResponse:
     assert '://' in redirect_url, 'redirect url should be absolute'
 
     state = utils.gen_random_str(32)
     res = response.redirect(build_url(url, {
-        'client_id': client_id,
+        **params,
         'redirect_uri': redirect_url,
         'state': state,
     }))
