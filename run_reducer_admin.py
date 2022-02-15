@@ -1,6 +1,7 @@
 import asyncio
 import os
 import threading
+from gevent.pywsgi import WSGIServer
 
 from src.logic.reducer import Reducer
 from src.admin.app import app
@@ -31,4 +32,4 @@ if __name__=='__main__':
 
     app.config['reducer_loop'] = l
     app.config['reducer_obj'] = r
-    app.run(**secret.REDUCER_ADMIN_SERVER_KWARGS) # type: ignore
+    WSGIServer(secret.REDUCER_ADMIN_SERVER_ADDR, app, log=None).serve_forever()

@@ -14,6 +14,7 @@ from .. import store
 
 app = Flask(__name__, static_url_path=f'{secret.ADMIN_URL}/static')
 
+app.config['DEBUG'] = False
 app.config['ADMIN_URL'] = secret.ADMIN_URL
 app.config['SQLALCHEMY_DATABASE_URI'] = secret.DB_CONNECTOR
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

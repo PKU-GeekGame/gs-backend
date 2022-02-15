@@ -58,11 +58,7 @@ WORKER_API_SERVER_KWARGS = lambda idx0: { # will be passed to `Sanic.run`
     'access_log': False, # nginx already does this. disabling sanic access log makes it faster.
 }
 
-REDUCER_ADMIN_SERVER_KWARGS = { # will be passed to `Flask.run`
-    'host': '127.0.0.1',
-    'port': 5000,
-    'debug': False,
-}
+REDUCER_ADMIN_SERVER_ADDR = ('127.0.0.1', 5000)
 
 #### URLS
 
