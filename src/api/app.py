@@ -5,6 +5,7 @@ import logging
 from sanic.request import Request
 from sanic import response, HTTPResponse, Blueprint
 from sanic.exceptions import SanicException
+import httpx
 from typing import Optional, Any
 
 from . import get_cur_user
@@ -22,15 +23,19 @@ app.config.KEEP_ALIVE_TIMEOUT = 15
 app.config.REQUEST_MAX_SIZE = 1024*1024*(1+secret.WRITEUP_MAX_SIZE_MB)
 
 app.ext.add_dependency(Worker, lambda req: req.app.ctx.worker)
+app.ext.add_dependency(httpx.AsyncClient, lambda req: req.app.ctx.oauth_http_client)
 app.ext.add_dependency(Optional[User], get_cur_user)
 
 @app.before_server_start
 async def setup_game_state(cur_app: Sanic, _loop: Any) -> None:
     logging.getLogger('sanic.root').setLevel(logging.INFO)
+
     worker = Worker(cur_app.config.get('WORKER_NAME', f'worker-{os.getpid()}'), receiving_messages=True)
     cur_app.ctx.worker = worker
     await worker._before_run()
     cur_app.ctx._worker_task = asyncio.create_task(worker._mainloop())
+
+    cur_app.ctx.oauth_http_client = httpx.AsyncClient(http2=True, proxies=secret.OAUTH_HTTP_PROXIES)
 
 async def handle_error(req: Request, exc: Exception) -> HTTPResponse:
     if isinstance(exc, SanicException):

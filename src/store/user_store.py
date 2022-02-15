@@ -46,8 +46,7 @@ class UserStore(Table):
     @validates('login_properties')
     def validate_login_properties(self, _key: str, login_properties: Any) -> Any:
         assert isinstance(login_properties, dict), 'login_properties should be a dict'
-        for k in login_properties.keys():
-            assert isinstance(k, str), 'login_properties key should be string'
+        assert 'type' in login_properties, 'login_properties should have a type'
 
         return login_properties
 

@@ -1,14 +1,15 @@
-from sanic import Blueprint, response, Request, HTTPResponse
+from sanic import response, Request, HTTPResponse
 from sanic.models.handler_types import RouteHandler
-from sanic_ext import validate
 from html import escape
 from functools import wraps
 from inspect import isawaitable
+from urllib.parse import quote
 from typing import Dict, Any, Callable, Tuple, Union, Awaitable, Type, Optional
 
 from ..logic import Worker, glitter
 from ..state import User
 from .. import secret
+from .. import utils
 
 LOGIN_MAX_AGE_S = 86400*30
 
@@ -23,7 +24,9 @@ def login(user: User) -> HTTPResponse:
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
     res.cookies['auth_token'] = user._store.auth_token
     res.cookies['auth_token']['samesite'] = 'Lax'
+    res.cookies['auth_token']['httponly'] = True
     res.cookies['auth_token']['max-age'] = LOGIN_MAX_AGE_S
+    del res.cookies['oauth_state']
     return res
 
 class AuthError(Exception):
@@ -54,29 +57,52 @@ async def register_or_login(worker: Worker, login_key: str, properties: Dict[str
 
     return login(user)
 
-def auth_endpoint(bp: Blueprint, uri: str, query: Optional[Type[Any]] = None) -> Callable[[AuthHandler], RouteHandler]:
-    def decorator(fn: AuthHandler) -> RouteHandler:
-        @wraps(fn)
-        async def wrapped(req: Request, *args: Any, **kwargs: Any) -> HTTPResponse:
-            try:
-                retval_ = fn(req, *args, **kwargs)
-                retval = (await retval_) if isawaitable(retval_) else retval_
-                if isinstance(retval, User):
-                    return login(retval)
-                else:
-                    login_key, properties, group = retval
-                    return await register_or_login(req.app.ctx.worker, login_key, properties, group)
-            except AuthError as e:
-                return response.html(
-                    '<!doctype html>'
-                    '<h1>登录失败</h1>'
-                    f'<p>{escape(e.message)}</p>'
-                    '<br>'
-                    f'<p><a href="{secret.FRONTEND_PORTAL_URL}">返回比赛平台</a></p>'
-                )
+def auth_response(fn: AuthHandler) -> RouteHandler:
+    @wraps(fn)
+    async def wrapped(req: Request, *args: Any, **kwargs: Any) -> HTTPResponse:
+        try:
+            retval_ = fn(req, *args, **kwargs)
+            retval = (await retval_) if isawaitable(retval_) else retval_
+            if isinstance(retval, User):
+                return login(retval)
+            else:
+                login_key, properties, group = retval
+                return await register_or_login(req.app.ctx.worker, login_key, properties, group)
+        except AuthError as e:
+            return response.html(
+                '<!doctype html>'
+                '<h1>登录失败</h1>'
+                f'<p>{escape(e.message)}</p>'
+                '<br>'
+                f'<p><a href="{secret.FRONTEND_PORTAL_URL}">返回比赛平台</a></p>'
+            )
 
-        wrapped = validate(query=query)(wrapped)
+    return wrapped
 
-        return bp.route(uri, ['GET'])(wrapped) # type: ignore
+def build_url(url: str, query: Dict[str, str]) -> str:
+    assert '?' not in url, 'url should not contain query string part'
+    query_str = '&'.join(f'{quote(k)}={quote(v)}' for k, v in query.items())
+    return f'{url}?{query_str}'
 
-    return decorator
+def oauth2_redirect(url: str, client_id: str, redirect_url: str) -> HTTPResponse:
+    assert '://' in redirect_url, 'redirect url should be absolute'
+
+    state = utils.gen_random_str(32)
+    res = response.redirect(build_url(url, {
+        'client_id': client_id,
+        'redirect_uri': redirect_url,
+        'state': state,
+    }))
+
+    res.cookies['oauth_state'] = state
+    res.cookies['oauth_state']['samesite'] = 'Lax'
+    res.cookies['oauth_state']['httponly'] = True
+    res.cookies['oauth_state']['max-age'] = 600
+    return res
+
+def oauth2_check_state(req: Request) -> None:
+    state = req.cookies.get('oauth_state', None)
+    if not state:
+        raise AuthError('OAuth错误：state无效')
+    if state!=req.args.get('state', None):
+        raise AuthError('OAuth错误：state不匹配')

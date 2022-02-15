@@ -10,6 +10,14 @@ if TYPE_CHECKING:
 ## SECRET KEYS
 ##
 
+#### API KEYS
+
+GITHUB_APP_ID = 'xxx'
+GITHUB_APP_SECRET = 'xxx'
+
+MS_APP_ID = 'xxx'
+MS_APP_SECRET = 'xxx'
+
 #### RANDOM BULLSHITS
 
 ADMIN_SESSION_SECRET = 'some_long_random_string'
@@ -60,6 +68,12 @@ REDUCER_ADMIN_SERVER_KWARGS = { # will be passed to `Flask.run`
 
 FRONTEND_PORTAL_URL = '/' # redirected to this after (successful or failed) login
 ADMIN_URL = '/admin' # prefix of all admin urls
+
+BACKEND_HOSTNAME = 'localhost' # used for oauth redirects
+BACKEND_SCHEME = 'http' # used for oauth redirects
+OAUTH_HTTP_PROXIES = { # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/#http-proxying
+    'all://*github.com': None, #'http://127.0.0.1:xxxx',
+}
 
 ##
 ## PERMISSION
