@@ -1,3 +1,4 @@
+import httpx
 from sanic import response, Request, HTTPResponse
 from sanic.models.handler_types import RouteHandler
 from html import escape
@@ -26,7 +27,7 @@ def login(user: User) -> HTTPResponse:
     res.cookies['auth_token']['samesite'] = 'Lax'
     res.cookies['auth_token']['httponly'] = True
     res.cookies['auth_token']['max-age'] = LOGIN_MAX_AGE_S
-    del res.cookies['oauth_state']
+    del res.cookies['oauth_state'] # type: ignore
     return res
 
 class AuthError(Exception):
@@ -61,13 +62,17 @@ def auth_response(fn: AuthHandler) -> RouteHandler:
     @wraps(fn)
     async def wrapped(req: Request, *args: Any, **kwargs: Any) -> HTTPResponse:
         try:
-            retval_ = fn(req, *args, **kwargs)
-            retval = (await retval_) if isawaitable(retval_) else retval_
-            if isinstance(retval, User):
-                return login(retval)
-            else:
-                login_key, properties, group = retval
-                return await register_or_login(req.app.ctx.worker, login_key, properties, group)
+            try:
+                retval_ = fn(req, *args, **kwargs)
+                retval = (await retval_) if isawaitable(retval_) else retval_
+                if isinstance(retval, User):
+                    return login(retval)
+                else:
+                    login_key, properties, group = retval
+                    return await register_or_login(req.app.ctx.worker, login_key, properties, group)
+            except httpx.RequestError as e:
+                req.app.ctx.worker.log('error', 'api.auth.auth_response', f'request error: {utils.get_traceback(e)}')
+                raise AuthError('第三方服务网络错误')
         except AuthError as e:
             return response.html(
                 '<!doctype html>'

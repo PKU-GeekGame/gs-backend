@@ -20,13 +20,52 @@
   The game state is kept in RAM, making it more performant when updating the scoreboard.
   The backend is also asynchronous, therefore a laggy OAuth provider will not block other requests.
 
-## Architecture
+## Usage
 
-TODO
+The backend codebase is compatible with Linux and Windows.
+
+Although nobody uses Windows on a server, it is a good news if you develop on Windows. 
+
+**Setup:**
+
+- Install Python (≥3.7)
+- `pip install -r requirements.txt`
+- Install MySQL server and set up a database for it
+  - `CREATE USER 'username'@'localhost' IDENTIFIED BY 'password';`
+  - `CREATE DATABASE 'database';`
+  - `GRANT ALL PRIVILEGES ON 'database'.* TO 'username'@'localhost';`
+  - `FLUSH PRIVILEGES;`
+- Configure parameters
+  - Rename `src/secret_example.py` to `src/secret.py`
+  - Fill in everything in that file
+    - And create directories mentioned in the file
+- Prepare the database
+  - Set environment variable `FLASK_APP=src/admin/app`
+  - `flask db init`
+  - `flask db migrate`
+  - It may warn you about circular dependency of two constraints.
+    You need to manually tweak the generated file in `migrations/versions`  
+    - Comment out `sa.ForeignKeyConstraint(['profile_id'], ['user_profile.id'], ),`
+    - Insert `op.create_foreign_key(None, 'user', 'user_profile', ['profile_id'], ['id'])` at the end of the method
+  - `flask db upgrade`
+
+**Start the server:**
+
+- `python3 run_reducer_admin.py`
+  - It will show `[success] reducer.mainloop: started to receive actions`
+- `python3 run_worker_api.py`
+  - It will show `[success] worker.mainloop: started to receive events`
+
+It is a good idea to run them as a systemd service on the deployment server.
+
+**Development:**
+
+- `pip install -r requirements-dev.txt`
+  - This will install `mypy` and type sheds
+- To type-check the code, run `python3 -m mypy.dmypy run`
+- We recommend Python IDEs that give accurate completions with type hints
+  - i.e. PyCharm
 
 ## License
 
-This repository is licensed under [AGPLv3](LICENSE.md) by default.
-
-If you want to use this project but the modified source code cannot be published (which violates AGPL) for some reason,
-you may request for a more relaxed license, but there is no guarantee that every request will be granted.
+This repository is distributed under [MIT License](LICENSE.md).

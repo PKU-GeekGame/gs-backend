@@ -26,7 +26,7 @@ GLITTER_SSRF_TOKEN = 'some_long_random_string'
 
 #### SIGNING KEYS
 
-with open('/path/to/dev_server.priv') as f:
+with open('/path/to/token.priv') as f:
     TOKEN_SIGNING_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read())
 
 ##
@@ -69,8 +69,9 @@ REDUCER_ADMIN_SERVER_KWARGS = { # will be passed to `Flask.run`
 FRONTEND_PORTAL_URL = '/' # redirected to this after (successful or failed) login
 ADMIN_URL = '/admin' # prefix of all admin urls
 
-BACKEND_HOSTNAME = 'localhost' # used for oauth redirects
-BACKEND_SCHEME = 'http' # used for oauth redirects
+BACKEND_HOSTNAME = 'your_contest.example.com' # used for oauth redirects
+BACKEND_SCHEME = 'https' # used for oauth redirects
+
 OAUTH_HTTP_PROXIES = { # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/#http-proxying
     'all://*github.com': None, #'http://127.0.0.1:xxxx',
 }

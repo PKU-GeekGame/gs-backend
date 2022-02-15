@@ -14,6 +14,8 @@ from ..state import User
 from .. import utils
 from .. import secret
 
+OAUTH_HTTP_TIMEOUT = 20
+
 utils.fix_zmq_asyncio_windows()
 
 app = Sanic('guiding-star-backend')
@@ -35,7 +37,11 @@ async def setup_game_state(cur_app: Sanic, _loop: Any) -> None:
     await worker._before_run()
     cur_app.ctx._worker_task = asyncio.create_task(worker._mainloop())
 
-    cur_app.ctx.oauth_http_client = httpx.AsyncClient(http2=True, proxies=secret.OAUTH_HTTP_PROXIES)
+    cur_app.ctx.oauth_http_client = httpx.AsyncClient( # type: ignore
+        http2=True,
+        proxies=secret.OAUTH_HTTP_PROXIES,
+        timeout=OAUTH_HTTP_TIMEOUT,
+    )
 
 async def handle_error(req: Request, exc: Exception) -> HTTPResponse:
     if isinstance(exc, SanicException):
