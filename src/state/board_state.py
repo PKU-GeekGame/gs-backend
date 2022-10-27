@@ -64,7 +64,7 @@ class ScoreBoard(Board):
     def _summarize(self) -> Dict[str, Any]:
         return {
             'challenges': [{
-                'id': ch._store.id,
+                'key': ch._store.key,
                 'title': ch._store.title,
                 'category': ch._store.category,
                 'flags': [f.name for f in ch.flags],
@@ -77,11 +77,11 @@ class ScoreBoard(Board):
                 'score': score,
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
-                    ch._store.id: ch.user_status(u)
+                    ch._store.key: ch.user_status(u)
                     for ch in self._game.challenges.list
                 },
                 'flag_pass_ts': {
-                    f'{f.challenge._store.id}_{f.idx0}': int(sub._store.timestamp_ms/1000)
+                    f'{f.challenge._store.key}_{f.idx0}': int(sub._store.timestamp_ms/1000)
                     for f, sub in u.passed_flags.items()
                 },
             } for idx, (u, score) in enumerate(self.board[:self.MAX_DISPLAY_USERS])],
@@ -134,7 +134,7 @@ class FirstBloodBoard(Board):
         return {
             'list': [{
                 'title': ch._store.title,
-                'id': ch._store.id,
+                'key': ch._store.key,
 
                 'flags': [{
                     'flag_name': None,
