@@ -140,7 +140,7 @@ class Reducer(StateContainerBase):
 
     @on_action(glitter.SubmitFlagReq)
     async def on_submit_flag(self, req: glitter.SubmitFlagReq) -> Optional[str]:
-        ch = self._game.challenges.chall_by_id.get(int(req.challenge_id), None)
+        ch = self._game.challenges.chall_by_key.get(req.challenge_key, None)
         if not ch:
             return 'challenge not found'
 

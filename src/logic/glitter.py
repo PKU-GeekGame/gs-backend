@@ -56,7 +56,7 @@ class AgreeTermReq(ActionReq):
 @dataclass
 class SubmitFlagReq(ActionReq):
     uid: int
-    challenge_id: int
+    challenge_key: str
     flag: str
 
 @dataclass

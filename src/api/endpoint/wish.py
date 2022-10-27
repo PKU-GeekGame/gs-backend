@@ -148,7 +148,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
 
     return {
         'challenge_list': None if not policy.can_view_problem else [{
-            'id': ch._store.id,
+            'key': ch._store.key,
             'title': ch._store.title,
             'category': ch._store.category,
             'category_color': ChallengeStore.CAT_COLORS.get(ch._store.category, FALLBACK_CAT_COLOR),
@@ -175,7 +175,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
 
 @dataclass
 class SubmitFlagParam:
-    challenge_id: int
+    challenge_key: str
     flag: str
 
 @wish_endpoint(bp, '/submit_flag')
@@ -205,7 +205,7 @@ async def submit_flag(_req: Request, body: SubmitFlagParam, worker: Worker, user
     rep = await worker.perform_action(glitter.SubmitFlagReq(
         client=worker.process_name,
         uid=user._store.id,
-        challenge_id=body.challenge_id,
+        challenge_key=body.challenge_key,
         flag=body.flag,
     ))
     if rep.error_msg is not None:
@@ -213,8 +213,8 @@ async def submit_flag(_req: Request, body: SubmitFlagParam, worker: Worker, user
 
     return {}
 
-@wish_endpoint(bp, '/get_touched_users/<challenge_id:int>')
-async def get_touched_users(_req: Request, challenge_id: int, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+@wish_endpoint(bp, '/get_touched_users/<challenge_key:str>')
+async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
     if user is None:
         return {'error': 'NO_USER', 'error_msg': '未登录'}
     if worker.game is None:
@@ -224,7 +224,7 @@ async def get_touched_users(_req: Request, challenge_id: int, worker: Worker, us
     if err is not None:
         return {'error': err[0], 'error_msg': err[1]}
 
-    ch = worker.game.challenges.chall_by_id.get(challenge_id, None)
+    ch = worker.game.challenges.chall_by_key.get(challenge_key, None)
     if ch is None:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
