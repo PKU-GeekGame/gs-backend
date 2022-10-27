@@ -81,6 +81,8 @@ class Challenge(WithGameLifecycle):
             self.flags = [Flag(self._game, x, self, i) for i, x in enumerate(store.flags)]
             self._game.need_reloading_scoreboard = True
 
+        self.on_tick_change()
+
     def on_tick_change(self) -> None:
         self.cur_effective = self._game.cur_tick >= self._store.effective_after
 
