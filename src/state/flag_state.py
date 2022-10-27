@@ -18,7 +18,7 @@ def leet_flag(flag: str, uid: int) -> str:
             rdlis.append(i)
 
     rdseed=(uid+233)*114547%123457
-    for it in range(2):
+    for it in range(4):
         np = rdseed%len(rdlis)
         npp = rdlis[np]
         rdseed = (rdseed+233)*114547%123457

@@ -28,7 +28,7 @@ Although nobody uses Windows on a server, it is a good news if you develop on Wi
 
 **Setup:**
 
-- Install Python (≥3.7)
+- Install Python (≥3.8)
 - `pip install -r requirements.txt`
 - Install MySQL server and set up a database for it
   - `CREATE USER 'username'@'localhost' IDENTIFIED BY 'password';`

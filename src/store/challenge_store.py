@@ -19,10 +19,11 @@ class ChallengeStore(Table):
     actions = Column(JSON, nullable=False)
     flags = Column(JSON, nullable=False)
 
-    VAL_FLAG = re.compile(r'^flag{[\x20-\x7e]{0,100}}$')
+    VAL_FLAG = re.compile(r'^flag{[\x20-\x7c\x7e]{1,100}}$') # 0x7d is '}'
     MAX_FLAG_LEN = 110
 
     CAT_COLORS = {
+        'Tutorial': '#333333',
         'Misc': '#7e2d86',
         'Web': '#2d8664',
         'Binary': '#864a2d',
