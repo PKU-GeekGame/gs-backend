@@ -109,7 +109,7 @@ class ChallengeStore(Table):
     def describe_actions(self, cur_tick) -> List[Dict[str, Any]]:
         ret = []
         for action in self.actions:
-            if action['effective_after'] >= cur_tick:
+            if cur_tick>=action['effective_after']:
                 if action['type']=='attachment':
                     ret.append({
                         'type': 'attachment',

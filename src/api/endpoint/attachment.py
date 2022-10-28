@@ -18,7 +18,7 @@ def load_module(module_path: Path) -> Callable[[User, Challenge], Path]:
     spec.loader.exec_module(mod)
     return mod.gen
 
-def download_attachment(p: str) -> HTTPResponse:
+async def download_attachment(p: str) -> HTTPResponse:
     if secret.ATTACHMENT_URL is not None: # use X-Accel-Redirect
         return response.raw('redirecting...', 200, content_type='', headers={
             'X-Accel-Redirect': f'{secret.ATTACHMENT_URL}/{p}',
@@ -54,7 +54,7 @@ async def get_attachment(req: Request, ch_key: str, fn: str, worker: Worker, use
         return response.text('附件不存在', status=404)
 
     if att['type']=='attachment':
-        return download_attachment(att["file_path"])
+        return await download_attachment(att["file_path"])
 
     elif att['type']=='dyn_attachment':
         mod_path = secret.ATTACHMENT_PATH / att['module_path']
@@ -63,7 +63,7 @@ async def get_attachment(req: Request, ch_key: str, fn: str, worker: Worker, use
 
         cache_path.parent.mkdir(exist_ok=True)
         if cache_path.is_file():
-            return download_attachment(cache_url)
+            return await download_attachment(cache_url)
         if not mod_path.is_dir():
             worker.log('error', 'api.attachment.get_attachment', f'module path is not dir: {mod_path}')
             return response.text('附件暂时不可用', status=500)
@@ -80,7 +80,7 @@ async def get_attachment(req: Request, ch_key: str, fn: str, worker: Worker, use
             worker.log('error', 'api.attachment.get_attachment', f'error generating attachment: {utils.get_traceback(e)}')
             return response.text('附件暂时不可用', status=500)
         else:
-            return download_attachment(cache_url)
+            return await download_attachment(cache_url)
 
     else:
         worker.log('error', 'api.attachment.get_attachment', f'unknown attachment type: {att["type"]}')
