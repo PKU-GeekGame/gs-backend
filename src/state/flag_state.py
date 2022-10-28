@@ -35,7 +35,7 @@ class Flag(WithGameLifecycle):
         self.challenge = chall
         self.idx0 = idx0
         self.type: str = descriptor['type']
-        self.val: str = descriptor['val']
+        self.val = descriptor['val'] # str or list[str] (for partitioned)
         self.name: str = descriptor['name']
         self.salt: str = descriptor.get('salt', '')
         self.base_score: int = descriptor['base_score']
@@ -53,6 +53,8 @@ class Flag(WithGameLifecycle):
             return self.val
         elif self.type=='leet':
             return leet_flag(self.val, user._store.token, self.salt)
+        elif self.type=='partitioned':
+            return self.val[user.get_partition(self.challenge, len(self.val))]
         else:
             raise ValueError(f'Unknown flag type: {self.type}')
 

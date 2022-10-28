@@ -1,4 +1,5 @@
 from __future__ import annotations
+import hashlib
 from typing import TYPE_CHECKING, List, Optional, Dict, Tuple
 
 if TYPE_CHECKING:
@@ -160,6 +161,10 @@ class User(WithGameLifecycle):
             self._store.group=='pku'
             and board.uid_to_rank.get(self._store.id, self.WRITEUP_REQUIRED_RANK+1)<=self.WRITEUP_REQUIRED_RANK
         )
+
+    def get_partition(self, ch: Challenge, n_part: int) -> int: # for partitioned dynamic flag
+        h = hashlib.sha256(f'{self._store.token}-{ch._store.key}'.encode()).hexdigest()
+        return int(h, 16) % n_part
 
     def __repr__(self) -> str:
         return repr(self._store)

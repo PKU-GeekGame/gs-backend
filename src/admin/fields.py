@@ -149,6 +149,9 @@ class MarkdownField(wtforms.fields.TextAreaField): # type: ignore
 class JsonTextField(wtforms.fields.TextAreaField): # type: ignore
     widget = SyntaxHighlightInput('json')
 
+class PythonField(wtforms.fields.TextAreaField):  # type: ignore
+    widget = SyntaxHighlightInput('python')
+
 # `JsonField` should be used for a JSON sqlalchemy type, while `JsonTextField` should be used for a string type.
 class JsonField(flask_admin.form.JSONField): # type: ignore
     widget = JsonFormattedInput()

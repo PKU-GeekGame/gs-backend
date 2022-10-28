@@ -70,7 +70,8 @@ from .endpoint import auth
 from .endpoint import wish
 from .endpoint import template
 from .endpoint import ws
-svc = Blueprint.group(auth.bp, wish.bp, template.bp, ws.bp, url_prefix='/service')
+from .endpoint import attachment
+svc = Blueprint.group(auth.bp, wish.bp, template.bp, ws.bp, attachment.bp, url_prefix='/service')
 app.blueprint(svc)
 
 def start(idx0: int, worker_name: str) -> None:

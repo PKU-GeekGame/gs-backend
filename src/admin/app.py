@@ -8,7 +8,7 @@ from flask_admin.contrib.sqla import ModelView # type: ignore
 from typing import Any, Optional
 from functools import wraps
 
-from .views import VIEWS, TemplateView, WriteupView
+from .views import VIEWS, TemplateView, WriteupView, FilesView
 from .. import secret
 from .. import store
 
@@ -67,6 +67,8 @@ for model_name in dir(store):
 
 admin.add_view(secured(TemplateView)(secret.TEMPLATE_PATH, name='Template', category='Files'))
 admin.add_view(secured(WriteupView)(secret.WRITEUP_PATH, name='Writeup', category='Files'))
+admin.add_view(secured(FilesView)(secret.MEDIA_PATH, name='Media', endpoint='media', category='Files'))
+admin.add_view(secured(FilesView)(secret.ATTACHMENT_PATH, name='Attachment', endpoint='attachment', category='Files'))
 
 @app.route(f'{secret.ADMIN_URL}/')
 def index() -> Any:

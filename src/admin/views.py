@@ -236,7 +236,18 @@ VIEWS = {
     'UserProfileStore': UserProfileView,
 }
 
-class TemplateView(fileadmin.FileAdmin): # type: ignore
+# fix crlf and encoding on windows
+class FileAdmin(fileadmin.BaseFileAdmin):
+    class FixingCrlfFileStorage(fileadmin.LocalFileStorage):
+        def write_file(self, path, content):
+            with open(path, 'w', encoding='utf-8') as f:
+                return f.write(content.replace('\r\n', '\n'))
+
+    def __init__(self, base_path, *args, **kwargs):
+        storage = self.FixingCrlfFileStorage(base_path)
+        super().__init__(*args, storage=storage, **kwargs)
+
+class TemplateView(FileAdmin): # type: ignore
     can_upload = True
     can_mkdir = False
     can_delete = False
@@ -253,7 +264,7 @@ class TemplateView(fileadmin.FileAdmin): # type: ignore
 
         return EditForm
 
-class WriteupView(fileadmin.FileAdmin): # type: ignore
+class WriteupView(FileAdmin): # type: ignore
     can_upload = False
     can_mkdir = False
     can_delete = False
@@ -268,5 +279,23 @@ class WriteupView(fileadmin.FileAdmin): # type: ignore
     def get_edit_form(self) -> Type[Any]:
         class EditForm(self.form_base_class): # type: ignore
             content = fields.JsonTextField(lazy_gettext('Content'), (validators.InputRequired(),))
+
+        return EditForm
+
+class FilesView(FileAdmin): # type: ignore
+    can_upload = True
+    can_mkdir = True
+    can_delete = True
+    can_delete_dirs = True
+    can_rename = True
+    can_download = True
+    editable_extensions = ['py']
+
+    form_base_class = SecureForm
+    edit_template = 'edit_ace.html'
+
+    def get_edit_form(self) -> Type[Any]:
+        class EditForm(self.form_base_class): # type: ignore
+            content = fields.PythonField(lazy_gettext('Content'), (validators.InputRequired(),))
 
         return EditForm

@@ -154,7 +154,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
             'category_color': ChallengeStore.CAT_COLORS.get(ch._store.category, FALLBACK_CAT_COLOR),
 
             'desc': ch.desc,
-            'actions': ch._store.actions,
+            'actions': ch._store.describe_actions(),
             'flags': [f.describe_json(user) for f in ch.flags],
 
             'tot_base_score': ch.tot_base_score,
@@ -202,6 +202,10 @@ async def submit_flag(_req: Request, body: SubmitFlagParam, worker: Worker, user
         if delta<10:
             return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {10-delta:.1f} 秒'}
 
+    ch = worker.game.challenges.chall_by_key.get(body.challenge_key, None)
+    if ch is None or not ch.cur_effective:
+        return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+
     rep = await worker.perform_action(glitter.SubmitFlagReq(
         client=worker.process_name,
         uid=user._store.id,
@@ -225,7 +229,7 @@ async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, u
         return {'error': err[0], 'error_msg': err[1]}
 
     ch = worker.game.challenges.chall_by_key.get(challenge_key, None)
-    if ch is None:
+    if ch is None or not ch.cur_effective:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
     users: Dict[User, List[Submission]] = {}

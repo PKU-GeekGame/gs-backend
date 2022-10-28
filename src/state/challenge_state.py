@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Dict, Optional, Set, Union, Literal
+from typing import TYPE_CHECKING, List, Dict, Optional, Set, Union, Literal, Any
 
 if TYPE_CHECKING:
     from . import Game, Submission, User
@@ -64,6 +64,7 @@ class Challenge(WithGameLifecycle):
         self.cur_effective: bool = False
         self.flags: List[Flag] = []
         self.desc: str = ''
+        self.attachments: Dict[str, Dict[str, Any]] = {}
 
         self.passed_users: Set[User] = set()
         self.touched_users: Set[User] = set()
@@ -76,6 +77,7 @@ class Challenge(WithGameLifecycle):
     def on_store_reload(self, store: ChallengeStore) -> None:
         self._store = store
         self.desc = utils.render_template(self._store.desc_template)
+        self.attachments = {a['filename']: a for a in store.actions if a['type']=='attachment' or a['type']=='dyn_attachment'}
 
         if store.flags!=[x._store for x in self.flags]:
             self.flags = [Flag(self._game, x, self, i) for i, x in enumerate(store.flags)]

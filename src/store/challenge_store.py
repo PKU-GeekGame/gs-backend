@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, JSON
 from sqlalchemy.orm import validates
 import re
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Dict, List
 
 from . import Table
 
@@ -43,21 +43,26 @@ class ChallengeStore(Table):
             assert 'val' in flag, 'flag should have val'
             assert 'base_score' in flag, 'flag should have base_score'
 
-            assert flag['type'] in ['static', 'leet'], 'unknown flag type'
-            assert isinstance(flag['val'], str), 'flag val should be str'
+            assert flag['type'] in ['static', 'leet', 'partitioned'], 'unknown flag type'
             assert isinstance(flag['name'], str), 'flag name should be str'
             assert isinstance(flag['base_score'], int), 'flag base_score should be int'
+            if flag['type']=='partitioned':
+                assert isinstance(flag['val'], list) and all(isinstance(f, str) for f in flag['val']), 'flag val should be list of str'
+            else:
+                assert isinstance(flag['val'], str), 'flag val should be str'
 
         return flags
 
     FLAG_SNIPPETS = {
         'static': '''{"name": "", "type": "static", "val" : "flag{}", "base_score": 100}''',
         'leet': '''{"name": "", "type": "leet", "val" : "flag{}", "salt": "", "base_score": 100}''',
+        'partitioned': '''{"name": "", "type": "partitioned", "val" : ["flag{}"], "base_score": 100}''',
     }
 
     @validates('actions')
     def validate_actions(self, _key: str, actions: Any) -> Any:
         assert isinstance(actions, list), 'actions should be list'
+        attachment_filenames = set()
 
         for action in actions:
             assert isinstance(action, dict), 'action should be dict'
@@ -79,14 +84,50 @@ class ChallengeStore(Table):
 
             elif action['type']=='attachment':
                 assert 'filename' in action, 'attachment action should have filename'
+                assert 'file_path' in action, 'attachment action should have file_path'
                 assert isinstance(action['filename'], str), 'attachment action filename should be str'
+                assert isinstance(action['file_path'], str), 'attachment action file_path should be str'
+                assert action['filename'] not in attachment_filenames, 'attachment action filename should be unique'
+
+                attachment_filenames.add(action['filename'])
+
+            elif action['type']=='dyn_attachment':
+                assert 'filename' in action, 'dyn_attachment action should have filename'
+                assert 'module_path' in action, 'dyn_attachment action should have module_path'
+                assert isinstance(action['filename'], str), 'dyn_attachment action filename should be str'
+                assert isinstance(action['module_path'], str), 'dyn_attachment action module_path should be str'
+                assert action['filename'] not in attachment_filenames, 'dyn_attachment action filename should be unique'
+                assert not action['module_path'].startswith('/'), 'dyn_attachment action module_path must be relative (to ATTACHMENT_PATH)'
+
+                attachment_filenames.add(action['filename'])
 
         return actions
+
+    # pass to frontend
+    def describe_actions(self) -> List[Dict[str, Any]]:
+        ret = []
+        for action in self.actions:
+            if action['type']=='attachment':
+                ret.append({
+                    'type': 'attachment',
+                    'name': action['name'],
+                    'filename': action['filename'],
+                })
+            elif action['type']=='dyn_attachment':
+                ret.append({
+                    'type': 'attachment',
+                    'name': action['name'],
+                    'filename': action['filename'],
+                })
+            else:
+                ret.append(action)
+        return ret
 
     ACTION_SNIPPETS = {
         'webpage': '''{"name": "题目网页", "type": "webpage", "url" : "https://"}''',
         'terminal': '''{"name": "题目", "type": "terminal", "host" : "", "port" : 0}''',
-        'attachment': '''{"name": "题目附件", "type": "attachment", "filename" : ""}''',
+        'attachment': '''{"name": "题目附件", "type": "attachment", "filename" : "probXX.zip", "file_path": ""}''',
+        'dyn_attachment': '''{"name": "题目附件", "type": "dyn_attachment", "filename" : "probXX.zip", "module_path": ""}''',
     }
 
     @classmethod
