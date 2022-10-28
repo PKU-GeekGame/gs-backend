@@ -63,6 +63,7 @@ async def get_attachment(req: Request, ch_key: str, fn: str, worker: Worker, use
             out_path = gen_fn(user, chall)
             assert isinstance(out_path, Path), f'gen_fn must return a Path, got {type(gen_fn)}'
             shutil.move(out_path, cache_path)
+            cache_path.chmod(0o644)
         except Exception as e:
             worker.log('error', 'api.attachment.get_attachment', f'error generating attachment: {utils.get_traceback(e)}')
             return response.text('附件暂时不可用', status=500)

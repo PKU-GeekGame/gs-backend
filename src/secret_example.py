@@ -44,7 +44,6 @@ WRITEUP_PATH = pathlib.Path('/path/to/writeups').resolve()
 ATTACHMENT_PATH = pathlib.Path('/path/to/attachments').resolve()
 MEDIA_PATH = pathlib.Path('/path/to/media').resolve()
 
-ATTACHMENT_URL = '/_internal_attachments'
 WRITEUP_MAX_SIZE_MB = 20
 
 #### INTERNAL PORTS
@@ -67,6 +66,7 @@ REDUCER_ADMIN_SERVER_ADDR = ('127.0.0.1', 5000)
 
 FRONTEND_PORTAL_URL = '/' # redirected to this after (successful or failed) login
 ADMIN_URL = '/admin' # prefix of all admin urls
+ATTACHMENT_URL = '/_internal_attachments'
 
 BACKEND_HOSTNAME = 'your_contest.example.com' # used for oauth redirects
 BACKEND_SCHEME = 'https' # used for oauth redirects
