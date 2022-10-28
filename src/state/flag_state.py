@@ -44,7 +44,7 @@ class Flag(WithGameLifecycle):
         self.passed_users: Set[User] = set()
 
     def _update_cur_score(self) -> None:
-        u = max(0, len(self.passed_users)-1)
+        u = len(self.passed_users)
         self.cur_score = int(self.base_score * (.4 + .6 * (.98**u)))
 
     @lru_cache(maxsize=4096)
