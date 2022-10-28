@@ -153,14 +153,13 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
             'category': ch._store.category,
             'category_color': ChallengeStore.CAT_COLORS.get(ch._store.category, FALLBACK_CAT_COLOR),
 
-            'desc': ch.desc,
-            'actions': ch._store.describe_actions(worker.game.cur_tick),
             'flags': [f.describe_json(user) for f in ch.flags],
+            'status': ch.user_status(user),
 
             'tot_base_score': ch.tot_base_score,
             'tot_cur_score': ch.tot_cur_score,
             'passed_users_count': len(ch.passed_users),
-            'status': ch.user_status(user),
+            'touched_users_count': len(ch.touched_users),
         } for ch in worker.game.challenges.list if ch.cur_effective],
 
         'user_info': {
@@ -171,6 +170,30 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
 
         'show_writeup': policy.can_submit_writeup,
         'last_announcement': worker.game.announcements.list[0].describe_json() if worker.game.announcements.list else None,
+    }
+
+@wish_endpoint(bp, '/challenge/<challenge_key:str>')
+async def get_challenge_details(_req: Request, worker: Worker, user: Optional[User], challenge_key: str) -> Dict[str, Any]:
+    if user is None:
+        return {'error': 'NO_USER', 'error_msg': '未登录'}
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    err = user.check_play_game()
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+
+    policy = worker.game.policy.cur_policy
+    if not policy.can_view_problem:
+        return {'error': 'NO_PERMISSION', 'error_msg': '现在不允许查看题目'}
+
+    ch = worker.game.challenges.chall_by_key.get(challenge_key, None)
+    if ch is None or not ch.cur_effective:
+        return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+
+    return {
+        'desc': ch.desc,
+        'actions': ch._store.describe_actions(worker.game.cur_tick),
     }
 
 @dataclass
@@ -322,7 +345,7 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
     if err is not None:
         return {'error': err[0], 'error_msg': err[1]}
     if not worker.game.policy.cur_policy.can_submit_writeup:
-        return {'error': 'POLICY_ERROR', 'error_msg': '暂时不允许提交Writeup'}
+        return {'error': 'POLICY_ERROR', 'error_msg': '现在不允许提交Writeup'}
 
     user_writeup_dir_path = secret.WRITEUP_PATH / str(user._store.id)
     user_writeup_metadata_path = user_writeup_dir_path / 'metadata.json'

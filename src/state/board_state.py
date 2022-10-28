@@ -68,7 +68,7 @@ class ScoreBoard(Board):
                 'title': ch._store.title,
                 'category': ch._store.category,
                 'flags': [f.name for f in ch.flags],
-            } for ch in self._game.challenges.list],
+            } for ch in self._game.challenges.list if ch.cur_effective],
 
             'list': [{
                 'rank': idx+1,
@@ -78,7 +78,7 @@ class ScoreBoard(Board):
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
                     ch._store.key: ch.user_status(u)
-                    for ch in self._game.challenges.list
+                    for ch in self._game.challenges.list if ch.cur_effective
                 },
                 'flag_pass_ts': {
                     f'{f.challenge._store.key}_{f.idx0}': int(sub._store.timestamp_ms/1000)
@@ -148,7 +148,7 @@ class FirstBloodBoard(Board):
                     'timestamp': int(f_sub._store.timestamp_ms/1000) if f_sub is not None else None,
                 } for f in ch.flags for f_sub in [self.flag_board.get(f, None)]]),
 
-            } for ch in self._game.challenges.list for ch_sub in [self.chall_board.get(ch, None)]],
+            } for ch in self._game.challenges.list if ch.cur_effective for ch_sub in [self.chall_board.get(ch, None)]],
         }
 
     def on_scoreboard_reset(self) -> None:
