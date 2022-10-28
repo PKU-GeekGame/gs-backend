@@ -66,7 +66,7 @@ REDUCER_ADMIN_SERVER_ADDR = ('127.0.0.1', 5000)
 
 FRONTEND_PORTAL_URL = '/' # redirected to this after (successful or failed) login
 ADMIN_URL = '/admin' # prefix of all admin urls
-ATTACHMENT_URL = '/_internal_attachments'
+ATTACHMENT_URL = '/_internal_attachments' # or `None` to opt-out X-Accel-Redirect
 
 BACKEND_HOSTNAME = 'your_contest.example.com' # used for oauth redirects
 BACKEND_SCHEME = 'https' # used for oauth redirects
