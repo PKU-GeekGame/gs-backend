@@ -78,11 +78,17 @@ class ChallengeStore(Table):
                 assert 'url' in action, 'webpage action should have url'
                 assert isinstance(action['url'], str), 'webpage action url should be str'
 
+            if action['type']=='webdocker':
+                assert 'host' in action, 'webdocker action should have host'
+                assert isinstance(action['host'], str), 'webdocker action host should be str'
+                assert ':' not in action['host'], 'webdocker action host should not contain protocol or port'
+
             elif action['type']=='terminal':
                 assert 'host' in action, 'terminal action should have host'
                 assert 'port' in action, 'terminal action should have port'
                 assert isinstance(action['host'], str), 'terminal action host should be str'
                 assert isinstance(action['port'], int), 'terminal action port should be int'
+                assert ':' not in action['host'], 'terminal action host should not contain protocol or port'
 
             elif action['type']=='attachment':
                 assert 'filename' in action, 'attachment action should have filename'
@@ -127,8 +133,9 @@ class ChallengeStore(Table):
         return ret
 
     ACTION_SNIPPETS = {
-        'webpage': '''{"name": "题目网页", "effective_after": 0, "type": "webpage", "url" : "https://"}''',
-        'terminal': '''{"name": "题目", "effective_after": 0, "type": "terminal", "host" : "", "port" : 0}''',
+        'webpage': '''{"name": "题目网页", "effective_after": 0, "type": "webpage", "url" : "https://probXX.geekgame.pku.edu.cn"}''',
+        'webdocker': '''{"name": "题目网页", "effective_after": 0, "type": "webdocker", "host" : "probXX-manager.geekgame.pku.edu.cn"}''',
+        'terminal': '''{"name": "题目", "effective_after": 0, "type": "terminal", "host" : "probXX.geekgame.pku.edu.cn", "port" : 0}''',
         'attachment': '''{"name": "题目附件", "effective_after": 0, "type": "attachment", "filename" : "probXX.zip", "file_path": ""}''',
         'dyn_attachment': '''{"name": "题目附件", "effective_after": 0, "type": "dyn_attachment", "filename" : "probXX.zip", "module_path": ""}''',
     }
