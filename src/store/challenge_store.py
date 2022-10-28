@@ -69,8 +69,10 @@ class ChallengeStore(Table):
 
             assert 'name' in action, 'action should have name'
             assert 'type' in action, 'action should have type'
+            assert 'effective_after' in action, 'action should have effective_after'
             assert isinstance(action['name'], str), 'action name should be str'
             assert isinstance(action['type'], str), 'action type should be str'
+            assert isinstance(action['effective_after'], int), 'effective_after type should be int'
 
             if action['type']=='webpage':
                 assert 'url' in action, 'webpage action should have url'
@@ -104,30 +106,31 @@ class ChallengeStore(Table):
         return actions
 
     # pass to frontend
-    def describe_actions(self) -> List[Dict[str, Any]]:
+    def describe_actions(self, cur_tick) -> List[Dict[str, Any]]:
         ret = []
         for action in self.actions:
-            if action['type']=='attachment':
-                ret.append({
-                    'type': 'attachment',
-                    'name': action['name'],
-                    'filename': action['filename'],
-                })
-            elif action['type']=='dyn_attachment':
-                ret.append({
-                    'type': 'attachment',
-                    'name': action['name'],
-                    'filename': action['filename'],
-                })
-            else:
-                ret.append(action)
+            if action['effective_after'] >= cur_tick:
+                if action['type']=='attachment':
+                    ret.append({
+                        'type': 'attachment',
+                        'name': action['name'],
+                        'filename': action['filename'],
+                    })
+                elif action['type']=='dyn_attachment':
+                    ret.append({
+                        'type': 'attachment',
+                        'name': action['name'],
+                        'filename': action['filename'],
+                    })
+                else:
+                    ret.append(action)
         return ret
 
     ACTION_SNIPPETS = {
-        'webpage': '''{"name": "题目网页", "type": "webpage", "url" : "https://"}''',
-        'terminal': '''{"name": "题目", "type": "terminal", "host" : "", "port" : 0}''',
-        'attachment': '''{"name": "题目附件", "type": "attachment", "filename" : "probXX.zip", "file_path": ""}''',
-        'dyn_attachment': '''{"name": "题目附件", "type": "dyn_attachment", "filename" : "probXX.zip", "module_path": ""}''',
+        'webpage': '''{"name": "题目网页", "effective_after": 0, "type": "webpage", "url" : "https://"}''',
+        'terminal': '''{"name": "题目", "effective_after": 0, "type": "terminal", "host" : "", "port" : 0}''',
+        'attachment': '''{"name": "题目附件", "effective_after": 0, "type": "attachment", "filename" : "probXX.zip", "file_path": ""}''',
+        'dyn_attachment': '''{"name": "题目附件", "effective_after": 0, "type": "dyn_attachment", "filename" : "probXX.zip", "module_path": ""}''',
     }
 
     @classmethod

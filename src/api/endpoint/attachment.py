@@ -50,7 +50,7 @@ async def get_attachment(req: Request, ch_key: str, fn: str, worker: Worker, use
         return response.text('题目不存在', status=404)
 
     att = chall.attachments.get(fn, None)
-    if att is None:
+    if att is None or att['effective_after']>worker.game.cur_tick:
         return response.text('附件不存在', status=404)
 
     if att['type']=='attachment':
