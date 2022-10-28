@@ -52,7 +52,7 @@ class ChallengeStore(Table):
 
     FLAG_SNIPPETS = {
         'static': '''{"name": "", "type": "static", "val" : "flag{}", "base_score": 100}''',
-        'leet': '''{"name": "", "type": "leet", "val" : "flag{}", "base_score": 100}''',
+        'leet': '''{"name": "", "type": "leet", "val" : "flag{}", "salt": "", "base_score": 100}''',
     }
 
     @validates('actions')

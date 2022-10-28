@@ -53,7 +53,7 @@ def format_timestamp(timestamp_s: Union[float, int]) -> str:
     return t
 
 def sign_token(uid: int) -> str:
-    sig = base64.b64encode(OpenSSL.crypto.sign(secret.TOKEN_SIGNING_KEY, str(uid).encode(), 'sha256')).decode()
+    sig = base64.urlsafe_b64encode(OpenSSL.crypto.sign(secret.TOKEN_SIGNING_KEY, str(uid).encode(), 'sha256')).decode()
     return f'{uid}:{sig}'
 
 def get_traceback(e: Exception) -> str:

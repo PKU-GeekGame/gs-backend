@@ -7,10 +7,9 @@ from typing import TYPE_CHECKING, Set, Dict, Any
 if TYPE_CHECKING:
     from . import Game, Challenge, User, Submission
 from . import WithGameLifecycle
-from .. import secret
 
-def leet_flag(flag: str, uid: int) -> str:
-    uid = int(hashlib.sha256((secret.FLAG_LEET_SALT+str(uid)).encode()).hexdigest(), 16)
+def leet_flag(flag: str, token: str, salt: str) -> str:
+    uid = int(hashlib.sha256((token+salt).encode()).hexdigest(), 16)
     rcont = flag[len('flag{'):-len('}')]
     rdlis=[]
     for i in range(len(rcont)):
@@ -38,6 +37,7 @@ class Flag(WithGameLifecycle):
         self.type: str = descriptor['type']
         self.val: str = descriptor['val']
         self.name: str = descriptor['name']
+        self.salt: str = descriptor.get('salt', '')
         self.base_score: int = descriptor['base_score']
 
         self.cur_score: int = 0
@@ -47,12 +47,12 @@ class Flag(WithGameLifecycle):
         u = max(0, len(self.passed_users)-1)
         self.cur_score = int(self.base_score * (.4 + .6 * (.98**u)))
 
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=4096)
     def correct_flag(self, user: User) -> str:
         if self.type=='static':
             return self.val
         elif self.type=='leet':
-            return leet_flag(self.val, user._store.id)
+            return leet_flag(self.val, user._store.token, self.salt)
         else:
             raise ValueError(f'Unknown flag type: {self.type}')
 

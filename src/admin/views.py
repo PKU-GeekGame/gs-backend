@@ -147,7 +147,7 @@ class SubmissionView(ViewBase):
 class TriggerView(ViewBase):
     column_descriptions = {
         'tick': f'Tick 编号，应为自然数且随时间递增，排行榜横轴范围是 Tick {Trigger.TRIGGER_BOARD_BEGIN} ~ {Trigger.TRIGGER_BOARD_END}',
-        'name': '将在前端展示',
+        'name': '将在前端展示，半角分号表示换行',
     }
     column_formatters = {
         'timestamp_s': fields.timestamp_s_formatter,
