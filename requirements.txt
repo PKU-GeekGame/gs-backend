@@ -13,7 +13,7 @@ pyopenssl~=22.0.0
 
 # api
 sanic[ext]~=21.12.2
-httpx[http2]~=0.22.0
+httpx[http2]~=0.23.0
 
 # admin
 flask~=2.0.2
