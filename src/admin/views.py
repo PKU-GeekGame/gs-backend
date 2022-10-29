@@ -10,10 +10,9 @@ import asyncio
 import json
 import time
 import psutil
-from typing import TYPE_CHECKING, Any, Optional, Type, Dict
+from flask.typing import ResponseReturnValue
+from typing import Any, Optional, Type, Dict
 
-if TYPE_CHECKING:
-    from flask.typing import ResponseReturnValue
 
 from ..state import Trigger
 from . import fields

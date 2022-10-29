@@ -14,7 +14,7 @@ class SubmissionStore(Table):
     MAX_FLAG_LEN = 128
 
     user_id: int = Column(Integer, ForeignKey('user.id'), nullable=False)
-    user_: UserStore = relationship('UserStore', lazy='select', foreign_keys=[user_id])
+    user_: 'UserStore' = relationship('UserStore', lazy='select', foreign_keys=[user_id])
     challenge_key: str = Column(String(32), nullable=False)
     flag: str = Column(String(MAX_FLAG_LEN), nullable=False)
     timestamp_ms: int = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
