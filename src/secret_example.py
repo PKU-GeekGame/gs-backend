@@ -77,6 +77,9 @@ OAUTH_HTTP_PROXIES = { # will be passed to `httpx.AsyncClient`, see https://www.
     'all://*github.com': None, #'http://127.0.0.1:xxxx',
 }
 
+def BUILD_OAUTH_CALLBACK_URL(url: str) -> str:
+    return url
+
 ##
 ## PERMISSION
 ##

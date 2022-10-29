@@ -139,7 +139,9 @@ async def auth_ms_res(req: Request, http_client: httpx.AsyncClient, worker: Work
         'code': oauth_code,
         'grant_type': 'authorization_code',
         'scope': 'User.Read',
-        'redirect_uri': req.app.url_for('auth.auth_ms_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME),
+        'redirect_uri': secret.BUILD_OAUTH_CALLBACK_URL(
+            req.app.url_for('auth.auth_ms_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
+        ),
     })
     token_json = token_res.json()
     token = token_json.get('access_token', None)
