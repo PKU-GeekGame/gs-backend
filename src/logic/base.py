@@ -221,7 +221,8 @@ class StateContainerBase(ABC):
         if not self.listening_local_messages:
             return
 
-        self.log('debug', 'base.emit_local_message', f'emit message {msg.get("type", None)}')
+        if msg.get('type', None)!='heartbeat_sent':
+            self.log('debug', 'base.emit_local_message', f'emit message {msg.get("type", None)}')
 
         self.local_messages[self.next_message_id] = (togroup, msg)
 
