@@ -35,6 +35,10 @@ class ActionReq:
         return type(self).__name__
 
 @dataclass
+class WorkerHeartbeatReq(ActionReq):
+    telemetry: Dict[str, Any]
+
+@dataclass
 class WorkerHelloReq(ActionReq):
     protocol_ver: str
 

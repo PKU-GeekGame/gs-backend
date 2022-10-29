@@ -55,6 +55,9 @@ class StateContainerBase(ABC):
         self.message_cond: asyncio.Condition = None  # type: ignore
         self.listening_local_messages: bool = receiving_messages
 
+        self.state_counter: int = 1
+        self.custom_telemetry_data: Dict[str, Any] = {}
+
     @property
     def game(self) -> Optional[Game]:
         if self.game_dirty:
@@ -176,6 +179,7 @@ class StateContainerBase(ABC):
 
     @staticmethod
     async def push_message(msg: str) -> None:
+        print('push message', msg)
         if secret.FEISHU_WEBHOOK_ADDR:
             async with httpx.AsyncClient(http2=True) as client:
                 try:
@@ -232,3 +236,15 @@ class StateContainerBase(ABC):
                 self.message_cond.notify_all()
 
         asyncio.get_event_loop().create_task(notify_waiters())
+
+    def collect_telemetry(self) -> Dict[str, Any]:
+        return {
+            'state_counter': self.state_counter,
+            'game_available': not self.game_dirty,
+            **({
+                'cur_tick': self.game.cur_tick,
+                'n_users': len(self.game.users.list),
+                'n_submissions': len(self.game.submissions),
+            } if not self.game_dirty else None),
+            **self.custom_telemetry_data,
+        }

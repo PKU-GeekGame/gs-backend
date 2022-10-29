@@ -2,18 +2,107 @@ from flask_admin.contrib import sqla, fileadmin # type: ignore
 from flask_admin.form import SecureForm # type: ignore
 from flask_admin.babel import lazy_gettext # type: ignore
 from flask_admin.model.template import macro # type: ignore
+from flask_admin import AdminIndexView, expose
 from wtforms import validators # type: ignore
 from markupsafe import Markup
-from flask import current_app, flash
+from flask import current_app, flash, redirect, url_for
 import asyncio
 import json
-from typing import Any, Optional, Type
+import time
+import psutil
+from typing import Any, Optional, Type, Dict
 
 from ..state import Trigger
 from . import fields
 from ..logic import glitter
 from ..logic.reducer import Reducer
 from .. import store
+
+class StatusView(AdminIndexView):
+    @expose('/')
+    def index(self):
+        reducer: Reducer = current_app.config['reducer_obj']
+        reducer.received_telemetries['Reducer'] = (time.time(), reducer.collect_telemetry())
+
+        USER_STATUS = {
+            'pending_terms': '未同意条款',
+            'pending_profile': '未完善信息',
+            'no_score': '无成绩',
+            'have_score': '有成绩',
+        }
+
+        TELEMETRY_FIELDS = {
+            'last_update': '更新时间',
+            'ws_online_clients': '在线连接',
+            'ws_online_uids': '在线用户',
+            'state_counter': '状态编号',
+            'game_available': '比赛可用',
+            'cur_tick': 'Tick',
+            'n_users': '用户数',
+            'n_submissions': '提交数',
+        }
+
+        vmem = psutil.virtual_memory()
+        smem = psutil.swap_memory()
+        disk = psutil.disk_usage('/')
+        G = 1024**3
+        sys_status = {
+            'process': f'{len(psutil.pids())}',
+            'load': ' '.join(str(l) for l in psutil.getloadavg()),
+            'ram': f'total={vmem.total/G:.2f}G, used={vmem.used/G:.2f}G, available={vmem.available/G:.2f}G',
+            'swap': f'total={smem.total/G:.2f}G, used={smem.used/G:.2f}G, free={smem.free/G:.2f}G',
+            'disk': f'total={disk.total/G:.2f}G, used={disk.used/G:.2f}G, free={disk.free/G:.2f}G',
+        }
+
+        users_cnt_by_group: Dict[str, Dict[str, int]] = {}
+        for u in reducer.game.users.list:
+            u_group = u._store.group
+
+            if not u._store.terms_agreed:
+                u_status = 'pending_terms'
+            elif u._store.profile.check_profile(u._store.group) is not None:
+                u_status = 'pending_profile'
+            elif u.tot_score==0:
+                u_status = 'no_score'
+            else:
+                u_status = 'have_score'
+
+            users_cnt_by_group.setdefault(u_group, {}).setdefault(u_status, 0)
+            users_cnt_by_group[u_group][u_status] += 1
+
+        return self.render(
+            'status.html',
+
+            sys_status=sys_status,
+
+            user_fields=USER_STATUS,
+            user_data=users_cnt_by_group,
+
+            tel_fields=TELEMETRY_FIELDS,
+            tel_data={
+                worker_name: {
+                    'last_update': f'{int(time.time()-last_update):d}s',
+                    **tel_dict,
+                } for worker_name, (last_update, tel_dict) in reducer.received_telemetries.items()
+            },
+        )
+
+    @expose('/clear_telemetry')
+    def clear_telemetry(self):
+        reducer: Reducer = current_app.config['reducer_obj']
+        reducer.received_telemetries.clear()
+        return redirect(url_for('.index'))
+
+    @expose('/test_push')
+    def test_push(self):
+        loop: asyncio.AbstractEventLoop = current_app.config['reducer_loop']
+        reducer: Reducer = current_app.config['reducer_obj']
+
+        async def run_push() -> None:
+            reducer.log('warning', 'admin.test_push', 'test push warning message')
+
+        asyncio.run_coroutine_threadsafe(run_push(), loop)
+        return redirect(url_for('.index'))
 
 class ViewBase(sqla.ModelView): # type: ignore
     form_base_class = SecureForm

@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy import select
 import asyncio
 import time
-from typing import Callable, Any, Awaitable
+from typing import Callable, Any, Awaitable, Dict, Tuple
 
 from . import glitter
 from .base import StateContainerBase, make_callback_decorator
@@ -31,8 +31,9 @@ class Reducer(StateContainerBase):
         self.action_socket.bind(secret.GLITTER_ACTION_SOCKET_ADDR) # type: ignore
         self.event_socket.bind(secret.GLITTER_EVENT_SOCKET_ADDR) # type: ignore
 
-        self.state_counter: int = 1
         self.tick_updater_task: Optional[asyncio.Task[None]] = None
+
+        self.received_telemetries: Dict[str, Tuple[float, Dict[str, Any]]] = {'Reducer': (0, {})}
 
     async def _before_run(self) -> None:
         await super()._before_run()
@@ -169,6 +170,11 @@ class Reducer(StateContainerBase):
 
         return None
 
+    @on_action(glitter.WorkerHeartbeatReq)
+    async def on_worker_heartbeat(self, req: glitter.WorkerHeartbeatReq) -> Optional[str]:
+        self.received_telemetries[req.client] = (time.time(), req.telemetry)
+        return None
+
     async def _update_tick(self, ts: Optional[int] = None) -> int: # return: when it expires
         if ts is None:
             ts = int(time.time())
@@ -239,6 +245,8 @@ class Reducer(StateContainerBase):
 
             if isinstance(action.req, glitter.WorkerHelloReq):
                 self.log('debug', 'reducer.mainloop', f'got worker hello from {action.req.client}')
+            elif isinstance(action.req, glitter.WorkerHeartbeatReq):
+                pass
             else:
                 self.log('info', 'reducer.mainloop', f'got action {action.req.type} from {action.req.client}')
 
@@ -263,4 +271,5 @@ class Reducer(StateContainerBase):
             if action is not None:
                 await action.reply(glitter.ActionRep(error_msg=err, state_counter=self.state_counter),self.action_socket)
 
-            await self.emit_sync()
+            if not isinstance(action.req, glitter.WorkerHeartbeatReq):
+                await self.emit_sync()

@@ -1,0 +1,64 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+    <ul>
+        {% for k, v in sys_status.items() %}
+            <li><b>{{ k }}</b>: {{ v }}</li>
+        {% endfor %}
+    </ul>
+
+    <br>
+
+    <h2>用户概况</h2>
+    <table class="table table-bordered">
+    <thead>
+    <tr>
+        <th></th>
+        {% for tname in user_fields.values() %}
+        <th>{{ tname }}</th>
+        {% endfor %}
+    </tr>
+    </thead>
+    <tbody>
+    {% for group_name, user_dict in user_data.items() %}
+        <tr>
+            <td>{{ group_name }}</td>
+            {% for ukey in user_fields.keys() %}
+                <td>{{ user_dict[ukey] }}</td>
+            {% endfor %}
+        </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+
+    <br>
+
+    <h2>Worker 状态遥测</h2>
+
+    <table class="table table-bordered">
+    <thead>
+    <tr>
+        <th></th>
+        {% for tname in tel_fields.values() %}
+            <th>{{ tname }}</th>
+        {% endfor %}
+    </tr>
+    </thead>
+    <tbody>
+    {% for worker_name, tel_dict in tel_data.items() %}
+        <tr>
+            <td>{{ worker_name }}</td>
+            {% for tkey in tel_fields.keys() %}
+                <td>{{ tel_dict[tkey] }}</td>
+            {% endfor %}
+        </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+
+    <p>
+        <a href="test_push">测试飞书推送</a>
+        /
+        <a href="clear_telemetry">清空遥测数据</a>
+    </p>
+{% endblock %}

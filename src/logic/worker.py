@@ -2,14 +2,17 @@ from __future__ import annotations
 import zmq
 from zmq.asyncio import Socket
 import asyncio
+import time
 
 from .base import StateContainerBase
 from . import glitter
+from .glitter import WorkerHeartbeatReq
 from .. import utils
 from .. import secret
 
 class Worker(StateContainerBase):
     RECOVER_INTERVAL_S = 3
+    HEARTBEAT_THROTTLE_S = 9
 
     def __init__(self, process_name: str, receiving_messages: bool = False):
         super().__init__(process_name, receiving_messages)
@@ -27,8 +30,10 @@ class Worker(StateContainerBase):
         self.event_socket.connect(secret.GLITTER_EVENT_SOCKET_ADDR)  # type: ignore
         self.event_socket.setsockopt(zmq.SUBSCRIBE, b'')
 
-        self.state_counter: int = -1
+        self.state_counter = -1
         self.state_counter_cond: asyncio.Condition = asyncio.Condition()
+
+        self.last_heartbeat_time: float = 0
 
     async def _sync_with_reducer(self, *, throttled: bool = True) -> None:
         self.game_dirty = True
@@ -115,24 +120,42 @@ class Worker(StateContainerBase):
                 async with self.state_counter_cond:
                     self.state_counter_cond.notify_all()
 
+                try:
+                    await self.send_heartbeat()
+                except Exception as e:
+                    self.log('error', 'worker.mainloop', f'heartbeat error, will ignore: {utils.get_traceback(e)}')
+
     async def perform_action(self, req: glitter.ActionReq) -> glitter.ActionRep:
         self.log('info', 'worker.perform_action', f'call {req.type}')
         rep = await glitter.Action(req).call(self.action_socket)
         self.log('debug', 'worker.perform_action', f'called {req.type}, state counter is {rep.state_counter}')
 
         # sync state after call
-        try:
-            async with self.state_counter_cond:
-                cond = self.state_counter_cond.wait_for(lambda: self.state_counter>=rep.state_counter)
-                await asyncio.wait_for(cond, glitter.CALL_TIMEOUT_MS/1000)
-        except asyncio.TimeoutError:
-            self.log('error', 'worker.perform_action', f'state sync timeout: {self.state_counter} -> {rep.state_counter}')
-            raise RuntimeError('timed out syncing state with reducer')
+        if rep.state_counter>self.state_counter:
+            try:
+                async with self.state_counter_cond:
+                    cond = self.state_counter_cond.wait_for(lambda: self.state_counter>=rep.state_counter)
+                    await asyncio.wait_for(cond, glitter.CALL_TIMEOUT_MS/1000)
+            except asyncio.TimeoutError:
+                self.log('error', 'worker.perform_action', f'state sync timeout: {self.state_counter} -> {rep.state_counter}')
+                raise RuntimeError('timed out syncing state with reducer')
 
-        self.log('debug', 'worker.perform_action', f'state counter synced to {self.state_counter}')
+            self.log('debug', 'worker.perform_action', f'state counter synced to {self.state_counter}')
+
         return rep
 
     async def process_event(self, event: glitter.Event) -> None:
         if event.type!=glitter.EventType.SYNC:
             self.log('info', 'worker.process_event', f'got event {event.type} {event.data} (count={event.state_counter})')
         await super().process_event(event)
+
+    async def send_heartbeat(self) -> None:
+        if time.time()-self.last_heartbeat_time <= self.HEARTBEAT_THROTTLE_S:
+            return
+
+        await self.perform_action(WorkerHeartbeatReq(
+            client=self.process_name,
+            telemetry=self.collect_telemetry()
+        ))
+
+        self.last_heartbeat_time = time.time()

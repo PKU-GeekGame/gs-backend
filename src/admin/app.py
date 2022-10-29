@@ -8,7 +8,7 @@ from flask_admin.contrib.sqla import ModelView # type: ignore
 from typing import Any, Optional
 from functools import wraps
 
-from .views import VIEWS, TemplateView, WriteupView, FilesView
+from .views import StatusView, VIEWS, TemplateView, WriteupView, FilesView
 from .. import secret
 from .. import store
 
@@ -53,11 +53,12 @@ def remove_suffix(s: str, suffix: str) -> str:
 
 admin = Admin(
     app,
-    index_view=secured(AdminIndexView)(url=f'{secret.ADMIN_URL}/admin'),
+    index_view=secured(StatusView)(name='Status', url=f'{secret.ADMIN_URL}/admin'),
     url=f'{secret.ADMIN_URL}/admin',
     template_mode='bootstrap3',
     base_template='base.html',
 )
+
 for model_name in dir(store):
     if model_name.endswith('Store'):
         print('- added model:', model_name)
