@@ -126,9 +126,13 @@ class Worker(StateContainerBase):
                     self.log('error', 'worker.mainloop', f'heartbeat error, will ignore: {utils.get_traceback(e)}')
 
     async def perform_action(self, req: glitter.ActionReq) -> glitter.ActionRep:
-        self.log('info', 'worker.perform_action', f'call {req.type}')
+        if req.type!='WorkerHeartbeatReq':
+            self.log('info', 'worker.perform_action', f'call {req.type}')
+
         rep = await glitter.Action(req).call(self.action_socket)
-        self.log('debug', 'worker.perform_action', f'called {req.type}, state counter is {rep.state_counter}')
+
+        if req.type!='WorkerHeartbeatReq':
+            self.log('debug', 'worker.perform_action', f'called {req.type}, state counter is {rep.state_counter}')
 
         # sync state after call
         if rep.state_counter>self.state_counter:
