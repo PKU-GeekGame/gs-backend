@@ -147,7 +147,7 @@ class AnnouncementView(ViewBase):
         'content_template': fields.MarkdownField,
     }
     column_descriptions = {
-        'content_template': '支持 Markdown',
+        'content_template': '支持 Markdown 和 Jinja2 模板（group: Optional[str]、tick: int）',
     }
     column_default_sort = ('id', True)
 
@@ -168,7 +168,7 @@ class ChallengeView(ViewBase):
         'effective_after': '题目从该 Tick 编号后对选手可见',
         'key': '题目唯一 ID，将会显示在 URL 中，比赛中不要随意修改，否则会导致已有提交失效',
         'sorting_index': '越小越靠前',
-        'desc_template': '支持 Markdown',
+        'desc_template': '支持 Markdown 和 Jinja2 模板（group: Optional[str]、tick: int）',
         'actions': '题面底部展示的动作列表',
     }
     form_overrides = {

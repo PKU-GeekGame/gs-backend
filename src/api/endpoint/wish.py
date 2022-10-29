@@ -96,12 +96,12 @@ async def agree_term(_req: Request, worker: Worker, user: Optional[User]) -> Dic
     return {}
 
 @wish_endpoint(bp, '/announcements')
-async def announcements(_req: Request, worker: Worker) -> Dict[str, Any]:
+async def announcements(_req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
     if worker.game is None:
         return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
 
     return {
-        'list': [ann.describe_json() for ann in worker.game.announcements.list],
+        'list': [ann.describe_json(user) for ann in worker.game.announcements.list],
     }
 
 @wish_endpoint(bp, '/triggers')
@@ -169,7 +169,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
         },
 
         'show_writeup': policy.can_submit_writeup,
-        'last_announcement': worker.game.announcements.list[0].describe_json() if worker.game.announcements.list else None,
+        'last_announcement': worker.game.announcements.list[0].describe_json(user) if worker.game.announcements.list else None,
     }
 
 @wish_endpoint(bp, '/challenge/<challenge_key:str>')
@@ -192,7 +192,7 @@ async def get_challenge_details(_req: Request, worker: Worker, user: Optional[Us
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
     return {
-        'desc': ch.desc,
+        'desc': ch.render_desc(user),
         'actions': ch._store.describe_actions(worker.game.cur_tick),
     }
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
+from functools import lru_cache
 from typing import TYPE_CHECKING, List, Optional, Dict, Any
 
 from .. import utils
+from . import User
 
 class Announcements:
     def __init__(self, game: Game, stores: List[AnnouncementStore]):
@@ -39,18 +41,25 @@ class Announcement:
         self._store: AnnouncementStore = store
 
         self.title = store.title
-        self.content = utils.render_template(store.content_template)
         self.timestamp_s = store.timestamp_s
 
     def __repr__(self) -> str:
         return repr(self._store)
 
-    def describe_json(self) -> Dict[str, Any]:
+    @lru_cache(16)
+    def _render_template(self, tick: int, group: Optional[str]) -> str:
+        try:
+            return utils.render_template(self._store.content_template, {'group': group, 'tick': tick})
+        except Exception as e:
+            self._game.worker.log('error', 'announcement.render_template', f'template render failed: {self._store.id} ({self._store.title}): {utils.get_traceback(e)}')
+            return '<i>（模板渲染失败）</i>'
+
+    def describe_json(self, user: Optional[User]) -> Dict[str, Any]:
         return {
             'id': self._store.id,
             'title': self.title,
             'timestamp_s': self.timestamp_s,
-            'content': self.content,
+            'content': self._render_template(self._game.cur_tick, None if user is None else user._store.group),
         }
 
 if TYPE_CHECKING:

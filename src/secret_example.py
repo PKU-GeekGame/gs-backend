@@ -46,6 +46,12 @@ WRITEUP_PATH = pathlib.Path('/path/to/writeups').resolve()
 ATTACHMENT_PATH = pathlib.Path('/path/to/attachments').resolve()
 MEDIA_PATH = pathlib.Path('/path/to/media').resolve()
 
+TEMPLATES_NAMES = [
+    'game',
+    'terms',
+    'faq',
+]
+
 WRITEUP_MAX_SIZE_MB = 20
 
 #### INTERNAL PORTS

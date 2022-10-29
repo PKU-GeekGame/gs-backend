@@ -1,4 +1,5 @@
 from __future__ import annotations
+from functools import lru_cache
 from typing import TYPE_CHECKING, List, Dict, Optional, Set, Union, Literal, Any
 
 if TYPE_CHECKING:
@@ -63,7 +64,6 @@ class Challenge(WithGameLifecycle):
 
         self.cur_effective: bool = False
         self.flags: List[Flag] = []
-        self.desc: str = ''
         self.attachments: Dict[str, Dict[str, Any]] = {}
 
         self.passed_users: Set[User] = set()
@@ -76,14 +76,25 @@ class Challenge(WithGameLifecycle):
 
     def on_store_reload(self, store: ChallengeStore) -> None:
         self._store = store
-        self.desc = utils.render_template(self._store.desc_template)
         self.attachments = {a['filename']: a for a in store.actions if a['type']=='attachment' or a['type']=='dyn_attachment'}
 
         if store.flags!=[x._store for x in self.flags]:
             self.flags = [Flag(self._game, x, self, i) for i, x in enumerate(store.flags)]
             self._game.need_reloading_scoreboard = True
 
+        self._render_template.cache_clear()
         self.on_tick_change()
+
+    @lru_cache(16)
+    def _render_template(self, tick: int, group: Optional[str]) -> str:
+        try:
+            return utils.render_template(self._store.desc_template, {'group': group, 'tick': tick})
+        except Exception as e:
+            self._game.worker.log('error', 'announcement.render_template', f'template render failed: {self._store.key} ({self._store.title}): {utils.get_traceback(e)}')
+            return '<i>（模板渲染失败）</i>'
+
+    def render_desc(self, user: User) -> str:
+        return self._render_template(self._game.cur_tick, user._store.group)
 
     def on_tick_change(self) -> None:
         self.cur_effective = self._game.cur_tick >= self._store.effective_after

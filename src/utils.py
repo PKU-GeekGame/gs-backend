@@ -14,7 +14,8 @@ import OpenSSL.crypto
 import traceback
 import asyncio
 import secrets
-from typing import Union, Callable
+import jinja2
+from typing import Union, Callable, Dict, Any
 
 from . import secret
 
@@ -41,9 +42,18 @@ markdown_processor = markdown.Markdown(extensions=[
     LinkTargetExtension(),
 ], output_format='html')
 
-def render_template(template_str: str) -> str:
+def render_template(template_str: str, args: Dict[str, Any]) -> str:
+    # jinja2 to md
+    env = jinja2.Environment(
+        loader=jinja2.DictLoader({'index.md': template_str}),
+        autoescape=True,
+        auto_reload=False,
+    )
+    md_str = env.get_template('index.md').render(**args)
+
+    # md to str
     markdown_processor.reset()
-    return markdown_processor.convert(template_str)
+    return markdown_processor.convert(md_str)
 
 def format_timestamp(timestamp_s: Union[float, int]) -> str:
     date = datetime.datetime.fromtimestamp(timestamp_s, pytz.timezone('Asia/Shanghai'))
