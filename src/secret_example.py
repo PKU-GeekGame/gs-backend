@@ -81,6 +81,8 @@ OAUTH_HTTP_PROXIES = { # will be passed to `httpx.AsyncClient`, see https://www.
 ## PERMISSION
 ##
 
+MANUAL_AUTH_ENABLED = True
+
 def IS_ADMIN(user: UserStore) -> bool:
     ADMIN_UIDS = [1]
     ADMIN_GROUPS = ['staff']

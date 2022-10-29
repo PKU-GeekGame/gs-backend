@@ -21,6 +21,7 @@ utils.fix_zmq_asyncio_windows()
 app = Sanic('guiding-star-backend')
 app.config.DEBUG = False
 app.config.OAS = False
+app.config.PROXIES_COUNT = 1
 app.config.KEEP_ALIVE_TIMEOUT = 15
 app.config.REQUEST_MAX_SIZE = 1024*1024*(1+secret.WRITEUP_MAX_SIZE_MB)
 

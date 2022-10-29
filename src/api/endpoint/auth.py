@@ -10,6 +10,15 @@ from ...state import User
 from ...logic import Worker
 from ... import secret
 
+try:
+    from .auth_pku import iaaa_login, iaaa_check
+except ImportError:
+    print('WARNING: pku auth not implemented')
+    async def iaaa_login() -> HTTPResponse:
+        return response.text('not implemented')
+    async def iaaa_check(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
+        raise AuthError('not implemented')
+
 bp = Blueprint('auth', url_prefix='/auth')
 
 @bp.route('/logout')
@@ -26,6 +35,9 @@ class AuthManualParam:
 @validate(query=AuthManualParam)
 @auth_response
 async def auth_manual(_req: Request, query: AuthManualParam, _worker: Worker) -> AuthResponse:
+    if not secret.MANUAL_AUTH_ENABLED:
+        raise AuthError('手动登录已禁用')
+
     return f'manual:{query.identity}', {'type': 'manual'}, 'staff'
 
 @dataclass
@@ -54,7 +66,9 @@ async def auth_github_req(req: Request) -> HTTPResponse:
         {
             'client_id': secret.GITHUB_APP_ID,
         },
-        req.app.url_for('auth.auth_github_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME),
+        secret.BUILD_OAUTH_CALLBACK_URL(
+            req.app.url_for('auth.auth_github_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
+        ),
     )
 
 @bp.route('/github/login/callback')
@@ -105,7 +119,9 @@ async def auth_ms_req(req: Request) -> HTTPResponse:
             'response_mode': 'query',
             'scope': 'User.Read',
         },
-        req.app.url_for('auth.auth_ms_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME),
+        secret.BUILD_OAUTH_CALLBACK_URL(
+            req.app.url_for('auth.auth_ms_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
+        ),
     )
 
 @bp.route('/microsoft/login/callback')
@@ -146,3 +162,12 @@ async def auth_ms_res(req: Request, http_client: httpx.AsyncClient, worker: Work
         'info': info,
         'access_token': token,
     }, 'other'
+
+@bp.route('/pku/redirect')
+async def auth_pku_req(req: Request) -> HTTPResponse:
+    return await iaaa_login()
+
+@bp.route('/pku/login')
+@auth_response
+async def auth_pku_res(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
+    return await iaaa_check(req, http_client, worker)
