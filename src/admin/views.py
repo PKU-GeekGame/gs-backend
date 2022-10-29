@@ -1,16 +1,19 @@
-from flask_admin.contrib import sqla, fileadmin # type: ignore
-from flask_admin.form import SecureForm # type: ignore
-from flask_admin.babel import lazy_gettext # type: ignore
-from flask_admin.model.template import macro # type: ignore
+from flask_admin.contrib import sqla, fileadmin
+from flask_admin.form import SecureForm
+from flask_admin.babel import lazy_gettext
+from flask_admin.model.template import macro
 from flask_admin import AdminIndexView, expose
-from wtforms import validators # type: ignore
+from wtforms import validators
 from markupsafe import Markup
 from flask import current_app, flash, redirect, url_for
 import asyncio
 import json
 import time
 import psutil
-from typing import Any, Optional, Type, Dict
+from typing import TYPE_CHECKING, Any, Optional, Type, Dict
+
+if TYPE_CHECKING:
+    from flask.typing import ResponseReturnValue
 
 from ..state import Trigger
 from . import fields
@@ -18,9 +21,9 @@ from ..logic import glitter
 from ..logic.reducer import Reducer
 from .. import store
 
-class StatusView(AdminIndexView):
+class StatusView(AdminIndexView):  # type: ignore
     @expose('/')
-    def index(self):
+    def index(self) -> ResponseReturnValue:
         reducer: Reducer = current_app.config['reducer_obj']
         reducer.received_telemetries['Reducer'] = (time.time(), reducer.collect_telemetry())
 
@@ -56,6 +59,8 @@ class StatusView(AdminIndexView):
         }
 
         users_cnt_by_group: Dict[str, Dict[str, int]] = {}
+        assert reducer.game is not None # because the game in a reducer never becomes dirty
+
         for u in reducer.game.users.list:
             u_group = u._store.group
 
@@ -91,13 +96,13 @@ class StatusView(AdminIndexView):
         )
 
     @expose('/clear_telemetry')
-    def clear_telemetry(self):
+    def clear_telemetry(self) -> ResponseReturnValue:
         reducer: Reducer = current_app.config['reducer_obj']
         reducer.received_telemetries.clear()
         return redirect(url_for('.index'))
 
     @expose('/test_push')
-    def test_push(self):
+    def test_push(self) -> ResponseReturnValue:
         loop: asyncio.AbstractEventLoop = current_app.config['reducer_loop']
         reducer: Reducer = current_app.config['reducer_obj']
 
@@ -329,17 +334,17 @@ VIEWS = {
 }
 
 # fix crlf and encoding on windows
-class FileAdmin(fileadmin.BaseFileAdmin):
-    class FixingCrlfFileStorage(fileadmin.LocalFileStorage):
-        def write_file(self, path, content):
+class FileAdmin(fileadmin.BaseFileAdmin):  # type: ignore
+    class FixingCrlfFileStorage(fileadmin.LocalFileStorage):  # type: ignore
+        def write_file(self, path: str, content: str) -> int:
             with open(path, 'w', encoding='utf-8') as f:
                 return f.write(content.replace('\r\n', '\n'))
 
-    def __init__(self, base_path, *args, **kwargs):
+    def __init__(self, base_path: str, *args: Any, **kwargs: Any) -> None:
         storage = self.FixingCrlfFileStorage(base_path)
         super().__init__(*args, storage=storage, **kwargs)
 
-class TemplateView(FileAdmin): # type: ignore
+class TemplateView(FileAdmin):
     can_upload = True
     can_mkdir = False
     can_delete = False
@@ -356,7 +361,7 @@ class TemplateView(FileAdmin): # type: ignore
 
         return EditForm
 
-class WriteupView(FileAdmin): # type: ignore
+class WriteupView(FileAdmin):
     can_upload = False
     can_mkdir = False
     can_delete = False
@@ -374,7 +379,7 @@ class WriteupView(FileAdmin): # type: ignore
 
         return EditForm
 
-class FilesView(FileAdmin): # type: ignore
+class FilesView(FileAdmin):
     can_upload = True
     can_mkdir = True
     can_delete = True

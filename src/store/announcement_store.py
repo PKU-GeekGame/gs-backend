@@ -7,9 +7,9 @@ from .. import utils
 class AnnouncementStore(Table):
     __tablename__ = 'announcement'
 
-    timestamp_s = Column(BigInteger, nullable=False, default=lambda: int(time.time()))
+    timestamp_s: int = Column(BigInteger, nullable=False, default=lambda: int(time.time()))
     title = Column(Text, nullable=False)
-    content_template = Column(Text, nullable=False)
+    content_template: str = Column(Text, nullable=False)
 
     def __repr__(self) -> str:
         return f'[@{utils.format_timestamp(self.timestamp_s)} {self.title}]'

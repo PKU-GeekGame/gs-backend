@@ -1,6 +1,6 @@
-import wtforms # type: ignore
+import wtforms
 from markupsafe import Markup
-import flask_admin.form # type: ignore
+import flask_admin.form
 import datetime
 from typing import Any, Dict, List
 

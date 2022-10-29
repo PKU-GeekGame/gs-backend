@@ -398,9 +398,9 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
         user_writeup_dir_path.mkdir(parents=True, exist_ok=True)
 
         with (user_writeup_dir_path / filename).open('wb') as f:
-            f.write(file.body) # type: ignore
+            f.write(file.body)
         with (user_writeup_dir_path / filename).open('rb') as f:
-            sha256 = hashlib.sha256(f.read()).hexdigest() # type: ignore
+            sha256 = hashlib.sha256(f.read()).hexdigest()
 
         metadata = {
             'publish': publish,

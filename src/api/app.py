@@ -38,9 +38,9 @@ async def setup_game_state(cur_app: Sanic, _loop: Any) -> None:
     await worker._before_run()
     cur_app.ctx._worker_task = asyncio.create_task(worker._mainloop())
 
-    cur_app.ctx.oauth_http_client = httpx.AsyncClient( # type: ignore
+    cur_app.ctx.oauth_http_client = httpx.AsyncClient(
         http2=True,
-        proxies=secret.OAUTH_HTTP_PROXIES,
+        proxies=secret.OAUTH_HTTP_PROXIES,  # type: ignore
         timeout=OAUTH_HTTP_TIMEOUT,
     )
 

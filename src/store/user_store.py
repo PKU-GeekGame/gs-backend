@@ -14,17 +14,17 @@ class UserStore(Table):
 
     MAX_TOKEN_LEN = 512
 
-    login_key = Column(String(192), nullable=False, unique=True)
+    login_key: str = Column(String(192), nullable=False, unique=True)
     login_properties = Column(JSON, nullable=False)
     timestamp_ms = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
 
     enabled = Column(Boolean, nullable=False, default=True)
-    group = Column(String(32), nullable=False)
+    group: str = Column(String(32), nullable=False)
     token = Column(String(MAX_TOKEN_LEN), nullable=True) # initialized in register logic
     auth_token = Column(String(128), nullable=True, unique=True, index=True) # initialized in register logic
 
     profile_id = Column(Integer, ForeignKey('user_profile.id'), nullable=True) # initialized in register logic
-    profile: UserProfileStore = relationship('UserProfileStore', lazy='joined', foreign_keys=[profile_id]) # type: ignore
+    profile: UserProfileStore = relationship('UserProfileStore', lazy='joined', foreign_keys=[profile_id])
     terms_agreed = Column(Boolean, nullable=False, default=False)
 
     GROUPS = {

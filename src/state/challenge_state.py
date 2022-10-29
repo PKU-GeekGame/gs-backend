@@ -30,7 +30,7 @@ class Challenges(WithGameLifecycle):
         self._game.need_reloading_scoreboard = True
 
     def on_store_update(self, id: int, new_store: Optional[ChallengeStore]) -> None:
-        old_chall: Optional[Challenge] = ([x for x in self.list if x._store.id==id]+[None])[0]  # type: ignore
+        old_chall: Optional[Challenge] = ([x for x in self.list if x._store.id==id]+[None])[0]
         other_challs = [x for x in self.list if x._store.id!=id]
 
         if new_store is None: # remove

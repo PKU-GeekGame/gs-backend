@@ -14,12 +14,12 @@ import OpenSSL.crypto
 import traceback
 import asyncio
 import secrets
-from typing import Union
+from typing import Union, Callable
 
 from . import secret
 
 def gen_random_str(length: int = 32, *, crypto: bool = False) -> str:
-    choice = secrets.choice if crypto else random.choice
+    choice: Callable[[str], str] = secrets.choice if crypto else random.choice  # type: ignore
     alphabet = 'qwertyuiopasdfghjkzxcvbnmQWERTYUPASDFGHJKLZXCVBNM23456789'
 
     return ''.join([choice(alphabet) for _ in range(length)])

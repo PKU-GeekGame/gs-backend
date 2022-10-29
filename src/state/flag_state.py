@@ -2,7 +2,7 @@ from __future__ import annotations
 import hashlib
 import string
 from functools import lru_cache
-from typing import TYPE_CHECKING, Set, Dict, Any
+from typing import TYPE_CHECKING, Set, Dict, Any, Union, List
 
 if TYPE_CHECKING:
     from . import Game, Challenge, User, Submission
@@ -35,7 +35,7 @@ class Flag(WithGameLifecycle):
         self.challenge = chall
         self.idx0 = idx0
         self.type: str = descriptor['type']
-        self.val = descriptor['val'] # str or list[str] (for partitioned)
+        self.val: Union[str, List[str]] = descriptor['val'] # list[str] for partitioned
         self.name: str = descriptor['name']
         self.salt: str = descriptor.get('salt', '')
         self.base_score: int = descriptor['base_score']
@@ -50,9 +50,9 @@ class Flag(WithGameLifecycle):
     @lru_cache(maxsize=4096)
     def correct_flag(self, user: User) -> str:
         if self.type=='static':
-            return self.val
+            return self.val  # type: ignore
         elif self.type=='leet':
-            return leet_flag(self.val, user._store.token, self.salt)
+            return leet_flag(self.val, user._store.token, self.salt)  # type: ignore
         elif self.type=='partitioned':
             return self.val[user.get_partition(self.challenge, len(self.val))]
         else:

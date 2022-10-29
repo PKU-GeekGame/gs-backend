@@ -14,9 +14,11 @@ bp = Blueprint('attachment', url_prefix='/attachment')
 def load_module(module_path: Path) -> Callable[[User, Challenge], Path]:
     # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
     spec = importlib.util.spec_from_file_location('_dyn_attachment', str(module_path / 'gen.py'))
+    assert spec is not None and spec.loader is not None # no import loader in this env, which is weird
+
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return mod.gen
+    return mod.gen  # type: ignore
 
 async def download_attachment(p: str) -> HTTPResponse:
     if secret.ATTACHMENT_URL is not None: # use X-Accel-Redirect

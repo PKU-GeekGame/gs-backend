@@ -15,8 +15,8 @@ class UserProfileStore(Table):
     MAX_INFO_LEN = 128
 
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    user_ = relationship('UserStore', lazy='select', foreign_keys=[user_id])
-    timestamp_ms = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
+    user_: UserStore = relationship('UserStore', lazy='select', foreign_keys=[user_id])
+    timestamp_ms: int = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
 
     nickname_or_null = Column('nickname', String(MAX_INFO_LEN), nullable=True)
     VAL_NICKNAME = re.compile(r'^.{1,20}$')

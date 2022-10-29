@@ -92,7 +92,7 @@ class Reducer(StateContainerBase):
         uid = int(req.uid)
 
         with self.SqlSession() as session:
-            user: Optional[UserStore] = session.execute(select(UserStore).where(UserStore.id==uid)).scalar()  # type: ignore
+            user: Optional[UserStore] = session.execute(select(UserStore).where(UserStore.id==uid)).scalar()
             if user is None:
                 return 'user not found'
 
@@ -131,7 +131,7 @@ class Reducer(StateContainerBase):
         uid = int(req.uid)
 
         with self.SqlSession() as session:
-            user: Optional[UserStore] = session.execute(select(UserStore).where(UserStore.id==uid)).scalar()  # type: ignore
+            user: Optional[UserStore] = session.execute(select(UserStore).where(UserStore.id==uid)).scalar()
             if user is None:
                 return 'user not found'
 

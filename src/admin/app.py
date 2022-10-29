@@ -1,10 +1,10 @@
 from flask import Flask, redirect, request
 from sqlalchemy import select
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate # type: ignore
-from flask_admin import Admin, AdminIndexView # type: ignore
-from flask_admin.form import SecureForm # type: ignore
-from flask_admin.contrib.sqla import ModelView # type: ignore
+from flask_migrate import Migrate
+from flask_admin import Admin, AdminIndexView
+from flask_admin.form import SecureForm
+from flask_admin.contrib.sqla import ModelView
 from typing import Any, Optional
 from functools import wraps
 
@@ -33,7 +33,7 @@ def secured(cls: Any) -> Any:
                 return False
 
             user: Optional[store.UserStore] = \
-                db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar() # type: ignore
+                db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar()
             if user is None or not secret.IS_ADMIN(user):
                 return False
 

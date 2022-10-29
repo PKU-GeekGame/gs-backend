@@ -8,16 +8,16 @@ from . import Table
 class ChallengeStore(Table):
     __tablename__ = 'challenge'
 
-    effective_after = Column(Integer, nullable=False)
+    effective_after: int = Column(Integer, nullable=False)
 
-    key = Column(String(32), nullable=False, unique=True)
+    key: str = Column(String(32), nullable=False, unique=True)
     title = Column(String(64), nullable=False)
-    category = Column(String(32), nullable=False)
-    sorting_index = Column(Integer, nullable=False)
-    desc_template = Column(Text, nullable=False)
+    category: str = Column(String(32), nullable=False)
+    sorting_index: int = Column(Integer, nullable=False)
+    desc_template: str = Column(Text, nullable=False)
 
-    actions = Column(JSON, nullable=False)
-    flags = Column(JSON, nullable=False)
+    actions: List[Dict[str, Any]] = Column(JSON, nullable=False)
+    flags: List[Dict[str, Any]] = Column(JSON, nullable=False)
 
     VAL_FLAG = re.compile(r'^flag{[\x20-\x7c\x7e]{1,100}}$') # 0x7d is '}'
     MAX_FLAG_LEN = 110
@@ -112,7 +112,7 @@ class ChallengeStore(Table):
         return actions
 
     # pass to frontend
-    def describe_actions(self, cur_tick) -> List[Dict[str, Any]]:
+    def describe_actions(self, cur_tick: int) -> List[Dict[str, Any]]:
         ret = []
         for action in self.actions:
             if cur_tick>=action['effective_after']:

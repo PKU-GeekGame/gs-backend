@@ -195,11 +195,11 @@ class StateContainerBase(ABC):
 
     def load_all_data(self, cls: Type[T]) -> List[T]:
         with self.SqlSession() as session:
-            return session.execute(select(cls)).scalars().all() # type: ignore
+            return session.execute(select(cls)).scalars().all()
 
     def load_one_data(self, cls: Type[T], id: int) -> Optional[T]:
         with self.SqlSession() as session:
-            return session.execute(select(cls).where(cls.id==id)).scalar() # type: ignore
+            return session.execute(select(cls).where(cls.id==id)).scalar()
 
     async def process_event(self, event: glitter.Event) -> None:
         def default(_self: Any, ev: glitter.Event) -> None:
@@ -242,9 +242,9 @@ class StateContainerBase(ABC):
             'state_counter': self.state_counter,
             'game_available': not self.game_dirty,
             **({
-                'cur_tick': self.game.cur_tick,
-                'n_users': len(self.game.users.list),
-                'n_submissions': len(self.game.submissions),
-            } if not self.game_dirty else None),
+                'cur_tick': self._game.cur_tick,
+                'n_users': len(self._game.users.list),
+                'n_submissions': len(self._game.submissions),
+            } if not self.game_dirty else {}),
             **self.custom_telemetry_data,
         }
