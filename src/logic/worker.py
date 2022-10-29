@@ -162,4 +162,6 @@ class Worker(StateContainerBase):
             telemetry=self.collect_telemetry()
         ))
 
+        self.emit_local_message({'type': 'heartbeat_sent'})
+
         self.last_heartbeat_time = time.time()
