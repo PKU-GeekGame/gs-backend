@@ -99,6 +99,9 @@ class Reducer(StateContainerBase):
             if 1000*time.time()-user.profile.timestamp_ms<2900:
                 return '请求太频繁'
 
+            if user.profile.gender_or_null is not None and user.profile.gender_or_null!=req.profile.get('gender'):
+                return '不允许修改性别，如填写错误请联系工作人员'
+
             # create profile
 
             profile = UserProfileStore(user_id=user.id)
