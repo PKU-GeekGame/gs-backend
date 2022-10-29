@@ -18,6 +18,8 @@ GITHUB_APP_SECRET = 'xxx'
 MS_APP_ID = 'xxx'
 MS_APP_SECRET = 'xxx'
 
+FEISHU_WEBHOOK_ADDR = 'https://open.feishu.cn/open-apis/bot/v2/hook/...'
+
 #### RANDOM BULLSHITS
 
 ADMIN_SESSION_SECRET = 'some_long_random_string'

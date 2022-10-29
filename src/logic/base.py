@@ -4,6 +4,7 @@ from zmq.asyncio import Context
 # noinspection PyUnresolvedReferences
 from abc import ABC, abstractmethod
 import asyncio
+import httpx
 from typing import Type, TypeVar, List, Optional, Dict, Callable, Any, Tuple
 
 from . import glitter
@@ -167,6 +168,26 @@ class StateContainerBase(ABC):
                 log = LogStore(level=level, process=self.process_name, module=module, message=message)
                 session.add(log)
                 session.commit()
+
+        if level in ['warning', 'error', 'critical']:
+            asyncio.get_event_loop().create_task(
+                self.push_message(f'[{level.upper()} {module}]\n{message}')
+            )
+
+    @staticmethod
+    async def push_message(msg: str) -> None:
+        if secret.FEISHU_WEBHOOK_ADDR:
+            async with httpx.AsyncClient(http2=True) as client:
+                try:
+                    await client.post(secret.FEISHU_WEBHOOK_ADDR, json={
+                        'msg_type': 'text',
+                        'content': {
+                            'text': str(msg),
+                        },
+                    })
+                except Exception as e:
+                    print('PUSH MESSAGE FAILED', utils.get_traceback(e))
+                    pass
 
     def load_all_data(self, cls: Type[T]) -> List[T]:
         with self.SqlSession() as session:
