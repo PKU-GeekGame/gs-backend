@@ -25,6 +25,7 @@ class StatusView(AdminIndexView):
         reducer.received_telemetries['Reducer'] = (time.time(), reducer.collect_telemetry())
 
         USER_STATUS = {
+            'disabled': '已禁用',
             'pending_terms': '未同意条款',
             'pending_profile': '未完善信息',
             'no_score': '无成绩',
@@ -58,7 +59,9 @@ class StatusView(AdminIndexView):
         for u in reducer.game.users.list:
             u_group = u._store.group
 
-            if not u._store.terms_agreed:
+            if not u._store.enabled:
+                u_status = 'disabled'
+            elif not u._store.terms_agreed:
                 u_status = 'pending_terms'
             elif u._store.profile.check_profile(u._store.group) is not None:
                 u_status = 'pending_profile'
