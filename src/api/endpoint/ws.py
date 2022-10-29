@@ -47,6 +47,8 @@ async def push(req: Request, ws: WebsocketImplProtocol) -> None:
 
                 while message_id<worker.next_message_id:
                     pack = worker.local_messages.get(message_id, None)
+                    message_id += 1
+
                     if pack is not None:
                         groups, msg = pack
                         if msg.get('type', None)=='heartbeat_sent':
@@ -54,7 +56,6 @@ async def push(req: Request, ws: WebsocketImplProtocol) -> None:
 
                         if groups is None or user._store.group in groups:
                             await ws.send(json.dumps(msg))
-                    message_id += 1
 
     finally:
         worker.log('debug', 'api.ws.push', f'disconnected from {user}')
