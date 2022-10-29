@@ -46,7 +46,7 @@ WRITEUP_PATH = pathlib.Path('/path/to/writeups').resolve()
 ATTACHMENT_PATH = pathlib.Path('/path/to/attachments').resolve()
 MEDIA_PATH = pathlib.Path('/path/to/media').resolve()
 
-TEMPLATES_NAMES = [
+TEMPLATE_NAMES = [
     'game',
     'terms',
     'faq',
@@ -84,19 +84,17 @@ OAUTH_HTTP_PROXIES = { # will be passed to `httpx.AsyncClient`, see https://www.
 }
 
 def BUILD_OAUTH_CALLBACK_URL(url: str) -> str:
-    return url
+    return url # change this if you want to rewrite the oauth callback url
 
 ##
 ## PERMISSION
 ##
 
-MANUAL_AUTH_ENABLED = True
+MANUAL_AUTH_ENABLED = True # it should be disabled in production after setting up
 
 def IS_ADMIN(user: UserStore) -> bool:
     ADMIN_UIDS = [1]
-    ADMIN_GROUPS = ['staff']
     return (
         user is not None
-        and user.group in ADMIN_GROUPS
         and user.id in ADMIN_UIDS
     )
