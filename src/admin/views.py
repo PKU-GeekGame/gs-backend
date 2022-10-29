@@ -99,7 +99,7 @@ class StatusView(AdminIndexView):
         reducer: Reducer = current_app.config['reducer_obj']
 
         async def run_push() -> None:
-            reducer.log('warning', 'admin.test_push', 'test push warning message')
+            reducer.log('error', 'admin.test_push', 'test push message')
 
         asyncio.run_coroutine_threadsafe(run_push(), loop)
         return redirect(url_for('.index'))

@@ -32,8 +32,8 @@ Although nobody uses Windows on a server, it is a good news if you develop on Wi
 - `pip install -r requirements.txt`
 - Install MySQL server and set up a database for it
   - `CREATE USER 'username'@'localhost' IDENTIFIED BY 'password';`
-  - `CREATE DATABASE 'database';`
-  - `GRANT ALL PRIVILEGES ON 'database'.* TO 'username'@'localhost';`
+  - `CREATE DATABASE database;`
+  - `GRANT ALL PRIVILEGES ON database.* TO 'username'@'localhost';`
   - `FLUSH PRIVILEGES;`
 - Configure parameters
   - Rename `src/secret_example.py` to `src/secret.py`

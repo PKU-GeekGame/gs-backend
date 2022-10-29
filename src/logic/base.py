@@ -172,7 +172,7 @@ class StateContainerBase(ABC):
                 session.add(log)
                 session.commit()
 
-        if level in ['warning', 'error', 'critical']:
+        if level in ['error', 'critical']:
             asyncio.get_event_loop().create_task(
                 self.push_message(f'[{level.upper()} {module}]\n{message}')
             )
