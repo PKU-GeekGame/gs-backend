@@ -188,7 +188,7 @@ class Reducer(StateContainerBase):
         old_tick = self._game.cur_tick
         new_tick, expires = self._game.trigger.get_tick_at_time(ts)
 
-        self._game.cur_tick = new_tick
+        # DO NOT SET self._game.cur_tick = new_tick HERE because emit_event will process this and fire `on_tick_update`
         if new_tick!=old_tick:
             self.log('info', 'reducer.update_tick', f'set tick {old_tick} -> {new_tick}')
 
