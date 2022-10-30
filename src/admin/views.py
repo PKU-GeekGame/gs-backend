@@ -306,9 +306,12 @@ class UserView(ViewBase):
         'token': '在前端展示，平台本身不使用',
         'auth_token': '登录凭据，登录后会存在 Cookie 里',
     }
+    column_formatters = {
+        'timestamp_ms': fields.timestamp_ms_formatter,
+    }
     column_formatters_detail = {
         'login_properties': lambda _v, _c, model, _n: (
-            Markup('<samp style="white-space: pre-wrap">%s</samp>') % json.dumps(model.login_properties, indent=4)
+            Markup('<samp style="white-space: pre-wrap">%s</samp>') % json.dumps(model.login_properties, indent=4, ensure_ascii=False)
         ),
     }
     form_overrides = {
