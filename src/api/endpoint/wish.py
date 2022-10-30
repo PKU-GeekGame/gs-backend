@@ -255,10 +255,10 @@ async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, u
     if ch is None or not ch.cur_effective:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
-    users: Dict[User, List[Submission]] = {}
+    users: Dict[User, List[Optional[Submission]]] = {}
     users_sort_key: List[Tuple[Tuple[int, int], User]] = []
     for u in ch.touched_users:
-        li = []
+        li: List[Optional[Submission]] = []
         tot_score = 0
         last_sub_ts = 0
         for f in ch.flags:
@@ -278,7 +278,7 @@ async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, u
         'list': [{
             'nickname': u._store.profile.nickname_or_null or '',
             'group_disp': u._store.group_disp(),
-            'flags': [int(sub._store.timestamp_ms/1000) for sub in users[u]],
+            'flags': [None if sub is None else int(sub._store.timestamp_ms/1000) for sub in users[u]],
         } for _sort_key, u in users_sort_key],
     }
 
