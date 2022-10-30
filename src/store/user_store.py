@@ -2,7 +2,7 @@ from __future__ import annotations
 from sqlalchemy import Column, String, JSON, Integer, ForeignKey, BigInteger, Boolean
 from sqlalchemy.orm import relationship, validates
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict
 
 if TYPE_CHECKING:
     # noinspection PyUnresolvedReferences
@@ -15,7 +15,7 @@ class UserStore(Table):
     MAX_TOKEN_LEN = 512
 
     login_key: str = Column(String(192), nullable=False, unique=True)
-    login_properties = Column(JSON, nullable=False)
+    login_properties: Dict[str, Any] = Column(JSON, nullable=False)
     timestamp_ms = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
 
     enabled = Column(Boolean, nullable=False, default=True)

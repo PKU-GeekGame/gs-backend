@@ -13,7 +13,6 @@ import psutil
 from flask.typing import ResponseReturnValue
 from typing import Any, Optional, Type, Dict
 
-
 from ..state import Trigger
 from . import fields
 from ..logic import glitter
@@ -215,7 +214,7 @@ class LogView(ViewBase):
         'message': macro('in_pre'),
     }
 
-def _flag_match_formatter(view, context, model, name):
+def _flag_match_formatter(_view: Any, _context: Any, model: store.SubmissionStore, _name: str) -> str:
     reducer: Reducer = current_app.config['reducer_obj']
     sub = reducer._game.submissions.get(model.id, None)
 
@@ -229,7 +228,7 @@ def _flag_match_formatter(view, context, model, name):
     else:
         return ''
 
-def _flag_override_formatter(view, context, model, name):
+def _flag_override_formatter(_view: Any, _context: Any, model: store.SubmissionStore, _name: str) -> str:
     ret = []
     if model.score_override_or_null is not None:
         ret.append(f'[={model.score_override_or_null}]')
@@ -310,7 +309,7 @@ class UserProfileView(ViewBase):
     def after_model_touched(self, model: store.UserProfileStore) -> None:
         self.emit_event(glitter.EventType.UPDATE_USER, model.user_id)
 
-def _user_oauth_info_formatter(view, context, model, name):
+def _user_oauth_info_formatter(_view: Any, _context: Any, model: store.UserStore, _name: str) -> str:
     props = model.login_properties
     if props['type']=='iaaa':
         return f'[IAAA] {props["info"]["name"]}（{props["info"]["dept"]} {props["info"]["detailType"]} {props["info"]["identityStatus"]}）'
@@ -321,7 +320,7 @@ def _user_oauth_info_formatter(view, context, model, name):
     else:
         return f'[{props["type"]}]'
 
-def _user_game_status_formatter(view, context, model, name):
+def _user_game_status_formatter(_view: Any, _context: Any, model: store.UserStore, _name: str) -> str:
     reducer: Reducer = current_app.config['reducer_obj']
     user = reducer._game.users.user_by_id.get(model.id, None)
 
