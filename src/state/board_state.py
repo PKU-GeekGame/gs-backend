@@ -74,6 +74,7 @@ class ScoreBoard(Board):
                 'rank': idx+1,
                 'nickname': u._store.profile.nickname_or_null or '--',
                 'group_disp': u._store.group_disp() if self.show_group else None,
+                'badges': u._store.badges(),
                 'score': score,
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
@@ -140,11 +141,13 @@ class FirstBloodBoard(Board):
                     'flag_name': None,
                     'nickname': ch_sub.user._store.profile.nickname_or_null if ch_sub is not None else None,
                     'group_disp': ch_sub.user._store.group_disp() if (ch_sub is not None and self.show_group) else None,
+                    'badges': ch_sub.user._store.badges() if ch_sub is not None else None,
                     'timestamp': int(ch_sub._store.timestamp_ms/1000) if ch_sub is not None else None,
                 }] + ([] if len(ch.flags)<=1 else [{
                     'flag_name': f.name,
                     'nickname': f_sub.user._store.profile.nickname_or_null if f_sub is not None else None,
                     'group_disp': f_sub.user._store.group_disp() if (f_sub is not None and self.show_group) else None,
+                    'badges': f_sub.user._store.badges() if f_sub is not None else None,
                     'timestamp': int(f_sub._store.timestamp_ms/1000) if f_sub is not None else None,
                 } for f in ch.flags for f_sub in [self.flag_board.get(f, None)]]),
 

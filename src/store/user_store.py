@@ -2,7 +2,7 @@ from __future__ import annotations
 from sqlalchemy import Column, String, JSON, Integer, ForeignKey, BigInteger, Boolean
 from sqlalchemy.orm import relationship, validates
 import time
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
     # noinspection PyUnresolvedReferences
@@ -60,3 +60,14 @@ class UserStore(Table):
     def group_disp(self) -> str:
         g = self.group
         return self.GROUPS.get(g, f'({g})')
+
+    def badges(self) -> List[str]:
+        if self.group!='pku':
+            return []
+
+        ret = []
+        if self.profile.gender_or_null=='female':
+            ret.append('girl')
+        if self.login_properties['type']=='iaaa' and self.login_properties['info'].get('identityId', None).startswith('22000'):
+            ret.append('rookie')
+        return ret
