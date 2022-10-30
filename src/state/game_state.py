@@ -29,10 +29,10 @@ class Game(WithGameLifecycle):
         self.challenges: Challenges = Challenges(self, challenge_stores)
         self.users: Users = Users(self, user_stores)
         self.boards: Dict[str, Board] = {
-            'score_pku': ScoreBoard('北京大学排名', self, ['pku'], False),
-            'first_pku': FirstBloodBoard('北京大学一血榜', self, ['pku'], False),
-            'score_all': ScoreBoard('总排名', self, ['staff', 'pku', 'other'], True),
-            'first_all': FirstBloodBoard('总一血榜', self, ['staff', 'pku', 'other'], True),
+            'score_pku': ScoreBoard('北京大学排名', self, UserStore.MAIN_BOARD_GROUPS, False),
+            'first_pku': FirstBloodBoard('北京大学一血榜', self, UserStore.MAIN_BOARD_GROUPS, False),
+            'score_all': ScoreBoard('总排名', self, UserStore.TOT_BOARD_GROUPS, True),
+            'first_all': FirstBloodBoard('总一血榜', self, UserStore.TOT_BOARD_GROUPS, True),
         }
 
     def on_tick_change(self) -> None:

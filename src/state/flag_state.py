@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Set, Dict, Any, Union, List
 if TYPE_CHECKING:
     from . import Game, Challenge, User, Submission
 from . import WithGameLifecycle
+from ..store import UserStore
 
 def leet_flag(flag: str, token: str, salt: str) -> str:
     uid = int(hashlib.sha256((token+salt).encode()).hexdigest(), 16)
@@ -42,10 +43,10 @@ class Flag(WithGameLifecycle):
 
         self.cur_score: int = 0
         self.passed_users: Set[User] = set()
-        self.undeducted_passed_users: Set[User] = set()
+        self.passed_users_for_score_calculation: Set[User] = set()
 
     def _update_cur_score(self) -> None:
-        u = len(self.undeducted_passed_users)
+        u = len(self.passed_users_for_score_calculation)
         self.cur_score = int(self.base_score * (.4 + .6 * (.98**u)))
 
     @lru_cache(maxsize=4096)
@@ -65,14 +66,17 @@ class Flag(WithGameLifecycle):
     def on_scoreboard_reset(self) -> None:
         self.cur_score = self.base_score
         self.passed_users = set()
-        self.undeducted_passed_users = set()
+        self.passed_users_for_score_calculation = set()
         self._update_cur_score()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission.matched_flag is self:
             self.passed_users.add(submission.user)
-            if not self._game.policy.cur_policy.is_submission_deducted:
-                self.undeducted_passed_users.add(submission.user)
+            if (
+                submission.user._store.group in UserStore.MAIN_BOARD_GROUPS
+                and not self._game.policy.cur_policy.is_submission_deducted
+            ):
+                self.passed_users_for_score_calculation.add(submission.user)
             self._update_cur_score()
 
     def __repr__(self) -> str:

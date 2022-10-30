@@ -33,6 +33,8 @@ class UserStore(Table):
         'staff': '工作人员',
         'banned': '已封禁',
     }
+    MAIN_BOARD_GROUPS = ['pku']
+    TOT_BOARD_GROUPS = ['pku', 'other']
 
     def __repr__(self) -> str:
         nick = '(no profile)' if self.profile is None else self.profile.nickname_or_null
