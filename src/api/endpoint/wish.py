@@ -267,6 +267,8 @@ async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, u
                 li.append(sub)
                 last_sub_ts = max(last_sub_ts, sub._store.timestamp_ms)
                 tot_score += sub.gained_score()
+            else:
+                li.append(None)
         users[u] = li
         users_sort_key.append(((-tot_score, last_sub_ts), u))
 
