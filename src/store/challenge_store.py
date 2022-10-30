@@ -11,7 +11,7 @@ class ChallengeStore(Table):
     effective_after: int = Column(Integer, nullable=False)
 
     key: str = Column(String(32), nullable=False, unique=True)
-    title = Column(String(64), nullable=False)
+    title: str = Column(String(64), nullable=False)
     category: str = Column(String(32), nullable=False)
     sorting_index: int = Column(Integer, nullable=False)
     desc_template: str = Column(Text, nullable=False)
