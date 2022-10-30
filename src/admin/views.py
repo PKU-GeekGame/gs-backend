@@ -180,7 +180,7 @@ class ChallengeView(ViewBase):
     }
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
-        flash('警告：增删题目或者修改 flags 字段会重算排行榜', 'warning')
+        flash('警告：增删题目或者修改 flags、effective_after 字段会重算排行榜', 'warning')
 
     def after_model_touched(self, model: store.ChallengeStore) -> None:
         self.emit_event(glitter.EventType.UPDATE_CHALLENGE, model.id)
@@ -381,7 +381,7 @@ class UserView(ViewBase):
     }
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
-        flash('警告：删除用户或者修改 group 字段会重算排行榜', 'warning')
+        flash('警告：修改 group 字段会重算排行榜', 'warning')
 
     def after_model_touched(self, model: store.UserStore) -> None:
         self.emit_event(glitter.EventType.UPDATE_USER, model.id)

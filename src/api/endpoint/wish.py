@@ -146,10 +146,12 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
     active_board = worker.game.boards[active_board_key]
     assert isinstance(active_board, ScoreBoard)
 
+    is_admin = secret.IS_ADMIN(user._store)
+
     return {
-        'challenge_list': None if not policy.can_view_problem else [{
+        'challenge_list': None if (not policy.can_view_problem and not is_admin) else [{
             'key': ch._store.key,
-            'title': ch._store.title,
+            'title': ch._store.title + (f' [>={ch._store.effective_after}]' if not ch.cur_effective else ''),
             'category': ch._store.category,
             'category_color': ChallengeStore.CAT_COLORS.get(ch._store.category, FALLBACK_CAT_COLOR),
 
@@ -160,7 +162,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
             'tot_cur_score': ch.tot_cur_score,
             'passed_users_count': len(ch.passed_users),
             'touched_users_count': len(ch.touched_users),
-        } for ch in worker.game.challenges.list if ch.cur_effective],
+        } for ch in worker.game.challenges.list if ch.cur_effective or is_admin],
 
         'user_info': {
             'status_line': f'总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
@@ -183,12 +185,14 @@ async def get_challenge_details(_req: Request, worker: Worker, user: Optional[Us
     if err is not None:
         return {'error': err[0], 'error_msg': err[1]}
 
+    is_admin = secret.IS_ADMIN(user._store)
+
     policy = worker.game.policy.cur_policy
-    if not policy.can_view_problem:
+    if not policy.can_view_problem and not is_admin:
         return {'error': 'NO_PERMISSION', 'error_msg': '现在不允许查看题目'}
 
     ch = worker.game.challenges.chall_by_key.get(challenge_key, None)
-    if ch is None or not ch.cur_effective:
+    if ch is None or (not ch.cur_effective and not is_admin):
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
     return {
