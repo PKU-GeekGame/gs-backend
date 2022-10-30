@@ -39,7 +39,9 @@ class StateContainerBase(ABC):
 
     def __init__(self, process_name: str, receiving_messages: bool = False):
         self.process_name: str = process_name
-        self.SqlSession = sessionmaker(create_engine(secret.DB_CONNECTOR, future=True), expire_on_commit=False, future=True)
+
+        # https://docs.sqlalchemy.org/en/20/core/pooling.html#using-fifo-vs-lifo
+        self.SqlSession = sessionmaker(create_engine(secret.DB_CONNECTOR, future=True, pool_size=2, pool_use_lifo=True, pool_pre_ping=True), expire_on_commit=False, future=True)
 
         self.log('debug', 'base.__init__', f'{self.process_name} started')
 
