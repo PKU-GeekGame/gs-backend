@@ -266,8 +266,8 @@ class Reducer(StateContainerBase):
                 else:
                     err = await self.handle_action(action)
 
-                if err is not None:
-                    self.log('warning', 'reducer.handle_action', f'error: {err}')
+                if err is not None and action.req.type!='SubmitFlagReq':
+                    self.log('warning', 'reducer.handle_action', f'error for action {action.req.type}: {err}')
             except Exception as e:
                 self.log('critical', 'reducer.handle_action', f'exception, will report as internal error: {utils.get_traceback(e)}')
                 err = '内部错误，已记录日志'
