@@ -58,9 +58,8 @@ class StatusView(AdminIndexView):  # type: ignore
         }
 
         users_cnt_by_group: Dict[str, Dict[str, int]] = {}
-        assert reducer.game is not None # because the game in a reducer never becomes dirty
 
-        for u in reducer.game.users.list:
+        for u in reducer._game.users.list:
             u_group = u._store.group
 
             if not u._store.enabled:
@@ -216,9 +215,34 @@ class LogView(ViewBase):
         'message': macro('in_pre'),
     }
 
+def _flag_match_formatter(view, context, model, name):
+    reducer: Reducer = current_app.config['reducer_obj']
+    sub = reducer._game.submissions.get(model.id, None)
+
+    if sub is None:
+        return '???'
+
+    if sub.matched_flag:
+        return f'{sub.matched_flag.name or "FLAG"} (+{sub.gained_score()})'
+    elif sub.duplicate_submission:
+        return '(duplicate)'
+    else:
+        return ''
+
+def _flag_override_formatter(view, context, model, name):
+    ret = []
+    if model.score_override_or_null is not None:
+        ret.append(f'[={model.score_override_or_null}]')
+    if model.precentage_override_or_null is not None:
+        ret.append(f'[*{model.precentage_override_or_null}%]')
+
+    return ' '.join(ret)
+
 class SubmissionView(ViewBase):
     can_create = False
     can_delete = False
+
+    column_list = ['id', 'timestamp_ms', 'user_.profile.nickname_or_null', 'user_.group', 'challenge_key', 'flag', 'matched_flag', 'override']
 
     column_display_pk = True
     page_size = 100
@@ -226,12 +250,18 @@ class SubmissionView(ViewBase):
     column_searchable_list = ['id']
     column_default_sort = ('id', True)
 
+    column_labels = {
+        'user_.profile.nickname_or_null': 'User Nickname',
+        'user_.group': 'User Group',
+    }
     column_descriptions = {
         'score_override_or_null': '将选手分数覆盖为此值',
         'precentage_override_or_null': '将选手分数乘以此百分比，当 score_override_or_null 存在时此设置不生效',
     }
     column_formatters = {
         'timestamp_ms': fields.timestamp_ms_formatter,
+        'matched_flag': _flag_match_formatter,
+        'override': _flag_override_formatter,
     }
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
@@ -280,6 +310,30 @@ class UserProfileView(ViewBase):
     def after_model_touched(self, model: store.UserProfileStore) -> None:
         self.emit_event(glitter.EventType.UPDATE_USER, model.user_id)
 
+def _user_oauth_info_formatter(view, context, model, name):
+    props = model.login_properties
+    if props['type']=='iaaa':
+        return f'[IAAA] {props["info"]["name"]}（{props["info"]["dept"]} {props["info"]["detailType"]} {props["info"]["identityStatus"]}）'
+    elif props['type']=='microsoft':
+        return f'[MS] {props["info"]["displayName"]}（{props["info"]["userPrincipalName"]}）'
+    elif props['type']=='github':
+        return f'[GitHub] {props["info"]["login"]}（{props["info"]["name"]}）'
+    else:
+        return f'[{props["type"]}]'
+
+def _user_game_status_formatter(view, context, model, name):
+    reducer: Reducer = current_app.config['reducer_obj']
+    user = reducer._game.users.user_by_id.get(model.id, None)
+
+    if user is None:
+        return '???'
+
+    res = user.check_play_game()
+    if res is None:
+        return 'OK'
+    else:
+        return res[1]
+
 class UserView(ViewBase):
     can_create = False
     can_delete = False
@@ -287,6 +341,7 @@ class UserView(ViewBase):
     can_view_details = True
     details_modal = True
 
+    column_list = ['id', 'profile.nickname_or_null', 'group', 'profile.qq_or_null', 'oauth_info', 'game_status', 'timestamp_ms']
     column_exclude_list = ['token', 'auth_token', 'login_properties']
     column_display_pk = True
     page_size = 100
@@ -294,6 +349,10 @@ class UserView(ViewBase):
 
     column_searchable_list = ['id']
     column_filters = ['group', 'terms_agreed']
+    column_labels = {
+        'profile.nickname_or_null': 'Nickname',
+        'profile.qq_or_null': 'QQ',
+    }
     form_choices = {
         'group': list(store.UserStore.GROUPS.items()),
     }
@@ -308,6 +367,8 @@ class UserView(ViewBase):
     }
     column_formatters = {
         'timestamp_ms': fields.timestamp_ms_formatter,
+        'oauth_info': _user_oauth_info_formatter,
+        'game_status': _user_game_status_formatter,
     }
     column_formatters_detail = {
         'login_properties': lambda _v, _c, model, _n: (
