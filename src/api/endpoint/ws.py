@@ -6,6 +6,7 @@ from websockets.connection import CLOSED, CLOSING
 from typing import Dict
 
 from .. import get_cur_user
+from ... import secret
 
 bp = Blueprint('ws', url_prefix='/ws')
 
@@ -13,6 +14,10 @@ online_uids: Dict[int, int] = Counter()
 
 @bp.websocket('/push')
 async def push(req: Request, ws: WebsocketImplProtocol) -> None:
+    if not secret.WS_PUSH_ENABLED:
+        await ws.close(code=4337, reason='推送通知已禁用')
+        return
+
     # xxx: cannot use dependency injection in websocket handlers
     # see https://github.com/sanic-org/sanic-ext/issues/61
     worker = req.app.ctx.worker

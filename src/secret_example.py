@@ -52,8 +52,6 @@ TEMPLATE_NAMES = [
     'faq',
 ]
 
-WRITEUP_MAX_SIZE_MB = 20
-
 #### INTERNAL PORTS
 
 GLITTER_ACTION_SOCKET_ADDR = 'ipc:///path/to/action.sock'
@@ -69,6 +67,11 @@ WORKER_API_SERVER_KWARGS = lambda idx0: { # will be passed to `Sanic.run`
 }
 
 REDUCER_ADMIN_SERVER_ADDR = ('127.0.0.1', 5000)
+
+#### FUNCTIONS
+
+WRITEUP_MAX_SIZE_MB = 20
+WS_PUSH_ENABLED = True
 
 #### URLS
 

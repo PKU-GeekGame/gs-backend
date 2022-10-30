@@ -32,7 +32,7 @@ async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dic
             'terms_agreed': user._store.terms_agreed,
         },
         'feature': {
-            'push': user is not None and user.check_play_game() is None,
+            'push': secret.WS_PUSH_ENABLED and user is not None and user.check_play_game() is None,
             'game': user is not None,
         },
     }
