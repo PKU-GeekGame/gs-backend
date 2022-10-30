@@ -242,7 +242,7 @@ class SubmissionView(ViewBase):
     can_create = False
     can_delete = False
 
-    column_list = ['id', 'timestamp_ms', 'user_.profile.nickname_or_null', 'user_.group', 'challenge_key', 'flag', 'matched_flag', 'override']
+    column_list = ['id', 'timestamp_ms', 'user_.profile.nickname_or_null', 'user_.group', 'user_.login_key', 'challenge_key', 'flag', 'matched_flag', 'override']
 
     column_display_pk = True
     page_size = 100
@@ -253,6 +253,7 @@ class SubmissionView(ViewBase):
     column_labels = {
         'user_.profile.nickname_or_null': 'User Nickname',
         'user_.group': 'User Group',
+        'user_.login_key': 'User Login Key',
     }
     column_descriptions = {
         'score_override_or_null': '将选手分数覆盖为此值',
@@ -341,7 +342,7 @@ class UserView(ViewBase):
     can_view_details = True
     details_modal = True
 
-    column_list = ['id', 'profile.nickname_or_null', 'group', 'profile.qq_or_null', 'oauth_info', 'game_status', 'timestamp_ms']
+    column_list = ['id', 'profile.nickname_or_null', 'group', 'profile.qq_or_null', 'login_key', 'oauth_info', 'game_status', 'timestamp_ms']
     column_exclude_list = ['token', 'auth_token', 'login_properties']
     column_display_pk = True
     page_size = 100
