@@ -17,7 +17,7 @@ import asyncio
 import secrets
 import jinja2
 from contextlib import contextmanager
-from typing import Union, Callable, Dict, Any
+from typing import Union, Callable, Dict, Any, Iterator
 
 from . import secret
 
@@ -82,7 +82,7 @@ def fix_zmq_asyncio_windows() -> None:
         pass
 
 @contextmanager
-def log_slow(logger: Callable[[str, str, str], None], module: str, func: str, threshold: float = 0.3) -> None:
+def log_slow(logger: Callable[[str, str, str], None], module: str, func: str, threshold: float = 0.3) -> Iterator[None]:
     t1 = time.monotonic()
     try:
         yield
