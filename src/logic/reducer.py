@@ -153,6 +153,9 @@ class Reducer(StateContainerBase):
                 user_id=int(req.uid),
                 challenge_key=ch._store.key,
                 flag=str(req.flag),
+                precentage_override_or_null=(
+                    GamePolicyStore.DEDUCTION_PERCENTAGE_OVERRIDE if self._game.policy.cur_policy.is_submission_deducted else None
+                ),
             )
             session.add(submission)
             session.commit()

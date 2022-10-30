@@ -42,9 +42,10 @@ class Flag(WithGameLifecycle):
 
         self.cur_score: int = 0
         self.passed_users: Set[User] = set()
+        self.undeducted_passed_users: Set[User] = set()
 
     def _update_cur_score(self) -> None:
-        u = len(self.passed_users)
+        u = len(self.undeducted_passed_users)
         self.cur_score = int(self.base_score * (.4 + .6 * (.98**u)))
 
     @lru_cache(maxsize=4096)
@@ -64,11 +65,14 @@ class Flag(WithGameLifecycle):
     def on_scoreboard_reset(self) -> None:
         self.cur_score = self.base_score
         self.passed_users = set()
+        self.undeducted_passed_users = set()
         self._update_cur_score()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission.matched_flag is self:
             self.passed_users.add(submission.user)
+            if not self._game.policy.cur_policy.is_submission_deducted:
+                self.undeducted_passed_users.add(submission.user)
             self._update_cur_score()
 
     def __repr__(self) -> str:
