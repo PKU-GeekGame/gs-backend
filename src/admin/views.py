@@ -139,6 +139,7 @@ class ViewBase(sqla.ModelView): # type: ignore
 class AnnouncementView(ViewBase):
     column_formatters = {
         'timestamp_s': fields.timestamp_s_formatter,
+        'content_template': macro('in_pre'),
     }
     form_overrides = {
         'timestamp_s': fields.TimestampSField,
@@ -314,9 +315,9 @@ def _user_oauth_info_formatter(_view: Any, _context: Any, model: store.UserStore
     if props['type']=='iaaa':
         return f'[IAAA] {props["info"]["name"]}（{props["info"]["dept"]} {props["info"]["detailType"]} {props["info"]["identityStatus"]}）'
     elif props['type']=='microsoft':
-        return f'[MS] {props["info"]["displayName"]}（{props["info"]["userPrincipalName"]}）'
+        return f'[MS] {props["info"]["displayName"]} ({props["info"]["userPrincipalName"]})'
     elif props['type']=='github':
-        return f'[GitHub] {props["info"]["login"]}（{props["info"]["name"]}）'
+        return f'[GitHub] {props["info"]["name"]} ({props["info"]["login"]})'
     else:
         return f'[{props["type"]}]'
 
