@@ -1,4 +1,5 @@
 import random
+import time
 import markdown
 from markdown.postprocessors import Postprocessor
 from markdown.extensions import Extension
@@ -15,6 +16,7 @@ import traceback
 import asyncio
 import secrets
 import jinja2
+from contextlib import contextmanager
 from typing import Union, Callable, Dict, Any
 
 from . import secret
@@ -78,3 +80,13 @@ def fix_zmq_asyncio_windows() -> None:
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     except AttributeError:
         pass
+
+@contextmanager
+def log_slow(logger: Callable[[str, str, str], None], module: str, func: str, threshold: float = 0.3) -> None:
+    t1 = time.monotonic()
+    try:
+        yield
+    finally:
+        t2 = time.monotonic()
+        if t2-t1 > threshold:
+            logger('warning', module, f'took {t2-t1:.2f}s to {func}')

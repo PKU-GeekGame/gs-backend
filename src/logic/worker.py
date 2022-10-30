@@ -129,7 +129,8 @@ class Worker(StateContainerBase):
         if req.type!='WorkerHeartbeatReq':
             self.log('info', 'worker.perform_action', f'call {req.type}')
 
-        rep = await glitter.Action(req).call(self.action_socket)
+        with utils.log_slow(self.log, 'worker.perform_action', f'perform action {req.type}'):
+            rep = await glitter.Action(req).call(self.action_socket)
 
         if req.type!='WorkerHeartbeatReq':
             self.log('debug', 'worker.perform_action', f'called {req.type}, state counter is {rep.state_counter}')

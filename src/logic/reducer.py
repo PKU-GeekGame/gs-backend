@@ -207,7 +207,9 @@ class Reducer(StateContainerBase):
             return f'unknown action: {req.type}'
 
         listener: Callable[[Any, glitter.ActionReq], Awaitable[Optional[str]]] = action_listeners.get(type(action.req), default)
-        return await listener(self, action.req)
+
+        with utils.log_slow(self.log, 'reducer.handle_action', f'handle action {action.req.type}'):
+            return await listener(self, action.req)
 
     async def process_event(self, event: glitter.Event) -> None:
         await super().process_event(event)
@@ -220,11 +222,14 @@ class Reducer(StateContainerBase):
     async def emit_event(self, event: glitter.Event) -> None:
         self.log('info', 'reducer.emit_event', f'emit event {event.type}')
         await self.process_event(event)
-        await event.send(self.event_socket)
+
+        with utils.log_slow(self.log, 'reducer.emit_event', f'emit event {event.type}'):
+            await event.send(self.event_socket)
 
     async def emit_sync(self) -> None:
         #self.log('debug', 'reducer.emit_sync', f'emit sync ({self.state_counter})')
-        await glitter.Event(glitter.EventType.SYNC, self.state_counter, self._game.cur_tick).send(self.event_socket)
+        with utils.log_slow(self.log, 'reducer.emit_sync', f'emit sync'):
+            await glitter.Event(glitter.EventType.SYNC, self.state_counter, self._game.cur_tick).send(self.event_socket)
 
     async def _mainloop(self) -> None:
         self.log('success', 'reducer.mainloop', 'started to receive actions')
@@ -272,7 +277,8 @@ class Reducer(StateContainerBase):
             assert self.state_counter-old_counter in [0, 1], 'action handler incremented state counter more than once'
 
             if action is not None:
-                await action.reply(glitter.ActionRep(error_msg=err, state_counter=self.state_counter),self.action_socket)
+                with utils.log_slow(self.log, 'reducer.mainloop', f'reply to action {action.req.type}'):
+                    await action.reply(glitter.ActionRep(error_msg=err, state_counter=self.state_counter),self.action_socket)
 
             if not isinstance(action.req, glitter.WorkerHeartbeatReq):
                 await self.emit_sync()

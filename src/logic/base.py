@@ -156,14 +156,15 @@ class StateContainerBase(ABC):
     def reload_scoreboard_if_needed(self) -> None:
         if not self._game.need_reloading_scoreboard:
             return
-
         self._game.need_reloading_scoreboard = False
-        self._game.on_scoreboard_reset()
 
-        for sub_store in self.load_all_data(SubmissionStore):
-            submission = Submission(self._game, sub_store)
-            self._game.on_scoreboard_update(submission, in_batch=True)
-        self._game.on_scoreboard_batch_update_done()
+        with utils.log_slow(self.log, 'base.reload_scoreboard_if_needed', 'reload scoreboard'):
+            self._game.on_scoreboard_reset()
+
+            for sub_store in self.load_all_data(SubmissionStore):
+                submission = Submission(self._game, sub_store)
+                self._game.on_scoreboard_update(submission, in_batch=True)
+            self._game.on_scoreboard_batch_update_done()
 
     def log(self, level: str, module: str, message: str) -> None:
         print(f'{self.process_name} [{level}] {module}: {message}')
@@ -210,8 +211,10 @@ class StateContainerBase(ABC):
         listener = event_listeners.get(event.type, default)
 
         try:
-            listener(self, event)
+            with utils.log_slow(self.log, 'base.process_event', f'handle event {event.type}'):
+                listener(self, event)
             self.reload_scoreboard_if_needed()
+
         except Exception as e:
             self.log('critical', 'base.process_event', f'exception during event listener, will recover: {e!r}')
             self.game_dirty = True
