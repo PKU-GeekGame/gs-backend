@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy import select
 import asyncio
 import time
-from typing import Callable, Any, Awaitable, Dict, Tuple
+from typing import Callable, Any, Awaitable, Dict, Tuple, Coroutine
 
 from . import glitter
 from .base import StateContainerBase, make_callback_decorator
@@ -15,6 +15,14 @@ from .. import utils
 from .. import secret
 
 on_action, action_listeners = make_callback_decorator()
+
+# use a set to keep a strong ref the task
+# https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
+_bg_tasks = set()
+def run_in_bg(coro: Coroutine) -> None:
+    task = asyncio.create_task(coro)
+    task.add_done_callback(_bg_tasks.discard)
+    _bg_tasks.add(task)
 
 class Reducer(StateContainerBase):
     def __init__(self, process_name: str):
@@ -49,7 +57,7 @@ class Reducer(StateContainerBase):
         if client_ver!=glitter.PROTOCOL_VER:
             return f'protocol version mismatch: worker {req.protocol_ver}, reducer {glitter.PROTOCOL_VER}'
         else:
-            await self.emit_sync()
+            self.emit_sync()
             return None
 
     @on_action(glitter.RegUserReq)
@@ -233,13 +241,15 @@ class Reducer(StateContainerBase):
         self.log('info', 'reducer.emit_event', f'emit event {event.type}')
         await self.process_event(event)
 
-        with utils.log_slow(self.log, 'reducer.emit_event', f'emit event {event.type}'):
-            await event.send(self.event_socket)
+        run_in_bg(
+            event.send(self.event_socket)
+        )
 
-    async def emit_sync(self) -> None:
+    def emit_sync(self) -> None:
         #self.log('debug', 'reducer.emit_sync', f'emit sync ({self.state_counter})')
-        with utils.log_slow(self.log, 'reducer.emit_sync', f'emit sync'):
-            await glitter.Event(glitter.EventType.SYNC, self.state_counter, self._game.cur_tick).send(self.event_socket)
+        run_in_bg(
+            glitter.Event(glitter.EventType.SYNC, self.state_counter, self._game.cur_tick).send(self.event_socket)
+        )
 
     async def _mainloop(self) -> None:
         self.log('success', 'reducer.mainloop', 'started to receive actions')
@@ -250,11 +260,11 @@ class Reducer(StateContainerBase):
                 future = glitter.Action.listen(self.action_socket)
                 action: Optional[glitter.Action] = await asyncio.wait_for(future, glitter.SYNC_INTERVAL_S)
             except asyncio.TimeoutError:
-                await self.emit_sync()
+                self.emit_sync()
                 continue
             except Exception as e:
                 self.log('error', 'reducer.mainloop', f'exception during action receive, will try again: {e}')
-                await self.emit_sync()
+                self.emit_sync()
                 await asyncio.sleep(glitter.SYNC_INTERVAL_S)
                 continue
 
@@ -291,4 +301,4 @@ class Reducer(StateContainerBase):
                     await action.reply(glitter.ActionRep(error_msg=err, state_counter=self.state_counter),self.action_socket)
 
             if not isinstance(action.req, glitter.WorkerHeartbeatReq):
-                await self.emit_sync()
+                self.emit_sync()

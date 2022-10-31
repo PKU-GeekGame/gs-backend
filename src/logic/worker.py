@@ -3,6 +3,7 @@ import zmq
 from zmq.asyncio import Socket
 import asyncio
 import time
+from typing import Optional
 
 from .base import StateContainerBase
 from . import glitter
@@ -13,6 +14,7 @@ from .. import secret
 class Worker(StateContainerBase):
     RECOVER_INTERVAL_S = 3
     HEARTBEAT_THROTTLE_S = 9
+    HEARTBEAT_TIMEOUT_S = 7
 
     def __init__(self, process_name: str, receiving_messages: bool = False):
         super().__init__(process_name, receiving_messages)
@@ -34,6 +36,7 @@ class Worker(StateContainerBase):
         self.state_counter_cond: asyncio.Condition = asyncio.Condition()
 
         self.last_heartbeat_time: float = 0
+        self._haertbeat_task: Optional[asyncio.Task[None]] = None
 
     async def _sync_with_reducer(self, *, throttled: bool = True) -> None:
         self.game_dirty = True
@@ -120,10 +123,9 @@ class Worker(StateContainerBase):
                 async with self.state_counter_cond:
                     self.state_counter_cond.notify_all()
 
-                try:
-                    await self.send_heartbeat()
-                except Exception as e:
-                    self.log('error', 'worker.mainloop', f'heartbeat error, will ignore: {utils.get_traceback(e)}')
+                # send heartbeat if needed
+                self._haertbeat_task = asyncio.create_task(self.send_heartbeat())
+
 
     async def perform_action(self, req: glitter.ActionReq) -> glitter.ActionRep:
         if req.type!='WorkerHeartbeatReq':
@@ -158,12 +160,15 @@ class Worker(StateContainerBase):
         if time.time()-self.last_heartbeat_time <= self.HEARTBEAT_THROTTLE_S:
             return
 
-        await self.perform_action(WorkerHeartbeatReq(
-            client=self.process_name,
-            telemetry=self.collect_telemetry()
-        ))
+        try:
+            await asyncio.wait_for(self.perform_action(WorkerHeartbeatReq(
+                client=self.process_name,
+                telemetry=self.collect_telemetry()
+            )), self.HEARTBEAT_TIMEOUT_S)
 
-        # periodically wake up ws so it has opportunity to quit if ws is closed
-        self.emit_local_message({'type': 'heartbeat_sent'})
+            # periodically wake up ws so it has opportunity to quit if ws is closed
+            self.emit_local_message({'type': 'heartbeat_sent'})
 
-        self.last_heartbeat_time = time.time()
+            self.last_heartbeat_time = time.time()
+        except Exception as e:
+            self.log('error', 'worker.mainloop', f'heartbeat error, will ignore: {utils.get_traceback(e)}')
