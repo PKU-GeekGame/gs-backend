@@ -282,7 +282,7 @@ class TriggerView(ViewBase):
     form_overrides = {
         'timestamp_s': fields.TimestampSField,
     }
-    column_default_sort = 'tick'
+    column_default_sort = 'timestamp_s'
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
         flash('警告：修改赛程配置会重算排行榜', 'warning')

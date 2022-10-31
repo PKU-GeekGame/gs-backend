@@ -1,6 +1,6 @@
 from __future__ import annotations
 import time
-from typing import TYPE_CHECKING, List, Tuple, Dict
+from typing import TYPE_CHECKING, List, Tuple, Dict, Optional
 
 if TYPE_CHECKING:
     from . import *
@@ -58,3 +58,18 @@ class Trigger:
 
         assert self._stores[idx].timestamp_s<expires # always true because timestamp is unique and sorted
         return self._stores[idx].tick, expires
+
+    def describe_cur_tick(self) -> Tuple[str, Optional[int], Optional[str]]: # (cur_trigger_name, next_trigger_timestamp_s, next_trigger_name)
+        cur_trigger = None
+        next_trigger = None
+
+        for i, store in enumerate(self._stores):
+            if store.tick==self._game.cur_tick:
+                cur_trigger = store
+                next_trigger = self._stores[i+1] if i<len(self._stores)-1 else None
+
+        return (
+            cur_trigger.name if cur_trigger else '??',
+            next_trigger.timestamp_s if next_trigger else None,
+            next_trigger.name if next_trigger else None,
+        )

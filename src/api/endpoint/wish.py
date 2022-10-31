@@ -115,7 +115,6 @@ async def triggers(_req: Request, worker: Worker) -> Dict[str, Any]:
         return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
 
     return {
-        'current': worker.game.cur_tick,
         'list': [{
             'timestamp_s': trigger.timestamp_s,
             'name': trigger.name,
@@ -151,6 +150,8 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
     active_board = worker.game.boards[active_board_key]
     assert isinstance(active_board, ScoreBoard)
 
+    cur_trigger_name, next_trigger_timestamp_s, next_trigger_name = worker.game.trigger.describe_cur_tick()
+
     is_admin = secret.IS_ADMIN(user._store)
 
     return {
@@ -173,6 +174,12 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
             'status_line': f'总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
             'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
             'active_board_key': active_board_key,
+        },
+
+        'trigger': {
+            'current_name': cur_trigger_name,
+            'next_timestamp_s': next_trigger_timestamp_s,
+            'next_name': next_trigger_name,
         },
 
         'show_writeup': policy.can_submit_writeup,
