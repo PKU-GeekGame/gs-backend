@@ -23,7 +23,7 @@ class StatusView(AdminIndexView):  # type: ignore
     @expose('/')
     def index(self) -> ResponseReturnValue:
         reducer: Reducer = current_app.config['reducer_obj']
-        reducer.received_telemetries['Reducer'] = (time.time(), reducer.collect_telemetry())
+        reducer.received_telemetries[reducer.process_name] = (time.time(), reducer.collect_telemetry())
 
         USER_STATUS = {
             'disabled': '已禁用',
@@ -88,7 +88,7 @@ class StatusView(AdminIndexView):  # type: ignore
                 worker_name: {
                     'last_update': f'{int(time.time()-last_update):d}s',
                     **tel_dict,
-                } for worker_name, (last_update, tel_dict) in reducer.received_telemetries.items()
+                } for worker_name, (last_update, tel_dict) in sorted(reducer.received_telemetries.items())
             },
         )
 

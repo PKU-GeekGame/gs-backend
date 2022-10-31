@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional
+import os
 
 from ..logic import Worker
 from ..state import Submission, User
@@ -75,7 +75,7 @@ async def check_submission(sub: Submission, worker: Worker):
     await worker.push_message(f'[POLICE] {msg_text}')
 
 async def run_forever():
-    worker = Worker('police', receiving_messages=True)
+    worker = Worker(f'police-{os.getpid()}', receiving_messages=True)
     await worker._before_run()
 
     async def task() -> None:

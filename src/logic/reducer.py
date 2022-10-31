@@ -33,7 +33,7 @@ class Reducer(StateContainerBase):
 
         self.tick_updater_task: Optional[asyncio.Task[None]] = None
 
-        self.received_telemetries: Dict[str, Tuple[float, Dict[str, Any]]] = {'Reducer': (0, {})}
+        self.received_telemetries: Dict[str, Tuple[float, Dict[str, Any]]] = {process_name: (0, {})}
 
     async def _before_run(self) -> None:
         await super()._before_run()
