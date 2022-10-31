@@ -75,3 +75,7 @@ class Game(WithGameLifecycle):
         self.users.on_scoreboard_batch_update_done()
         for b in self.boards.values():
             b.on_scoreboard_batch_update_done()
+
+    def clear_boards_render_cache(self) -> None:
+        for b in self.boards.values():
+            b.clear_render_cache()

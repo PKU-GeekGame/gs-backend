@@ -32,6 +32,7 @@ class Users(WithGameLifecycle):
         self._game.need_reloading_scoreboard = True
 
     def on_store_update(self, id: int, new_store: Optional[UserStore]) -> None:
+        # noinspection PyTypeChecker
         old_user: Optional[User] = ([x for x in self.list if x._store.id==id]+[None])[0]
         other_users = [x for x in self.list if x._store.id!=id]
 
@@ -45,6 +46,9 @@ class Users(WithGameLifecycle):
             old_user.on_store_reload(new_store)
 
         self._update_aux_dicts()
+
+        if old_user is not None and old_user.tot_score>0:  # maybe on the board but profile changed
+            self._game.clear_boards_render_cache()
 
     def on_scoreboard_reset(self) -> None:
         for user in self.list:

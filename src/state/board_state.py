@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from . import *
     ScoreBoardItemType = Tuple[User, int]
 from . import WithGameLifecycle
+from .. import utils
 
 def minmax(x: int, a: int, b: int) -> int:
     if x<a: return a
@@ -14,13 +15,24 @@ def minmax(x: int, a: int, b: int) -> int:
     return x
 
 class Board(WithGameLifecycle, ABC):
-    def __init__(self, board_type: str, name: str):
+    def __init__(self, board_type: str, name: str, game: Game):
         self.board_type = board_type
         self.name = name
+        self._game = game
+        self._rendered: Optional[Dict[str, Any]] = None
 
     @property
+    def rendered(self) -> Dict[str, Any]:
+        if self._rendered is None:
+            with utils.log_slow(self._game.worker.log, 'board.render', f'render {self.board_type} board {self.name}'):
+                self._rendered = self._render()
+        return self._rendered
+
+    def clear_render_cache(self) -> None:
+        self._rendered = None
+
     @abstractmethod
-    def summarized(self) -> Dict[str, Any]:
+    def _render(self) -> None:
         raise NotImplementedError()
 
 class ScoreBoard(Board):
@@ -28,19 +40,12 @@ class ScoreBoard(Board):
     MAX_TOPSTAR_USERS = 10
 
     def __init__(self, name: str, game: Game, group: Optional[List[str]], show_group: bool):
-        super().__init__('score', name)
-        self._game = game
+        super().__init__('score', name, game)
 
         self.show_group: bool = show_group
         self.group: Optional[List[str]] = group
         self.board: List[ScoreBoardItemType] = []
         self.uid_to_rank: Dict[int, int] = {}
-
-        self._summarized: Dict[str, Any] = self._summarize()
-
-    @property
-    def summarized(self) -> Dict[str, Any]:
-        return self._summarized
 
     def _update_board(self) -> None:
         def is_valid(x: ScoreBoardItemType) -> bool:
@@ -61,7 +66,9 @@ class ScoreBoard(Board):
         self.board = sorted([x for x in b if is_valid(x)], key=sorter)
         self.uid_to_rank = {user._store.id: idx+1 for idx, (user, _score) in enumerate(self.board)}
 
-    def _summarize(self) -> Dict[str, Any]:
+    def _render(self) -> Dict[str, Any]:
+        self._game.worker.log('debug', 'board.render', f'rendering score board {self.name}')
+
         return {
             'challenges': [{
                 'key': ch._store.key,
@@ -103,35 +110,41 @@ class ScoreBoard(Board):
 
     def on_scoreboard_reset(self) -> None:
         self.board = []
-        self._summarized = self._summarize()
+        self.clear_render_cache()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if not in_batch and submission.matched_flag is not None:
             if self.group is None or submission.user._store.group in self.group:
                 self._update_board()
-                self._summarized = self._summarize()
+                self.clear_render_cache()
 
     def on_scoreboard_batch_update_done(self) -> None:
         self._update_board()
-        self._summarized = self._summarize()
+        self.clear_render_cache()
 
 class FirstBloodBoard(Board):
     def __init__(self, name: str, game: Game, group: Optional[List[str]], show_group: bool):
-        super().__init__('firstblood', name)
-        self._game = game
+        super().__init__('firstblood', name, game)
 
         self.show_group: bool = show_group
         self.group: Optional[List[str]] = group
         self.chall_board: Dict[Challenge, Submission] = {}
         self.flag_board: Dict[Flag, Submission] = {}
 
-        self._summarized: Dict[str, Any] = self._summarize()
+        self._rendered: Optional[Dict[str, Any]] = None
 
     @property
-    def summarized(self) -> Dict[str, Any]:
-        return self._summarized
+    def rendered(self) -> Dict[str, Any]:
+        if self._rendered is None:
+            self._rendered = self._render()
+        return self._rendered
 
-    def _summarize(self) -> Dict[str, Any]:
+    def clear_render_cache(self) -> None:
+        self._rendered = None
+
+    def _render(self) -> Dict[str, Any]:
+        self._game.worker.log('debug', 'board.render', f'rendering first blood board {self.name}')
+
         return {
             'list': [{
                 'title': ch._store.title,
@@ -157,7 +170,7 @@ class FirstBloodBoard(Board):
     def on_scoreboard_reset(self) -> None:
         self.chall_board = {}
         self.flag_board = {}
-        self._summarized = self._summarize()
+        self.clear_render_cache()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission.matched_flag is not None:
@@ -197,4 +210,4 @@ class FirstBloodBoard(Board):
                             'togroups': self.group,
                         })
 
-                self._summarized = self._summarize()
+                self.clear_render_cache()

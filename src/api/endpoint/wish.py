@@ -301,7 +301,7 @@ async def get_board(_req: Request, board_name: str, worker: Worker) -> Dict[str,
         return {'error': 'NOT_FOUND', 'error_msg': '排行榜不存在'}
 
     return {
-        **b.summarized,
+        **b.rendered,
         'type': b.board_type,
     }
 
