@@ -32,7 +32,7 @@ class Board(WithGameLifecycle, ABC):
         self._rendered = None
 
     @abstractmethod
-    def _render(self) -> None:
+    def _render(self) -> Dict[str, Any]:
         raise NotImplementedError()
 
 class ScoreBoard(Board):

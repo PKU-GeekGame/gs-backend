@@ -7,5 +7,5 @@ class TriggerStore(Table):
 
     tick: int = Column(Integer, nullable=False, unique=True)
     timestamp_s: int = Column(BigInteger, nullable=False, unique=True)
-    name = Column(String(64), nullable=False)
+    name: str = Column(String(64), nullable=False)
 

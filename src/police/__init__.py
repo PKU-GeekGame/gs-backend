@@ -8,7 +8,7 @@ from .. import utils
 TIME_MAX = 1e50
 MAX_ROWS = 10
 
-async def check_submission(sub: Submission, worker: Worker):
+async def check_submission(sub: Submission, worker: Worker) -> None:
     if sub.matched_flag is not None or sub.duplicate_submission: # correct answer, no need to check
         return
 
@@ -74,7 +74,7 @@ async def check_submission(sub: Submission, worker: Worker):
     worker.log('success', 'police.check_submission', report_text)
     await worker.push_message(f'[POLICE] {msg_text}')
 
-async def run_forever():
+async def run_forever() -> None:
     worker = Worker(f'police-{os.getpid()}', receiving_messages=True)
     await worker._before_run()
 
@@ -101,5 +101,5 @@ async def run_forever():
                         with utils.log_slow(worker.log, 'police.police_process', f'check submission {sub._store.id}', 1):
                             await check_submission(sub, worker)
 
-def police_process():
+def police_process() -> None:
     asyncio.run(run_forever())
