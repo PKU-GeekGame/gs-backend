@@ -99,14 +99,21 @@ class Reducer(StateContainerBase):
             if 1000*time.time()-user.profile.timestamp_ms<2900:
                 return '请求太频繁'
 
-            if user.profile.gender_or_null is not None and user.profile.gender_or_null!=req.profile.get('gender'):
+            allowed_profiles = UserProfileStore.PROFILE_FOR_GROUP.get(user.group, [])
+
+            if (
+                'gender' in allowed_profiles
+                and user.profile.gender_or_null is not None
+                and user.profile.gender_or_null!=req.profile.get('gender')
+            ):
                 return '不允许修改性别，如填写错误请联系工作人员'
 
             # create profile
 
             profile = UserProfileStore(user_id=user.id)
             for k, v in req.profile.items():
-                setattr(profile, f'{str(k)}_or_null', str(v))
+                if str(k) in allowed_profiles:
+                    setattr(profile, f'{str(k)}_or_null', str(v))
 
             err = profile.check_profile(user.group)
             if err is not None:
