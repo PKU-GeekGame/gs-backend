@@ -163,6 +163,7 @@ class Worker(StateContainerBase):
             telemetry=self.collect_telemetry()
         ))
 
+        # periodically wake up ws so it has opportunity to quit if ws is closed
         self.emit_local_message({'type': 'heartbeat_sent'})
 
         self.last_heartbeat_time = time.time()

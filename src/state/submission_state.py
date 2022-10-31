@@ -12,7 +12,7 @@ class Submission:
         # challenge be None if it is deleted later
         self.challenge: Optional[Challenge] = self._game.challenges.chall_by_key.get(self._store.challenge_key, None)
 
-        self.duplicate_submission: bool = False
+        self.duplicate_submission: bool = False # CORRECTLY answering a flag for the second time
         self.matched_flag: Optional[Flag] = self._find_matched_flag()
 
     def _find_matched_flag(self) -> Optional[Flag]:

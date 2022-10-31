@@ -28,8 +28,12 @@ class Announcements:
         else:
             if len(other_anns)==len(self.list): # created announcement
                 self._game.worker.emit_local_message({
-                    'type': 'new_announcement',
-                    'title': new_store.title,
+                    'type': 'push',
+                    'payload': {
+                        'type': 'new_announcement',
+                        'title': new_store.title,
+                    },
+                    'togroups': None,
                 })
             self.list = other_anns+[Announcement(self._game, new_store)]
 

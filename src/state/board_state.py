@@ -171,22 +171,30 @@ class FirstBloodBoard(Board):
 
                     if not in_batch and not passed_all_flags:
                         self._game.worker.emit_local_message({
-                            'type': 'flag_first_blood',
-                            'board_name': self.name,
-                            'nickname': submission.user._store.profile.nickname_or_null,
-                            'challenge': submission.challenge._store.title,
-                            'flag': submission.matched_flag.name,
-                        }, self.group)
+                            'type': 'push',
+                            'payload': {
+                                'type': 'flag_first_blood',
+                                'board_name': self.name,
+                                'nickname': submission.user._store.profile.nickname_or_null,
+                                'challenge': submission.challenge._store.title,
+                                'flag': submission.matched_flag.name,
+                            },
+                            'togroups': self.group,
+                        })
 
                 if submission.challenge not in self.chall_board and passed_all_flags:
                     self.chall_board[submission.challenge] = submission
 
                     if not in_batch:
                         self._game.worker.emit_local_message({
-                            'type': 'challenge_first_blood',
-                            'board_name': self.name,
-                            'nickname': submission.user._store.profile.nickname_or_null,
-                            'challenge': submission.challenge._store.title,
-                        }, self.group)
+                            'type': 'push',
+                            'payload': {
+                                'type': 'challenge_first_blood',
+                                'board_name': self.name,
+                                'nickname': submission.user._store.profile.nickname_or_null,
+                                'challenge': submission.challenge._store.title,
+                            },
+                            'togroups': self.group,
+                        })
 
                 self._summarized = self._summarize()

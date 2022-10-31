@@ -3,7 +3,7 @@ from sanic.server.websockets.impl import WebsocketImplProtocol
 import json
 from collections import Counter
 from websockets.connection import CLOSED, CLOSING
-from typing import Dict
+from typing import Dict, Optional, List
 
 from .. import get_cur_user
 from ... import secret
@@ -51,16 +51,16 @@ async def push(req: Request, ws: WebsocketImplProtocol) -> None:
                     return
 
                 while message_id<worker.next_message_id:
-                    pack = worker.local_messages.get(message_id, None)
+                    msg = worker.local_messages.get(message_id, None)
                     message_id += 1
 
-                    if pack is not None:
-                        groups, msg = pack
-                        if msg.get('type', None)=='heartbeat_sent':
-                            continue
+                    if msg is not None:
+                        if msg.get('type', None)=='push':
+                            payload = msg['payload']
+                            groups: Optional[List[str]] = msg['togroups']
 
-                        if groups is None or user._store.group in groups:
-                            await ws.send(json.dumps(msg))
+                            if groups is None or user._store.group in groups:
+                                await ws.send(json.dumps(payload))
 
     finally:
         worker.log('debug', 'api.ws.push', f'disconnected from {user}')
