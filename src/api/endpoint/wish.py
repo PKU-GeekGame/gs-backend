@@ -16,6 +16,10 @@ from ... import secret
 
 bp = Blueprint('wish', url_prefix='/wish')
 
+TEMPLATE_LIST = [
+    ('faq', '选手常见问题'),
+]
+
 @wish_endpoint(bp, '/game_info')
 async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dict[str, Any]:
     return {
@@ -34,6 +38,7 @@ async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dic
         'feature': {
             'push': secret.WS_PUSH_ENABLED and user is not None and user.check_play_game() is None,
             'game': user is not None,
+            'templates': TEMPLATE_LIST,
         },
     }
 

@@ -46,12 +46,6 @@ WRITEUP_PATH = pathlib.Path('/path/to/writeups').resolve()
 ATTACHMENT_PATH = pathlib.Path('/path/to/attachments').resolve()
 MEDIA_PATH = pathlib.Path('/path/to/media').resolve()
 
-TEMPLATE_NAMES = [
-    'game',
-    'terms',
-    'faq',
-]
-
 #### INTERNAL PORTS
 
 GLITTER_ACTION_SOCKET_ADDR = 'ipc:///path/to/action.sock'

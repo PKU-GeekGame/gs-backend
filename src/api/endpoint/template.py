@@ -1,4 +1,5 @@
 from sanic import Blueprint, Request, HTTPResponse, response
+import re
 from typing import Dict, Tuple, Optional
 
 from ...logic.worker import Worker
@@ -10,6 +11,8 @@ bp = Blueprint('template', url_prefix='/template')
 
 TEMPLATE_PATH = secret.TEMPLATE_PATH
 assert TEMPLATE_PATH.is_dir()
+
+TEMPLATE_NAME_RE = re.compile(r'^[a-zA-Z0-9\-_]+$')
 
 def etagged_response(req: Request, etag: str, html_body: str) -> HTTPResponse:
     etag = f'W/"{etag}"'
@@ -27,12 +30,12 @@ async def get_template(req: Request, filename: str, worker: Worker, user: Option
     if worker.game is None:
         return response.text('服务暂时不可用', status=403)
 
-    if filename not in secret.TEMPLATE_NAMES:
+    if not TEMPLATE_NAME_RE.fullmatch(filename):
         return response.text('没有这个模板', status=404)
 
     p = TEMPLATE_PATH/f'{filename}.md'
     if not p.is_file():
-        return response.text('找不到模板', status=404)
+        return response.text('没有这个模板', status=404)
 
     ts = int(p.stat().st_mtime*1000)
 
