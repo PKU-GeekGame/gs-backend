@@ -70,4 +70,9 @@ class UserStore(Table):
             ret.append('girl')
         if self.login_properties['type']=='iaaa' and self.login_properties['info'].get('identityId', None).startswith('22000'):
             ret.append('rookie')
+
+        extra = self.login_properties.get('badge_remark', '')
+        if extra:
+            ret.append(f'remark:{extra}')
+
         return ret
