@@ -23,8 +23,8 @@ FEISHU_WEBHOOK_ADDR = 'https://open.feishu.cn/open-apis/bot/v2/hook/...'
 #### RANDOM BULLSHITS
 
 ADMIN_SESSION_SECRET = 'some_long_random_string'
-FLAG_LEET_SALT = 'some_long_random_string'
 GLITTER_SSRF_TOKEN = 'some_long_random_string'
+ADMIN_2FA_COOKIE = 'some_long_random_string'
 
 #### SIGNING KEYS
 

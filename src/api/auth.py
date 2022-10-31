@@ -17,16 +17,23 @@ LOGIN_MAX_AGE_S = 86400*30
 AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]]
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
-def login(user: User) -> HTTPResponse:
+def login(worker: Worker, user: User) -> HTTPResponse:
     chk = user.check_login()
     if chk is not None:
         raise AuthError(chk[1])
 
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
-    res.cookies['auth_token'] = user._store.auth_token
-    res.cookies['auth_token']['samesite'] = 'Lax'
-    res.cookies['auth_token']['httponly'] = True
-    res.cookies['auth_token']['max-age'] = LOGIN_MAX_AGE_S
+    def add_cookie(res: HTTPResponse, name: str, value: str) -> None:
+        res.cookies[name] = value
+        res.cookies[name]['samesite'] = 'Lax'
+        res.cookies[name]['httponly'] = True
+        res.cookies[name]['max-age'] = LOGIN_MAX_AGE_S
+
+    add_cookie(res, 'auth_token', user._store.auth_token)
+    if secret.IS_ADMIN(user._store):
+        worker.log('warning', 'auth.login', f'sending admin 2fa cookie to U#{user._store.id}')
+        add_cookie(res, 'admin_2fa', secret.ADMIN_2FA_COOKIE)
+
     del res.cookies['oauth_state'] # type: ignore
     return res
 
@@ -56,22 +63,23 @@ async def register_or_login(worker: Worker, login_key: str, properties: Dict[str
         else:
             raise AuthError(f'注册账户失败：{rep.error_msg}')
 
-    return login(user)
+    return login(worker, user)
 
 def auth_response(fn: AuthHandler) -> RouteHandler:
     @wraps(fn)
     async def wrapped(req: Request, *args: Any, **kwargs: Any) -> HTTPResponse:
+        worker = req.app.ctx.worker
         try:
             try:
                 retval_ = fn(req, *args, **kwargs)
                 retval = (await retval_) if isawaitable(retval_) else retval_
                 if isinstance(retval, User):
-                    return login(retval)
+                    return login(worker, retval)
                 else:
                     login_key, properties, group = retval
-                    return await register_or_login(req.app.ctx.worker, login_key, properties, group)
+                    return await register_or_login(worker, login_key, properties, group)
             except httpx.RequestError as e:
-                req.app.ctx.worker.log('error', 'api.auth.auth_response', f'request error: {utils.get_traceback(e)}')
+                worker.log('error', 'api.auth.auth_response', f'request error: {utils.get_traceback(e)}')
                 raise AuthError('第三方服务网络错误')
         except AuthError as e:
             return response.html(
