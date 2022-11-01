@@ -159,6 +159,7 @@ class Worker(StateContainerBase):
     async def send_heartbeat(self) -> None:
         if time.time()-self.last_heartbeat_time <= self.HEARTBEAT_THROTTLE_S:
             return
+        self.last_heartbeat_time = time.time()
 
         try:
             await asyncio.wait_for(self.perform_action(WorkerHeartbeatReq(
@@ -168,7 +169,5 @@ class Worker(StateContainerBase):
 
             # periodically wake up ws so it has opportunity to quit if ws is closed
             self.emit_local_message({'type': 'heartbeat_sent'})
-
-            self.last_heartbeat_time = time.time()
         except Exception as e:
             self.log('error', 'worker.mainloop', f'heartbeat error, will ignore: {utils.get_traceback(e)}')

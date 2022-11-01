@@ -119,7 +119,7 @@ class Action:
     async def reply(rep: ActionRep, sock: Socket) -> None:
         await sock.send_multipart([pickle.dumps(rep)]) # type: ignore
 
-SYNC_INTERVAL_S = 2
+
 SYNC_TIMEOUT_MS = 7000
 
 class Event:
