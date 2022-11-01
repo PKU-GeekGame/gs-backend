@@ -70,7 +70,7 @@ class ChallengeStore(Table):
             assert 'name' in action, 'action should have name'
             assert 'type' in action, 'action should have type'
             assert 'effective_after' in action, 'action should have effective_after'
-            assert isinstance(action['name'], str), 'action name should be str'
+            assert action['name'] is None or isinstance(action['name'], str), 'action name should be Optional[str]'
             assert isinstance(action['type'], str), 'action type should be str'
             assert isinstance(action['effective_after'], int), 'effective_after type should be int'
 
@@ -115,7 +115,7 @@ class ChallengeStore(Table):
     def describe_actions(self, cur_tick: int) -> List[Dict[str, Any]]:
         ret = []
         for action in self.actions:
-            if cur_tick>=action['effective_after']:
+            if action['name'] is not None and cur_tick>=action['effective_after']:
                 if action['type']=='attachment':
                     ret.append({
                         'type': 'attachment',
