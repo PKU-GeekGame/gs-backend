@@ -153,7 +153,7 @@ class Worker(StateContainerBase):
 
     async def process_event(self, event: glitter.Event) -> None:
         if event.type!=glitter.EventType.SYNC:
-            self.log('info', 'worker.process_event', f'got event {event.type} {event.data} (count={event.state_counter})')
+            self.log('debug', 'worker.process_event', f'got event {event.type} {event.data} (count={event.state_counter})')
         await super().process_event(event)
 
     async def send_heartbeat(self) -> None:
