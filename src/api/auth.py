@@ -7,6 +7,7 @@ from inspect import isawaitable
 from urllib.parse import quote
 from typing import Dict, Any, Callable, Tuple, Union, Awaitable, Type, Optional
 
+from . import store_anticheat_log
 from ..logic import Worker, glitter
 from ..state import User
 from .. import secret
@@ -17,10 +18,12 @@ LOGIN_MAX_AGE_S = 86400*30
 AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]]
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
-def login(worker: Worker, user: User) -> HTTPResponse:
+def _login(req: Request, worker: Worker, user: User) -> HTTPResponse:
     chk = user.check_login()
     if chk is not None:
         raise AuthError(chk[1])
+
+    store_anticheat_log(req, ['login'])
 
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
     def add_cookie(res: HTTPResponse, name: str, value: str) -> None:
@@ -44,7 +47,7 @@ class AuthError(Exception):
     def __str__(self) -> str:
         return self.message
 
-async def register_or_login(worker: Worker, login_key: str, properties: Dict[str, Any], group: str) -> HTTPResponse:
+async def _register_or_login(req: Request, worker: Worker, login_key: str, properties: Dict[str, Any], group: str) -> HTTPResponse:
     if worker.game is None:
         worker.log('warning', 'api.auth.register_or_login', 'game is not available')
         raise AuthError('服务暂时不可用')
@@ -63,7 +66,7 @@ async def register_or_login(worker: Worker, login_key: str, properties: Dict[str
         else:
             raise AuthError(f'注册账户失败：{rep.error_msg}')
 
-    return login(worker, user)
+    return _login(req, worker, user)
 
 def auth_response(fn: AuthHandler) -> RouteHandler:
     @wraps(fn)
@@ -74,10 +77,10 @@ def auth_response(fn: AuthHandler) -> RouteHandler:
                 retval_ = fn(req, *args, **kwargs)
                 retval = (await retval_) if isawaitable(retval_) else retval_
                 if isinstance(retval, User):
-                    return login(worker, retval)
+                    return _login(req, worker, retval)
                 else:
                     login_key, properties, group = retval
-                    return await register_or_login(worker, login_key, properties, group)
+                    return await _register_or_login(req, worker, login_key, properties, group)
             except httpx.RequestError as e:
                 worker.log('error', 'api.auth.auth_response', f'request error: {utils.get_traceback(e)}')
                 raise AuthError('第三方服务网络错误')

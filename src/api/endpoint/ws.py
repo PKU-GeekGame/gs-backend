@@ -5,7 +5,7 @@ from collections import Counter
 from websockets.connection import CLOSED, CLOSING
 from typing import Dict, Optional, List
 
-from .. import get_cur_user
+from .. import get_cur_user, store_anticheat_log
 from ... import secret
 
 bp = Blueprint('ws', url_prefix='/ws')
@@ -35,6 +35,7 @@ async def push(req: Request, ws: WebsocketImplProtocol) -> None:
         await ws.close(code=4337, reason=chk[1])
         return
 
+    store_anticheat_log(req, ['ws_online'])
     online_uids[user._store.id] += 1
 
     telemetry['ws_online_uids'] = len(online_uids)
@@ -65,6 +66,7 @@ async def push(req: Request, ws: WebsocketImplProtocol) -> None:
     finally:
         worker.log('debug', 'api.ws.push', f'disconnected from {user}')
 
+        store_anticheat_log(req, ['ws_offline'])
         online_uids[user._store.id] -= 1
         if online_uids[user._store.id] == 0:
             del online_uids[user._store.id]

@@ -8,6 +8,7 @@ import re
 import hashlib
 from typing import Optional, Dict, Any, List, Tuple
 
+from .. import store_anticheat_log
 from ..wish import wish_endpoint
 from ...state import User, ScoreBoard, Submission
 from ...logic import Worker, glitter
@@ -134,7 +135,7 @@ def reorder_by_cat(values: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 @wish_endpoint(bp, '/game')
-async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
     if user is None:
         return {'error': 'NO_USER', 'error_msg': '未登录'}
     if worker.game is None:
@@ -144,15 +145,17 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
     if err is not None:
         return {'error': err[0], 'error_msg': err[1]}
 
+    store_anticheat_log(req, ['open_game'])
+
     policy = worker.game.policy.cur_policy
+    is_admin = secret.IS_ADMIN(user._store)
+
     active_board_key = 'score_pku' if user._store.group=='pku' else 'score_all'
     active_board_name = '北京大学' if user._store.group=='pku' else '总'
     active_board = worker.game.boards[active_board_key]
     assert isinstance(active_board, ScoreBoard)
 
     cur_trigger_name, next_trigger_timestamp_s, next_trigger_name = worker.game.trigger.describe_cur_tick()
-
-    is_admin = secret.IS_ADMIN(user._store)
 
     return {
         'challenge_list': None if (not policy.can_view_problem and not is_admin) else [{
@@ -187,7 +190,7 @@ async def get_game(_req: Request, worker: Worker, user: Optional[User]) -> Dict[
     }
 
 @wish_endpoint(bp, '/challenge/<challenge_key:str>')
-async def get_challenge_details(_req: Request, worker: Worker, user: Optional[User], challenge_key: str) -> Dict[str, Any]:
+async def get_challenge_details(req: Request, worker: Worker, user: Optional[User], challenge_key: str) -> Dict[str, Any]:
     if user is None:
         return {'error': 'NO_USER', 'error_msg': '未登录'}
     if worker.game is None:
@@ -207,6 +210,8 @@ async def get_challenge_details(_req: Request, worker: Worker, user: Optional[Us
     if ch is None or (not ch.cur_effective and not is_admin):
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
+    store_anticheat_log(req, ['open_challenge', ch._store.key])
+
     return {
         'desc': ch.render_desc(user),
         'actions': ch._store.describe_actions(worker.game.cur_tick),
@@ -219,7 +224,7 @@ class SubmitFlagParam:
 
 @wish_endpoint(bp, '/submit_flag')
 @validate(json=SubmitFlagParam)
-async def submit_flag(_req: Request, body: SubmitFlagParam, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
     if user is None:
         return {'error': 'NO_USER', 'error_msg': '未登录'}
     if worker.game is None:
@@ -231,10 +236,6 @@ async def submit_flag(_req: Request, body: SubmitFlagParam, worker: Worker, user
     if not worker.game.policy.cur_policy.can_submit_flag:
         return {'error': 'POLICY_ERROR', 'error_msg': '现在不允许提交Flag'}
 
-    err = ChallengeStore.check_submitted_flag(body.flag)
-    if err is not None:
-        return {'error': err[0], 'error_msg': err[1]}
-
     last_sub = user.last_submission
     if last_sub is not None:
         delta = time.time()-last_sub._store.timestamp_ms/1000
@@ -245,12 +246,20 @@ async def submit_flag(_req: Request, body: SubmitFlagParam, worker: Worker, user
     if ch is None or not ch.cur_effective:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
+    err = ChallengeStore.check_submitted_flag(body.flag)
+    if err is not None:
+        store_anticheat_log(req, ['submiut_flag', ch._store.key, body.flag, err])
+        return {'error': err[0], 'error_msg': err[1]}
+
     rep = await worker.perform_action(glitter.SubmitFlagReq(
         client=worker.process_name,
         uid=user._store.id,
         challenge_key=body.challenge_key,
         flag=body.flag,
     ))
+
+    store_anticheat_log(req, ['submiut_flag', ch._store.key, body.flag, rep.error_msg])
+
     if rep.error_msg is not None:
         return {'error': 'REDUCER_ERROR', 'error_msg': rep.error_msg}
 

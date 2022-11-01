@@ -4,6 +4,7 @@ from typing import Optional, Callable
 import importlib.util
 import shutil
 
+from .. import store_anticheat_log
 from ...state import User, Challenge
 from ...logic import Worker
 from ... import utils
@@ -54,6 +55,8 @@ async def get_attachment(req: Request, ch_key: str, fn: str, worker: Worker, use
     att = chall.attachments.get(fn, None)
     if att is None or att['effective_after']>worker.game.cur_tick:
         return response.text('附件不存在', status=404)
+
+    store_anticheat_log(req, ['download_attachment', chall._store.key, fn])
 
     if att['type']=='attachment':
         return await download_attachment(att["file_path"])

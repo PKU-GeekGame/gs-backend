@@ -2,6 +2,7 @@ from sanic import Blueprint, Request, HTTPResponse, response
 import re
 from typing import Dict, Tuple, Optional
 
+from .. import store_anticheat_log
 from ...logic.worker import Worker
 from ...state import User
 from ... import utils
@@ -38,6 +39,8 @@ async def get_template(req: Request, filename: str, worker: Worker, user: Option
         return response.text('没有这个模板', status=404)
 
     ts = int(p.stat().st_mtime*1000)
+
+    store_anticheat_log(req, ['get_template', filename])
 
     group = None if user is None else user._store.group
     tick = worker.game.cur_tick
