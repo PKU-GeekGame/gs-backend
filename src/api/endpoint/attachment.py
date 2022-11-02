@@ -76,9 +76,12 @@ async def get_attachment(req: Request, ch_key: str, fn: str, worker: Worker, use
         worker.log('info', 'api.attachment.get_attachment', f'generating attachment {chall._store.key}::{att["filename"]} for {user._store.id}')
 
         try:
-            gen_fn = load_module(mod_path)
-            out_path = gen_fn(user, chall)
-            assert isinstance(out_path, Path), f'gen_fn must return a Path, got {type(gen_fn)}'
+            with utils.chdir(mod_path):
+                gen_fn = load_module(mod_path)
+                out_path = gen_fn(user, chall)
+                assert isinstance(out_path, Path), f'gen_fn must return a Path, got {type(gen_fn)}'
+                out_path = out_path.resolve()
+
             shutil.move(out_path, cache_path)
             cache_path.chmod(0o644)
         except Exception as e:
