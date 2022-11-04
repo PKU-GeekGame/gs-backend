@@ -133,7 +133,7 @@ class ChallengeStore(Table):
         return ret
 
     ACTION_SNIPPETS = {
-        'webpage': '''{"name": "题目网页", "effective_after": 0, "type": "webpage", "url" : "https://probXX.geekgame.pku.edu.cn"}''',
+        'webpage': '''{"name": "题目网页", "effective_after": 0, "type": "webpage", "url" : "https://probXX.geekgame.pku.edu.cn/?token={{token}}"}''',
         'webdocker': '''{"name": "题目网页", "effective_after": 0, "type": "webdocker", "host" : "probXX-manager.geekgame.pku.edu.cn"}''',
         'terminal': '''{"name": "题目", "effective_after": 0, "type": "terminal", "host" : "probXX.geekgame.pku.edu.cn", "port" : 0}''',
         'attachment': '''{"name": "题目附件", "effective_after": 0, "type": "attachment", "filename" : "probXX.zip", "file_path": ""}''',
