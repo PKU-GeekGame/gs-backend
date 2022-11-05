@@ -319,6 +319,7 @@ async def get_board(_req: Request, board_name: str, worker: Worker) -> Dict[str,
     return {
         **b.rendered,
         'type': b.board_type,
+        'desc': b.desc,
     }
 
 @wish_endpoint(bp, '/submissions')

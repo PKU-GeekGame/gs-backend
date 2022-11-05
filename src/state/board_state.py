@@ -15,9 +15,10 @@ def minmax(x: int, a: int, b: int) -> int:
     return x
 
 class Board(WithGameLifecycle, ABC):
-    def __init__(self, board_type: str, name: str, game: Game):
+    def __init__(self, board_type: str, name: str, desc: Optional[str], game: Game):
         self.board_type = board_type
         self.name = name
+        self.desc = desc
         self._game = game
         self._rendered: Optional[Dict[str, Any]] = None
 
@@ -39,8 +40,8 @@ class ScoreBoard(Board):
     MAX_DISPLAY_USERS = 100
     MAX_TOPSTAR_USERS = 10
 
-    def __init__(self, name: str, game: Game, group: Optional[List[str]], show_group: bool):
-        super().__init__('score', name, game)
+    def __init__(self, name: str, desc: Optional[str], game: Game, group: Optional[List[str]], show_group: bool):
+        super().__init__('score', name, desc, game)
 
         self.show_group: bool = show_group
         self.group: Optional[List[str]] = group
@@ -88,8 +89,11 @@ class ScoreBoard(Board):
                     ch._store.key: ch.user_status(u)
                     for ch in self._game.challenges.list if ch.cur_effective
                 },
-                'flag_pass_ts': {
-                    f'{f.challenge._store.key}_{f.idx0}': int(sub._store.timestamp_ms/1000)
+                'flag_status': {
+                    f'{f.challenge._store.key}_{f.idx0}': {
+                        'timestamp_s': int(sub._store.timestamp_ms/1000),
+                        'gained_score': sub.gained_score(),
+                    }
                     for f, sub in u.passed_flags.items()
                 },
             } for idx, (u, score) in enumerate(self.board[:self.MAX_DISPLAY_USERS])],
@@ -123,8 +127,8 @@ class ScoreBoard(Board):
         self.clear_render_cache()
 
 class FirstBloodBoard(Board):
-    def __init__(self, name: str, game: Game, group: Optional[List[str]], show_group: bool):
-        super().__init__('firstblood', name, game)
+    def __init__(self, name: str, desc: Optional[str], game: Game, group: Optional[List[str]], show_group: bool):
+        super().__init__('firstblood', name, desc, game)
 
         self.show_group: bool = show_group
         self.group: Optional[List[str]] = group
