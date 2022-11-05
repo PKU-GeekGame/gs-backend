@@ -94,7 +94,7 @@ def log_slow(logger: Callable[[str, str, str], None], module: str, func: str, th
             logger('warning', module, f'took {t2-t1:.2f}s to {func}')
 
 @contextmanager
-def chdir(wd: Union[str, Path]):
+def chdir(wd: Union[str, Path]) -> Iterator[None]:
     curdir = os.getcwd()
     try:
         os.chdir(wd)
