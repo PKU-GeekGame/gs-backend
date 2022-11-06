@@ -15,6 +15,7 @@ class Game(WithGameLifecycle):
             challenge_stores: List[ChallengeStore],
             announcement_stores: List[AnnouncementStore],
             user_stores: List[UserStore],
+            use_boards: bool,
     ):
         self.worker: StateContainerBase = worker
         self.log = self.worker.log
@@ -33,7 +34,7 @@ class Game(WithGameLifecycle):
             'first_pku': FirstBloodBoard('北京大学一血榜', None, self, UserStore.MAIN_BOARD_GROUPS, False),
             'score_all': ScoreBoard('总排名', '只有用户组为 “北京大学” 的用户参与评奖', self, UserStore.TOT_BOARD_GROUPS, True),
             'first_all': FirstBloodBoard('总一血榜', None, self, UserStore.TOT_BOARD_GROUPS, True),
-        }
+        } if use_boards else {}
 
     def on_tick_change(self) -> None:
         self.policy.on_tick_change()

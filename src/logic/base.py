@@ -37,8 +37,10 @@ class StateContainerBase(ABC):
     RECOVER_THROTTLE_S = .5
     MAX_KEEPING_MESSAGES = 32
 
-    def __init__(self, process_name: str, receiving_messages: bool = False):
+    def __init__(self, process_name: str, receiving_messages: bool = False, use_boards: bool = True):
         self.process_name: str = process_name
+        self.listening_local_messages: bool = receiving_messages
+        self.use_boards = use_boards
 
         # https://docs.sqlalchemy.org/en/20/core/pooling.html#using-fifo-vs-lifo
         self.SqlSession = sessionmaker(create_engine(secret.DB_CONNECTOR, future=True, pool_size=2, pool_use_lifo=True, pool_pre_ping=True), expire_on_commit=False, future=True)
@@ -55,7 +57,6 @@ class StateContainerBase(ABC):
         self.local_messages: Dict[int, Dict[str, Any]] = {}
         self.next_message_id: int = 1
         self.message_cond: asyncio.Condition = None  # type: ignore
-        self.listening_local_messages: bool = receiving_messages
 
         self.state_counter: int = 1
         self.custom_telemetry_data: Dict[str, Any] = {}
@@ -77,6 +78,7 @@ class StateContainerBase(ABC):
                     challenge_stores=self.load_all_data(ChallengeStore),
                     announcement_stores=self.load_all_data(AnnouncementStore),
                     user_stores=self.load_all_data(UserStore),
+                    use_boards=self.use_boards,
                 )
                 self._game.on_tick_change()
                 self.reload_scoreboard_if_needed()

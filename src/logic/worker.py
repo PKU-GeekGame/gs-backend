@@ -17,7 +17,7 @@ class Worker(StateContainerBase):
     HEARTBEAT_TIMEOUT_S = 7
 
     def __init__(self, process_name: str, receiving_messages: bool = False):
-        super().__init__(process_name, receiving_messages)
+        super().__init__(process_name, receiving_messages=receiving_messages)
 
         self.action_socket: Socket = self.glitter_ctx.socket(zmq.REQ) # type: ignore
         self.event_socket: Socket = self.glitter_ctx.socket(zmq.SUB) # type: ignore
