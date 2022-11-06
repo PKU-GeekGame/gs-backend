@@ -26,16 +26,17 @@ def _login(req: Request, worker: Worker, user: User) -> HTTPResponse:
     store_anticheat_log(req, ['login'])
 
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
-    def add_cookie(res: HTTPResponse, name: str, value: str) -> None:
+    def add_cookie(res: HTTPResponse, name: str, value: str, path: str = '/') -> None:
         res.cookies[name] = value
         res.cookies[name]['samesite'] = 'Lax'
         res.cookies[name]['httponly'] = True
+        res.cookies[name]['path'] = path
         res.cookies[name]['max-age'] = LOGIN_MAX_AGE_S
 
     add_cookie(res, 'auth_token', user._store.auth_token)
     if secret.IS_ADMIN(user._store):
         worker.log('warning', 'auth.login', f'sending admin 2fa cookie to U#{user._store.id}')
-        add_cookie(res, 'admin_2fa', secret.ADMIN_2FA_COOKIE)
+        add_cookie(res, 'admin_2fa', secret.ADMIN_2FA_COOKIE, secret.ADMIN_URL)
 
     del res.cookies['oauth_state'] # type: ignore
     return res

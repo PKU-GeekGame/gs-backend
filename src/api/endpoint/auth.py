@@ -25,6 +25,7 @@ bp = Blueprint('auth', url_prefix='/auth')
 async def auth_logout(_req: Request) -> HTTPResponse:
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
     del res.cookies['auth_token'] # type: ignore
+    del res.cookies['admin_2fa'] # type: ignore
     return res
 
 @dataclass
@@ -56,6 +57,8 @@ async def auth_su(_req: Request, query: AuthSuParam, worker: Worker, user: Optio
     su_user = worker.game.users.user_by_id.get(query.uid, None)
     if su_user is None:
         raise AuthError('用户不存在')
+    if secret.IS_ADMIN(su_user._store):
+        raise AuthError('不能切换到管理员账号')
 
     return su_user
 
