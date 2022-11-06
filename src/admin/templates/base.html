@@ -14,11 +14,12 @@
 {% block head_css %}
     {{ super() }}
     <style>
-        .list-buttons-column a, .list-buttons-column button {
+        table.model-list tbody td>a.icon, table.model-list tbody td>form.icon button {
             padding: .25em .75em !important;
         }
-        .list-buttons-column a:hover, .list-buttons-column button:hover {
-            background-color: yellow !important;
+        table.model-list tbody td>a.icon:hover, table.model-list tbody td>form.icon button:hover {
+            background-color: black !important;
+            color: white !important;
         }
     </style>
 {% endblock %}
