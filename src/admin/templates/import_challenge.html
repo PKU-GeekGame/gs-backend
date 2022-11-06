@@ -1,0 +1,43 @@
+{% extends 'admin/master.html' %}
+
+{% block head %}
+    {{ super() }}
+    <script src="{{ config.ADMIN_URL }}/static/ace-build/ace.js" charset="utf-8"></script>
+    <style>
+        .ace-editor {
+            width: 100%;
+            height: 25em;
+        }
+        textarea[data-ace-id] {
+            display: none;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <form action="#" method="post">
+        <textarea name="imported_data" data-ace-id="chall-import" readonly>[]</textarea>
+        <div class="ace-editor" id="chall-import"></div>
+        <br>
+        <p>
+            <button class="btn btn-primary" type="submit">Import Challenge</button>
+            相同 Key 的题目将被覆盖
+        </p>
+
+        <script>
+            (()=>{
+                let textarea = document.querySelector('[data-ace-id="chall-import"]');
+                let editor = ace.edit('chall-import');
+                editor.setTheme("ace/theme/sqlserver");
+                editor.session.setUseWrapMode(true);
+                editor.session.setUseSoftTabs(true);
+                editor.session.setMode("ace/mode/json");
+                editor.session.setValue(textarea.value.trim());
+                editor.session.on('change', ()=>{
+                    textarea.value = editor.session.getValue();
+                });
+                textarea.value = editor.session.getValue();
+            })();
+        </script>
+    </form>
+{% endblock %}

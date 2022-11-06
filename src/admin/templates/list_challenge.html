@@ -1,0 +1,7 @@
+{% extends 'admin/model/list.html' %}
+
+{% block model_menu_bar_before_filters %}
+    <li>
+        <a href="{{ get_url('.import_json', url=return_url) }}">Import JSON</a>
+    </li>
+{% endblock %}

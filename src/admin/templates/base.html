@@ -13,6 +13,14 @@
 
 {% block head_css %}
     {{ super() }}
+    <style>
+        .list-buttons-column a, .list-buttons-column button {
+            padding: .25em .75em !important;
+        }
+        .list-buttons-column a:hover, .list-buttons-column button:hover {
+            background-color: yellow !important;
+        }
+    </style>
 {% endblock %}
 
 {% macro menu(menu_root=None) %}

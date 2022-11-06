@@ -1,17 +1,19 @@
 from flask_admin.contrib import sqla, fileadmin
 from flask_admin.form import SecureForm
 from flask_admin.babel import lazy_gettext
+from flask_admin.actions import action
 from flask_admin.model.template import macro
 from flask_admin import AdminIndexView, expose
 from wtforms import validators
+from sqlalchemy import select
 from markupsafe import Markup
-from flask import current_app, flash, redirect, url_for
+from flask import current_app, flash, redirect, url_for, make_response, request
 import asyncio
 import json
 import time
 import psutil
 from flask.typing import ResponseReturnValue
-from typing import Any, Optional, Type, Dict
+from typing import Any, Optional, Type, Dict, List
 
 from ..state import Trigger
 from . import fields
@@ -154,8 +156,7 @@ class AnnouncementView(ViewBase):
         self.emit_event(glitter.EventType.UPDATE_ANNOUNCEMENT, model.id)
 
 class ChallengeView(ViewBase):
-    can_view_details = True
-    details_modal = True
+    list_template = 'list_challenge.html'
 
     column_exclude_list = ['desc_template']
     column_default_sort = 'sorting_index'
@@ -178,6 +179,83 @@ class ChallengeView(ViewBase):
     form_choices = {
         'category': [(x, x) for x in store.ChallengeStore.CAT_COLORS.keys()],
     }
+
+    @staticmethod
+    def _export_chall(ch: store.ChallengeStore) -> Dict[str, Any]:
+        return {
+            'effective_after': ch.effective_after,
+
+            'key': ch.key,
+            'title': ch.title,
+            'category': ch.category,
+            'sorting_index': ch.sorting_index,
+            'desc_template': ch.desc_template,
+
+            'actions': ch.actions,
+            'flags': ch.flags,
+        }
+
+    @staticmethod
+    def _import_chall(data: Dict[str, Any], ch: store.ChallengeStore) -> None:
+        ch.effective_after = data['effective_after']
+
+        ch.key = data['key']
+        ch.title = data['title']
+        ch.category = data['category']
+        ch.sorting_index = data['sorting_index']
+        ch.desc_template = data['desc_template']
+
+        ch.actions = data['actions']
+        ch.flags = data['flags']
+
+    @expose('/import_json', methods=['GET', 'POST'])
+    def import_json(self) -> ResponseReturnValue:
+        url = request.args.get('url')
+
+        if request.method=='GET':
+            return self.render('import_challenge.html')
+        else:
+            reducer: Reducer = current_app.config['reducer_obj']
+            challs = json.loads(request.form['imported_data'])
+
+            touched_ids = []
+
+            with reducer.SqlSession() as session:
+                n_added = 0
+                n_modified = 0
+                for ch_data in challs:
+                    chall: Optional[store.ChallengeStore] = session.execute(
+                        select(store.ChallengeStore).where(store.ChallengeStore.key==ch_data['key'])
+                    ).scalar()
+
+                    if chall is None:
+                        chall = store.ChallengeStore()
+                        session.add(chall)
+                        n_added += 1
+                    else:
+                        n_modified += 1
+
+                    self._import_chall(ch_data, chall)
+                    session.flush()
+                    touched_ids.append(chall.id)
+
+                session.commit()
+
+            for ch_id in touched_ids:
+                self.emit_event(glitter.EventType.UPDATE_CHALLENGE, ch_id)
+
+            flash(f'成功增加 {n_added} 个题目、修改 {n_modified} 个题目', 'success')
+
+            return redirect(url)
+
+    @action('export', 'Export JSON')
+    def action_export(self, ch_ids: List[int]) -> ResponseReturnValue:
+        reducer: Reducer = current_app.config['reducer_obj']
+        challs = [self._export_chall(reducer._game.challenges.chall_by_id[int(ch_id)]._store) for ch_id in ch_ids]
+
+        resp = make_response(json.dumps(challs, indent=1, ensure_ascii=False), 200)
+        resp.mimetype = 'text/plain'
+        return resp
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
         flash('警告：增删题目或者修改 flags、effective_after 字段会重算排行榜', 'warning')
