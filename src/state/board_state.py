@@ -153,6 +153,7 @@ class FirstBloodBoard(Board):
             'list': [{
                 'title': ch._store.title,
                 'key': ch._store.key,
+                'metadata': ch.describe_metadata(self),
 
                 'flags': [{
                     'flag_name': None,

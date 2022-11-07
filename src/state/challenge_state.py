@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, List, Dict, Optional, Set, Union, Literal, Any
 if TYPE_CHECKING:
     from . import Game, Submission, User
     from ..store import *
-from . import WithGameLifecycle, Flag
+from . import WithGameLifecycle, Flag, Board, FirstBloodBoard, Trigger
+from ..store import UserStore
 from .. import utils
 
 class Challenges(WithGameLifecycle):
@@ -145,6 +146,15 @@ class Challenge(WithGameLifecycle):
             return 'partial'
         else:
             return 'untouched'
+
+    def describe_metadata(self, board: Optional[Board]) -> Dict[str, Any]: # board=null if not in a board context (e.g., in game portal)
+        m = {} if self._store.chall_metadata is None else self._store.chall_metadata
+        is_main_board = isinstance(board, FirstBloodBoard) and board.group==UserStore.MAIN_BOARD_GROUPS
+
+        return {
+            'first_blood_award_eligible': m.get('first_blood_award_eligible', False) and (is_main_board or board is None),
+            'author': None if self._game.cur_tick<Trigger.TRIGGER_BOARD_END else m.get('author', None),
+        }
 
     def __repr__(self) -> str:
         return f'[Ch#{self._store.id} {self._store.key}: {self._store.title}]'

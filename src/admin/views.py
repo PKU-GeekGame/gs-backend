@@ -158,21 +158,23 @@ class AnnouncementView(ViewBase):
 class ChallengeView(ViewBase):
     list_template = 'list_challenge.html'
 
-    column_exclude_list = ['desc_template']
+    column_exclude_list = ['desc_template', 'chall_metadata']
     column_default_sort = 'sorting_index'
     column_formatters = {
         'actions': lambda _v, _c, model, _n: '；'.join([f'[{a["type"]}] {a["name"]}' for a in model.actions]),
-        'flags': lambda _v, _c, model, _n: '；'.join([f'[{f["type"]} {f["base_score"]}] {f["name"]}' for f in model.flags]),
+        'flags': lambda _v, _c, model, _n: '；'.join([f'[{f["base_score"]}pt] {f["name"]}' for f in model.flags]),
     }
     column_descriptions = {
         'effective_after': '题目从该 Tick 编号后对选手可见',
         'key': '题目唯一 ID，将会显示在 URL 中，比赛中不要随意修改，否则会导致已有提交失效',
         'sorting_index': '越小越靠前',
         'desc_template': '支持 Markdown 和 Jinja2 模板（group: Optional[str]、tick: int）',
+        'chall_metadata': '比赛结束后会向选手展示命题人',
         'actions': '题面底部展示的动作列表',
     }
     form_overrides = {
         'desc_template': fields.MarkdownField,
+        'chall_metadata': fields.JsonField,
         'actions': fields.ActionsField,
         'flags': fields.FlagsField,
     }
@@ -191,6 +193,7 @@ class ChallengeView(ViewBase):
             'sorting_index': ch.sorting_index,
             'desc_template': ch.desc_template,
 
+            'chall_metadata': ch.chall_metadata,
             'actions': ch.actions,
             'flags': ch.flags,
         }
@@ -205,6 +208,7 @@ class ChallengeView(ViewBase):
         ch.sorting_index = data['sorting_index']
         ch.desc_template = data['desc_template']
 
+        ch.chall_metadata = data['chall_metadata']
         ch.actions = data['actions']
         ch.flags = data['flags']
 
@@ -256,6 +260,12 @@ class ChallengeView(ViewBase):
         resp = make_response(json.dumps(challs, indent=1, ensure_ascii=False), 200)
         resp.mimetype = 'text/plain'
         return resp
+
+    def create_form(self, **kwargs):
+        form = super().create_form(**kwargs)
+        form.chall_metadata.data = json.loads(store.ChallengeStore.METADATA_SNIPPET)
+        return form
+
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
         flash('警告：增删题目或者修改 flags、effective_after 字段会重算排行榜', 'warning')

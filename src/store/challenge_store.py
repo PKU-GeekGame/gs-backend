@@ -16,6 +16,7 @@ class ChallengeStore(Table):
     sorting_index: int = Column(Integer, nullable=False)
     desc_template: str = Column(Text, nullable=False)
 
+    chall_metadata: Optional[Dict[str, Any]] = Column(JSON, nullable=False)
     actions: List[Dict[str, Any]] = Column(JSON, nullable=False)
     flags: List[Dict[str, Any]] = Column(JSON, nullable=False)
 
@@ -29,6 +30,14 @@ class ChallengeStore(Table):
         'Binary': '#864a2d',
         'Algorithm': '#2f2d86',
     }
+
+    @validates('chall_metadata')
+    def validate_chall_metadata(self, _key: str, chall_metadata: Any) -> Any:
+        assert isinstance(chall_metadata, dict), 'metadata should be a dict'
+
+        return chall_metadata
+
+    METADATA_SNIPPET = '''{"author": "You", "first_blood_award_eligible": false}'''
 
     @validates('flags')
     def validate_flags(self, _key: str, flags: Any) -> Any:

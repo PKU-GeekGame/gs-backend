@@ -164,6 +164,7 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'category': ch._store.category,
             'category_color': ChallengeStore.CAT_COLORS.get(ch._store.category, FALLBACK_CAT_COLOR),
 
+            'metadata': ch.describe_metadata(None),
             'flags': [f.describe_json(user) for f in ch.flags],
             'status': ch.user_status(user),
 
