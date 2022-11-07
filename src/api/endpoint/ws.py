@@ -10,6 +10,8 @@ from ... import secret
 
 bp = Blueprint('ws', url_prefix='/ws')
 
+MAX_DEVICES_PER_USER = 16
+
 online_uids: Dict[int, int] = Counter()
 
 @bp.websocket('/push')
@@ -35,8 +37,12 @@ async def push(req: Request, ws: WebsocketImplProtocol) -> None:
         await ws.close(code=4337, reason=chk[1])
         return
 
-    store_anticheat_log(req, ['ws_online'])
+    if online_uids[user._store.id]>=MAX_DEVICES_PER_USER:
+        await ws.close(code=4337, reason='同时在线设备过多')
+        return
+
     online_uids[user._store.id] += 1
+    store_anticheat_log(req, ['ws_online'])
 
     telemetry['ws_online_uids'] = len(online_uids)
     telemetry['ws_online_clients'] = sum(online_uids.values())
