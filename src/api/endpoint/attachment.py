@@ -48,12 +48,14 @@ async def get_attachment(req: Request, ch_key: str, fn: str, worker: Worker, use
     if err is not None:
         return response.text(err[1], status=403)
 
+    is_admin = secret.IS_ADMIN(user._store)
+
     chall = worker.game.challenges.chall_by_key.get(ch_key, None)
-    if chall is None or not chall.cur_effective:
+    if chall is None or (not chall.cur_effective and not is_admin):
         return response.text('题目不存在', status=404)
 
     att = chall.attachments.get(fn, None)
-    if att is None or att['effective_after']>worker.game.cur_tick:
+    if att is None or (att['effective_after']>worker.game.cur_tick and not is_admin):
         return response.text('附件不存在', status=404)
 
     store_anticheat_log(req, ['download_attachment', chall._store.key, fn])
