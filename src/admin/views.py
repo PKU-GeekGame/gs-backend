@@ -4,7 +4,7 @@ from flask_admin.babel import lazy_gettext
 from flask_admin.actions import action
 from flask_admin.model.template import macro
 from flask_admin import AdminIndexView, expose
-from wtforms import validators
+from wtforms import validators, Form
 from sqlalchemy import select
 from markupsafe import Markup
 from flask import current_app, flash, redirect, url_for, make_response, request
@@ -265,7 +265,7 @@ class ChallengeView(ViewBase):
         resp.mimetype = 'text/plain'
         return resp
 
-    def create_form(self, **kwargs):
+    def create_form(self, **kwargs: Any) -> Form:
         form = super().create_form(**kwargs)
         if form.chall_metadata.data is None:
             form.chall_metadata.data = json.loads(store.ChallengeStore.METADATA_SNIPPET)
