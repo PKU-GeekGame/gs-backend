@@ -113,9 +113,13 @@ class StatusView(AdminIndexView):  # type: ignore
 
 class ViewBase(sqla.ModelView): # type: ignore
     form_base_class = SecureForm
+    list_template = 'list.html'
     edit_template = 'edit_ace.html'
     create_template = 'create_ace.html'
     details_modal_template = 'details_break_word.html'
+
+    page_size = 100
+    can_set_page_size = True
 
     @staticmethod
     def emit_event(event_type: glitter.EventType, id: Optional[int] = None) -> None:
@@ -290,9 +294,6 @@ class LogView(ViewBase):
     can_delete = False
     can_view_details = True
 
-    page_size = 100
-    can_set_page_size = True
-
     column_default_sort = ('id', True)
     column_searchable_list = ['module', 'message']
     column_filters = ['level', 'process', 'module', 'message']
@@ -333,8 +334,6 @@ class SubmissionView(ViewBase):
     column_list = ['id', 'timestamp_ms', 'user_.profile.nickname_or_null', 'user_.group', 'user_.login_key', 'challenge_key', 'flag', 'matched_flag', 'override']
 
     column_display_pk = True
-    page_size = 100
-    can_set_page_size = True
     column_searchable_list = ['id']
     column_default_sort = ('id', True)
 
@@ -383,8 +382,6 @@ class UserProfileView(ViewBase):
     can_delete = False
 
     column_display_pk = True
-    page_size = 100
-    can_set_page_size = True
 
     column_searchable_list = ['id']
     column_filters = ['user_id', 'qq_or_null', 'comment_or_null']
@@ -434,8 +431,6 @@ class UserView(ViewBase):
     column_list = ['id', 'profile.nickname_or_null', 'group', 'profile.qq_or_null', 'login_key', 'oauth_info', 'game_status', 'timestamp_ms']
     column_exclude_list = ['token', 'auth_token', 'login_properties']
     column_display_pk = True
-    page_size = 100
-    can_set_page_size = True
 
     column_searchable_list = ['id']
     column_filters = ['group', 'terms_agreed']
