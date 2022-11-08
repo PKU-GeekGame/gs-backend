@@ -58,6 +58,12 @@ Although nobody uses Windows on a server, it is a good news if you develop on Wi
 
 It is a good idea to run them as a systemd service on the deployment server.
 
+To register the first user manually, visit `http://<host_name>:<worker_port>/service/auth/manual?identity=<your_name>`.
+Manual login should be disabled in production environment by configuring `MANUAL_AUTH_ENABLED = False` in `secret.py`.
+
+Visit admin panel at `http://<host_name>:<reducer_port>/<admin_url>`.
+`ADMIN_URL` and `IS_ADMIN` can be configured in `secret.py`.
+
 **Development:**
 
 - `pip install -r requirements-dev.txt`
