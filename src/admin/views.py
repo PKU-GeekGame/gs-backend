@@ -422,6 +422,15 @@ def _user_game_status_formatter(_view: Any, _context: Any, model: store.UserStor
     else:
         return res[1]
 
+def _user_badges_formatter(_view: Any, _context: Any, model: store.UserStore, _name: str) -> str:
+    reducer: Reducer = current_app.config['reducer_obj']
+    user = reducer._game.users.user_by_id.get(model.id, None)
+
+    if user is None:
+        return '???'
+
+    return '；'.join(user._store.badges())
+
 class UserView(ViewBase):
     can_create = False
     can_delete = False
@@ -429,7 +438,7 @@ class UserView(ViewBase):
     can_view_details = True
     details_modal = True
 
-    column_list = ['id', 'profile.nickname_or_null', 'group', 'profile.qq_or_null', 'login_key', 'oauth_info', 'game_status', 'timestamp_ms']
+    column_list = ['id', 'profile.nickname_or_null', 'group', 'profile.qq_or_null', 'login_key', 'oauth_info', 'game_status', 'badges']
     column_exclude_list = ['token', 'auth_token', 'login_properties']
     column_display_pk = True
 
@@ -455,14 +464,17 @@ class UserView(ViewBase):
         'timestamp_ms': fields.timestamp_ms_formatter,
         'oauth_info': _user_oauth_info_formatter,
         'game_status': _user_game_status_formatter,
+        'badges': _user_badges_formatter,
     }
     column_formatters_detail = {
         'login_properties': lambda _v, _c, model, _n: (
             Markup('<samp style="white-space: pre-wrap">%s</samp>') % json.dumps(model.login_properties, indent=4, ensure_ascii=False)
         ),
+        'timestamp_ms': fields.timestamp_ms_formatter,
     }
     form_overrides = {
         'login_properties': fields.JsonField,
+        'timestamp_ms': fields.TimestampMsField,
     }
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
