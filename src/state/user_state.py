@@ -162,7 +162,7 @@ class User(WithGameLifecycle):
         assert isinstance(board, ScoreBoard)
 
         return (
-            self._store.group=='pku'
+            self._store.group in self._store.MAIN_BOARD_GROUPS
             and board.uid_to_rank.get(self._store.id, self.WRITEUP_REQUIRED_RANK+1)<=self.WRITEUP_REQUIRED_RANK
         )
 

@@ -28,6 +28,7 @@ async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dic
             'id': user._store.id,
             'group': user._store.group,
             'group_disp': user._store.group_disp(),
+            'badges': user._store.badges(),
             'token': user._store.token,
             'profile': {
                 field: (
@@ -150,8 +151,8 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
     policy = worker.game.policy.cur_policy
     is_admin = secret.IS_ADMIN(user._store)
 
-    active_board_key = 'score_pku' if user._store.group=='pku' else 'score_all'
-    active_board_name = '北京大学' if user._store.group=='pku' else '总'
+    active_board_key = 'score_pku' if user._store.group in user._store.MAIN_BOARD_GROUPS else 'score_all'
+    active_board_name = '北京大学' if user._store.group in user._store.MAIN_BOARD_GROUPS else '总'
     active_board = worker.game.boards[active_board_key]
     assert isinstance(active_board, ScoreBoard)
 
