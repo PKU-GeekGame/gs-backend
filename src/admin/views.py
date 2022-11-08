@@ -20,6 +20,7 @@ from . import fields
 from ..logic import glitter
 from ..logic.reducer import Reducer
 from .. import store
+from .. import utils
 
 class StatusView(AdminIndexView):  # type: ignore
     @expose('/')
@@ -98,6 +99,8 @@ class StatusView(AdminIndexView):  # type: ignore
     def clear_telemetry(self) -> ResponseReturnValue:
         reducer: Reducer = current_app.config['reducer_obj']
         reducer.received_telemetries.clear()
+
+        flash('已清空遥测数据', 'success')
         return redirect(url_for('.index'))
 
     @expose('/test_push')
@@ -109,6 +112,21 @@ class StatusView(AdminIndexView):  # type: ignore
             reducer.log('error', 'admin.test_push', 'test push message')
 
         asyncio.run_coroutine_threadsafe(run_push(), loop)
+
+        flash('已发送测试消息', 'success')
+        return redirect(url_for('.index'))
+
+    @expose('/regenerate_token')
+    def regenerate_token(self) -> ResponseReturnValue:
+        reducer: Reducer = current_app.config['reducer_obj']
+
+        with reducer.SqlSession() as session:
+            users: List[store.UserStore] = session.execute(select(store.UserStore)).scalars().all()
+            for u in users:
+                u.token = utils.sign_token(u.id)
+            session.commit()
+            flash(f'已重新生成 {len(users)} 个 token，请手动重启 reducer 和所有 worker', 'success')
+
         return redirect(url_for('.index'))
 
 class ViewBase(sqla.ModelView): # type: ignore
