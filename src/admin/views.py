@@ -267,7 +267,8 @@ class ChallengeView(ViewBase):
 
     def create_form(self, **kwargs):
         form = super().create_form(**kwargs)
-        form.chall_metadata.data = json.loads(store.ChallengeStore.METADATA_SNIPPET)
+        if form.chall_metadata.data is None:
+            form.chall_metadata.data = json.loads(store.ChallengeStore.METADATA_SNIPPET)
         return form
 
 
