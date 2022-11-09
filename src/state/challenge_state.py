@@ -82,6 +82,8 @@ class Challenge(WithGameLifecycle):
             self._game.need_reloading_scoreboard = True
 
         if store.key!=self._store.key:
+            for f in self.flags:
+                f.correct_flag.cache_clear()
             self._game.need_reloading_scoreboard = True
 
         self._store = store
