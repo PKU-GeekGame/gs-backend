@@ -37,7 +37,7 @@ class ChallengeStore(Table):
 
         return chall_metadata
 
-    METADATA_SNIPPET = '''{"author": "You", "first_blood_award_eligible": false}'''
+    METADATA_SNIPPET = '''{"author": "You", "first_blood_award_eligible": false, "score_deduction_eligible": true}'''
 
     @validates('flags')
     def validate_flags(self, _key: str, flags: Any) -> Any:
