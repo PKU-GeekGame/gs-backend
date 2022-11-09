@@ -81,6 +81,9 @@ class Challenge(WithGameLifecycle):
         if store.effective_after!=self._store.effective_after:
             self._game.need_reloading_scoreboard = True
 
+        if store.key!=self._store.key:
+            self._game.need_reloading_scoreboard = True
+
         self._store = store
         self.attachments = {a['filename']: a for a in store.actions if a['type']=='attachment' or a['type']=='dyn_attachment'}
 
