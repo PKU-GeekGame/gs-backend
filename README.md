@@ -1,5 +1,8 @@
 # Project Guiding Star: The Backend
 
+It is a part of the Guiding Star project.
+[Learn more about the overall architecture here.](https://github.com/pku-GeekGame/guiding-star)
+
 ## Highlights
 
 - **Not configurable is most customizable.** Every contest has its unique rule, which is unlikely to be fully covered
