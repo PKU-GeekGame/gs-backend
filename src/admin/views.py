@@ -129,6 +129,23 @@ class StatusView(AdminIndexView):  # type: ignore
 
         return redirect(url_for('.index'))
 
+    @expose('/check_dyn_flag/<ch_key>/<int:uid>')
+    def check_dyn_flag(self, ch_key: str, uid: int) -> ResponseReturnValue:
+        reducer: Reducer = current_app.config['reducer_obj']
+        ch = reducer._game.challenges.chall_by_key.get(ch_key, None)
+        u = reducer._game.users.user_by_id.get(uid, None)
+
+        if ch is None:
+            return '题目不存在'
+        if u is None:
+            return '用户不存在'
+
+        ret = f'TOKEN = {u._store.token!r}\n\nFLAGS = {[f.correct_flag(u) for f in ch.flags]}'
+
+        resp = make_response(ret, 200)
+        resp.mimetype = 'text/plain'
+        return resp
+
 class ViewBase(sqla.ModelView): # type: ignore
     form_base_class = SecureForm
     list_template = 'list.html'
