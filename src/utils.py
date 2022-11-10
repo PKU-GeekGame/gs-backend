@@ -17,6 +17,7 @@ import asyncio
 import secrets
 from pathlib import Path
 import os
+import re
 import jinja2
 from contextlib import contextmanager
 from typing import Union, Callable, Dict, Any, Iterator
@@ -31,8 +32,10 @@ def gen_random_str(length: int = 32, *, crypto: bool = False) -> str:
 
 class LinkTargetExtension(Extension):
     class LinkTargetProcessor(Postprocessor):
+        EXT_LINK_RE = re.compile(r'<a href="(?!#)') # only external links
+
         def run(self, text: str) -> str:
-            return text.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ')
+            return self.EXT_LINK_RE.sub('<a target="_blank" rel="noopener noreferrer" href="', text)
 
     def extendMarkdown(self, md: markdown.Markdown) -> None:
         md.postprocessors.register(self.LinkTargetProcessor(), 'link-target-processor', 100)
