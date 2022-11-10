@@ -13,12 +13,16 @@ def leet_flag(flag: str, token: str, salt: str) -> str:
     uid = int(hashlib.sha256((token+salt).encode()).hexdigest(), 16)
     rcont = flag[len('flag{'):-len('}')]
     rdlis=[]
+
     for i in range(len(rcont)):
         if rcont[i] in string.ascii_letters:
             rdlis.append(i)
 
     rdseed=(uid+233)*114547%123457
     for it in range(4):
+        if not rdlis:  # no any leetable chars
+            return flag
+
         np = rdseed%len(rdlis)
         npp = rdlis[np]
         rdseed = (rdseed+233)*114547%123457
