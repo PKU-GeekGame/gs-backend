@@ -17,6 +17,7 @@ import asyncio
 import secrets
 from pathlib import Path
 import os
+import psutil
 import re
 import jinja2
 from contextlib import contextmanager
@@ -104,3 +105,31 @@ def chdir(wd: Union[str, Path]) -> Iterator[None]:
         yield
     finally:
         os.chdir(curdir)
+
+def sys_status() -> Dict[str, Union[int, float]]:
+    load_1, load_5, load_15 = psutil.getloadavg()
+    vmem = psutil.virtual_memory()
+    smem = psutil.swap_memory()
+    disk = psutil.disk_usage('/')
+    G = 1024**3
+
+    return {
+        'process': len(psutil.pids()),
+
+        'n_cpu': psutil.cpu_count(logical=False),
+        'load_1': load_1,
+        'load_5': load_5,
+        'load_15': load_15,
+
+        'ram_total': vmem.total/G,
+        'ram_used': vmem.used/G,
+        'ram_free': vmem.available/G,
+
+        'swap_total': smem.total/G,
+        'swap_used': smem.used/G,
+        'swap_free': smem.free/G,
+
+        'disk_total': disk.total/G,
+        'disk_used': disk.used/G,
+        'disk_free': disk.free/G,
+    }

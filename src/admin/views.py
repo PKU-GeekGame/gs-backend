@@ -11,7 +11,6 @@ from flask import current_app, flash, redirect, url_for, make_response, request
 import asyncio
 import json
 import time
-import psutil
 from flask.typing import ResponseReturnValue
 from typing import Any, Optional, Type, Dict, List
 
@@ -47,16 +46,13 @@ class StatusView(AdminIndexView):  # type: ignore
             'n_submissions': '提交数',
         }
 
-        vmem = psutil.virtual_memory()
-        smem = psutil.swap_memory()
-        disk = psutil.disk_usage('/')
-        G = 1024**3
+        st = utils.sys_status()
         sys_status = {
-            'process': f'{len(psutil.pids())}',
-            'load': ' '.join(str(l) for l in psutil.getloadavg()),
-            'ram': f'total={vmem.total/G:.2f}G, used={vmem.used/G:.2f}G, available={vmem.available/G:.2f}G',
-            'swap': f'total={smem.total/G:.2f}G, used={smem.used/G:.2f}G, free={smem.free/G:.2f}G',
-            'disk': f'total={disk.total/G:.2f}G, used={disk.used/G:.2f}G, free={disk.free/G:.2f}G',
+            'process': f'{st["process"]}',
+            'load': f'{st["load_1"]} {st["load_5"]} {st["load_15"]}',
+            'ram': f'used={st["ram_used"]:.2f}G, free={st["ram_free"]:.2f}G',
+            'swap': f'used={st["swap_used"]:.2f}G, free={st["swap_free"]:.2f}G',
+            'disk': f'used={st["disk_used"]:.2f}G, free={st["disk_free"]:.2f}G',
         }
 
         users_cnt_by_group: Dict[str, Dict[str, int]] = {}

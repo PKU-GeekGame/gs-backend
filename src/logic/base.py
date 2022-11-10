@@ -4,10 +4,9 @@ from zmq.asyncio import Context
 # noinspection PyUnresolvedReferences
 from abc import ABC, abstractmethod
 import asyncio
-import httpx
 from typing import Type, TypeVar, List, Optional, Dict, Callable, Any, Tuple
 
-from . import glitter
+from . import glitter, pusher
 from ..state import *
 from ..store import *
 from .. import utils
@@ -34,13 +33,15 @@ def make_callback_decorator() -> Tuple[Callable[[Any], Callable[[CbMethod], CbMe
 on_event, event_listeners = make_callback_decorator()
 
 class StateContainerBase(ABC):
-    RECOVER_THROTTLE_S = .5
+    RECOVER_THROTTLE_S = 1
     MAX_KEEPING_MESSAGES = 32
 
     def __init__(self, process_name: str, receiving_messages: bool = False, use_boards: bool = True):
         self.process_name: str = process_name
         self.listening_local_messages: bool = receiving_messages
         self.use_boards = use_boards
+
+        self.push_message = pusher.Pusher().push_message
 
         # https://docs.sqlalchemy.org/en/20/core/pooling.html#using-fifo-vs-lifo
         self.SqlSession = sessionmaker(create_engine(secret.DB_CONNECTOR, future=True, pool_size=2, pool_use_lifo=True, pool_pre_ping=True), expire_on_commit=False, future=True)
@@ -185,24 +186,8 @@ class StateContainerBase(ABC):
 
         if level in ['error', 'critical']:
             asyncio.get_event_loop().create_task(
-                self.push_message(f'[{level.upper()} {module}]\n{message}')
+                self.push_message(f'[{level.upper()} {module}]\n{message}', f'log-{level}')
             )
-
-    @staticmethod
-    async def push_message(msg: str) -> None:
-        print('push message', msg)
-        if secret.FEISHU_WEBHOOK_ADDR:
-            async with httpx.AsyncClient(http2=True) as client:
-                try:
-                    await client.post(secret.FEISHU_WEBHOOK_ADDR, json={
-                        'msg_type': 'text',
-                        'content': {
-                            'text': str(msg),
-                        },
-                    })
-                except Exception as e:
-                    print('PUSH MESSAGE FAILED', utils.get_traceback(e))
-                    pass
 
     def load_all_data(self, cls: Type[T]) -> List[T]:
         with self.SqlSession() as session:

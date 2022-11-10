@@ -36,6 +36,8 @@ class Game(WithGameLifecycle):
             'first_all': FirstBloodBoard('总一血榜', None, self, UserStore.TOT_BOARD_GROUPS, True),
         } if use_boards else {}
 
+        self.n_corr_submission: int = 0
+
     def on_tick_change(self) -> None:
         self.policy.on_tick_change()
         self.challenges.on_tick_change()
@@ -45,6 +47,7 @@ class Game(WithGameLifecycle):
 
     def on_scoreboard_reset(self) -> None:
         self.submissions = {}
+        self.n_corr_submission = 0
 
         self.policy.on_scoreboard_reset()
         self.challenges.on_scoreboard_reset()
@@ -67,6 +70,9 @@ class Game(WithGameLifecycle):
         self.users.on_scoreboard_update(submission, in_batch)
         for b in self.boards.values():
             b.on_scoreboard_update(submission, in_batch)
+
+        if submission.matched_flag is not None:
+            self.n_corr_submission += 1
 
     def on_scoreboard_batch_update_done(self) -> None:
         self.log('debug', 'game.on_scoreboard_batch_update_done', f'batch update received {len(self.submissions)} submissions')

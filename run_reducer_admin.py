@@ -1,5 +1,4 @@
 import asyncio
-import os
 import threading
 from gevent.pywsgi import WSGIServer
 
@@ -25,7 +24,7 @@ if __name__=='__main__':
     utils.fix_zmq_asyncio_windows()
 
     l = asyncio.new_event_loop()
-    r = Reducer(f'reducer-{os.getpid()}')
+    r = Reducer('reducer')
     threading.Thread(target=reducer_thread, args=(l, r), daemon=True).start()
 
     reducer_started_event.wait()

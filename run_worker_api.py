@@ -1,5 +1,4 @@
 import multiprocessing
-import os
 from typing import List
 
 import src.api.app
@@ -7,7 +6,7 @@ import src.police
 import src.secret
 
 def process(idx0: int) -> None:
-    src.api.app.start(idx0, f'worker#{idx0}-{os.getpid()}')
+    src.api.app.start(idx0, f'worker#{idx0}')
 
 if __name__=='__main__':
     ps: List[multiprocessing.Process]  = []

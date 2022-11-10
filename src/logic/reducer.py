@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy import select
 import asyncio
 import time
+import json
 from typing import Callable, Any, Awaitable, Dict, Tuple
 
 from . import glitter
@@ -35,6 +36,7 @@ class Reducer(StateContainerBase):
         self.event_socket.bind(secret.GLITTER_EVENT_SOCKET_ADDR) # type: ignore
 
         self.tick_updater_task: Optional[asyncio.Task[None]] = None
+        self.health_check_task: Optional[asyncio.Task[None]] = None
 
         self.received_telemetries: Dict[str, Tuple[float, Dict[str, Any]]] = {process_name: (0, {})}
 
@@ -168,7 +170,7 @@ class Reducer(StateContainerBase):
                 precentage_override_or_null=(
                     GamePolicyStore.DEDUCTION_PERCENTAGE_OVERRIDE if (
                         self._game.policy.cur_policy.is_submission_deducted
-                        and ch._store.chall_metadata.get('score_deduction_eligible', True)
+                        and (ch._store.chall_metadata is None or ch._store.chall_metadata.get('score_deduction_eligible', True))
                     ) else None
                 ),
             )
@@ -220,6 +222,47 @@ class Reducer(StateContainerBase):
             await asyncio.sleep(expires-ts+.2)
             ts = expires
 
+    async def _health_check_daemon(self) -> None:
+        while True:
+            await asyncio.sleep(60)
+
+            ws_online_uids = 0
+            ws_online_clients = 0
+
+            ts = time.time()
+            for client, (last_ts, tel_data) in self.received_telemetries.items():
+                if last_ts and ts-last_ts>60:
+                    self.log('error', 'reducer.health_check_daemon', f'client {client} not responding in {ts-last_ts:.1f}s')
+                if not tel_data.get('game_available', True):
+                    self.log('error', 'reducer.health_check_daemon', f'client {client} game not available')
+
+                ws_online_uids += tel_data.get('ws_online_uids', 0)
+                ws_online_clients += tel_data.get('ws_online_clients', 0)
+
+            st = utils.sys_status()
+            if st['load_5']>st['n_cpu']*2/3:
+                self.log('error', 'reducer.health_check_daemon', f'system load too high: {st["load_1"]:.2f} {st["load_5"]:.2f} {st["load_15"]:.2f}')
+            if st['ram_free']/st['ram_total']<.2:
+                self.log('error', 'reducer.health_check_daemon', f'free ram too low: {st["ram_free"]:.2f}G out of {st["ram_total"]:.2f}G')
+            if st['disk_free']/st['disk_total']<.1:
+                self.log('error', 'reducer.health_check_daemon', f'free space too low: {st["disk_free"]:.2f}G out of {st["disk_total"]:.2f}G')
+
+            if secret.ANTICHEAT_RECEIVER_ENABLED:
+                encoded = json.dumps(
+                    [time.time(), {
+                        'load': [st['load_1'], st['load_5'], st['load_15']],
+                        'ram': [st['ram_used'], st['ram_free']],
+                        'n_user': len(self._game.users.list),
+                        'n_online_uid': ws_online_uids,
+                        'n_online_client': ws_online_clients,
+                        'n_submission': len(self._game.submissions),
+                        'n_corr_submission': self._game.n_corr_submission,
+                    }]
+                ).encode('utf-8')
+
+                with (secret.SYBIL_LOG_PATH/f'sys.log').open('ab') as f:
+                    f.write(encoded+b'\n')
+
     async def handle_action(self, action: glitter.Action) -> Optional[str]:
         async def default(_self: Any, req: glitter.ActionReq) -> Optional[str]:
             return f'unknown action: {req.type}'
@@ -256,6 +299,7 @@ class Reducer(StateContainerBase):
     async def _mainloop(self) -> None:
         self.log('success', 'reducer.mainloop', 'started to receive actions')
         self.tick_updater_task = asyncio.create_task(self._tick_updater_daemon())
+        self.health_check_task = asyncio.create_task(self._health_check_daemon())
 
         while True:
             try:
