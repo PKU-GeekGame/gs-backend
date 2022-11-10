@@ -68,7 +68,10 @@ class UserStore(Table):
 
         if in_main_board and self.profile.gender_or_null=='female':
             ret.append('girl')
-        if in_main_board and self.login_properties['type']=='iaaa' and self.login_properties['info'].get('identityId', None).startswith('22000'):
+        if in_main_board and self.login_properties['type']=='iaaa' and (
+            self.login_properties['info'].get('identityId', '').startswith('22000')
+            or self.login_properties['info'].get('identityId', '').startswith('22009')
+        ):
             ret.append('rookie')
 
         extra = self.login_properties.get('badge_remark', '')
