@@ -38,7 +38,7 @@ class TimestampMsField(wtforms.fields.IntegerField): # type: ignore
         self.flags.step = 1
     def _value(self) -> str:
         if self.data is not None:
-            return datetime.datetime.isoformat(datetime.datetime.fromtimestamp(self.data/1000))
+            return datetime.datetime.isoformat(datetime.datetime.fromtimestamp(int(self.data/1000)))
         else:
             return ''
     def process_formdata(self, valuelist: List[str]) -> None:
