@@ -231,7 +231,7 @@ class Reducer(StateContainerBase):
 
             ts = time.time()
             for client, (last_ts, tel_data) in self.received_telemetries.items():
-                if last_ts and ts-last_ts>60:
+                if client!=self.process_name and ts-last_ts>60:
                     self.log('error', 'reducer.health_check_daemon', f'client {client} not responding in {ts-last_ts:.1f}s')
                 if not tel_data.get('game_available', True):
                     self.log('error', 'reducer.health_check_daemon', f'client {client} game not available')
