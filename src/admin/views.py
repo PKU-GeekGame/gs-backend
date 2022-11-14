@@ -249,7 +249,7 @@ class ChallengeView(ViewBase):
 
     @expose('/import_json', methods=['GET', 'POST'])
     def import_json(self) -> ResponseReturnValue:
-        url = request.args.get('url', self.get_url('.index'))
+        url = request.args.get('url', self.get_url('.index_view'))
 
         if request.method=='GET':
             return self.render('import_challenge.html')
