@@ -36,6 +36,9 @@ class Board(WithGameLifecycle, ABC):
     def _render(self) -> Dict[str, Any]:
         raise NotImplementedError()
 
+    def on_tick_change(self) -> None:
+        self.clear_render_cache()
+
 class ScoreBoard(Board):
     MAX_DISPLAY_USERS = 100
     MAX_TOPSTAR_USERS = 10
