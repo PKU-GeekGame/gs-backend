@@ -44,9 +44,9 @@ class Challenges(WithGameLifecycle):
         else: # modify
             old_chall.on_store_reload(new_store)
 
-        self._game.clear_boards_render_cache() # if chall name or metadata changed
-
         self._after_chall_changed()
+
+        self._game.clear_boards_render_cache()  # if chall name or metadata changed
 
     def on_tick_change(self) -> None:
         for ch in self.list:

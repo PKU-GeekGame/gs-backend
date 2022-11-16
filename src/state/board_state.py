@@ -9,11 +9,6 @@ if TYPE_CHECKING:
 from . import WithGameLifecycle
 from .. import utils
 
-def minmax(x: int, a: int, b: int) -> int:
-    if x<a: return a
-    elif x>b: return b
-    return x
-
 class Board(WithGameLifecycle, ABC):
     def __init__(self, board_type: str, name: str, desc: Optional[str], game: Game):
         self.board_type = board_type
@@ -111,7 +106,7 @@ class ScoreBoard(Board):
 
             'time_range': [
                 self._game.trigger.board_begin_ts,
-                minmax(int(time.time())+1, self._game.trigger.board_begin_ts+1, self._game.trigger.board_end_ts),
+                self._game.trigger.board_end_ts,
             ],
         }
 
