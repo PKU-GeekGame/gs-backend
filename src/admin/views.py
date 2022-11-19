@@ -363,10 +363,11 @@ class SubmissionView(ViewBase):
     can_create = False
     can_delete = False
 
-    column_list = ['id', 'timestamp_ms', 'user_.profile.nickname_or_null', 'user_.group', 'user_.login_key', 'challenge_key', 'flag', 'matched_flag', 'override']
+    column_list = ['id', 'timestamp_ms', 'user_id', 'user_.profile.nickname_or_null', 'user_.group', 'user_.login_key', 'challenge_key', 'flag', 'matched_flag', 'override']
 
     column_display_pk = True
     column_searchable_list = ['id']
+    column_filters = ['user_id']
     column_default_sort = ('id', True)
 
     column_labels = {
@@ -453,14 +454,14 @@ def _user_game_status_formatter(_view: Any, _context: Any, model: store.UserStor
     else:
         return res[1]
 
-def _user_badges_formatter(_view: Any, _context: Any, model: store.UserStore, _name: str) -> str:
+def _user_board_info_formatter(_view: Any, _context: Any, model: store.UserStore, _name: str) -> str:
     reducer: Reducer = current_app.config['reducer_obj']
     user = reducer._game.users.user_by_id.get(model.id, None)
 
     if user is None:
         return '???'
 
-    return '；'.join(user._store.badges())
+    return f'{user.tot_score} [{", ".join(user._store.badges())}]'
 
 class UserView(ViewBase):
     can_create = False
@@ -469,11 +470,11 @@ class UserView(ViewBase):
     can_view_details = True
     details_modal = True
 
-    column_list = ['id', 'profile.nickname_or_null', 'group', 'profile.qq_or_null', 'login_key', 'oauth_info', 'game_status', 'badges']
+    column_list = ['id', 'profile.nickname_or_null', 'group', 'profile.qq_or_null', 'login_key', 'oauth_info', 'game_status', 'board_info']
     column_exclude_list = ['token', 'auth_token', 'login_properties']
     column_display_pk = True
 
-    column_searchable_list = ['id']
+    column_searchable_list = ['id', 'login_key']
     column_filters = ['group', 'terms_agreed']
     column_labels = {
         'profile.nickname_or_null': 'Nickname',
@@ -495,7 +496,7 @@ class UserView(ViewBase):
         'timestamp_ms': fields.timestamp_ms_formatter,
         'oauth_info': _user_oauth_info_formatter,
         'game_status': _user_game_status_formatter,
-        'badges': _user_badges_formatter,
+        'board_info': _user_board_info_formatter,
     }
     column_formatters_detail = {
         'login_properties': lambda _v, _c, model, _n: (
