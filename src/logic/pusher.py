@@ -7,8 +7,8 @@ from .. import utils
 from .. import secret
 
 class Pusher:
-    THROTTLE_TIME_S = 30*60
-    THROTTLE_N = 6
+    THROTTLE_TIME_S = 20*60
+    THROTTLE_N = 5
 
     def __init__(self) -> None:
         self.chan_history: Dict[str, Deque[float]] = {}

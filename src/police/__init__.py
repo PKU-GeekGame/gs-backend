@@ -71,7 +71,7 @@ async def check_submission(sub: Submission, worker: Worker) -> None:
     )
 
     worker.log('success', 'police.check_submission', report_text)
-    await worker.push_message(f'[POLICE] {msg_text}', 'police')
+    await worker.push_message(f'[POLICE] {msg_text}', f'police:{submitter._store.id}')
 
 async def run_forever() -> None:
     worker = Worker('police', receiving_messages=True)
