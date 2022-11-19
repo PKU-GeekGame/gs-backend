@@ -83,7 +83,7 @@ def auth_response(fn: AuthHandler) -> RouteHandler:
                     login_key, properties, group = retval
                     return await _register_or_login(req, worker, login_key, properties, group)
             except httpx.RequestError as e:
-                worker.log('error', 'api.auth.auth_response', f'request error: {utils.get_traceback(e)}')
+                worker.log('warning', 'api.auth.auth_response', f'request error: {utils.get_traceback(e)}')
                 raise AuthError('第三方服务网络错误')
         except AuthError as e:
             return response.html(
