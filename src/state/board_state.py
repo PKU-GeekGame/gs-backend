@@ -15,20 +15,36 @@ class Board(WithGameLifecycle, ABC):
         self.name = name
         self.desc = desc
         self._game = game
-        self._rendered: Optional[Dict[str, Any]] = None
+        self._rendered_admin: Optional[Dict[str, Any]] = None
+        self._rendered_normal: Optional[Dict[str, Any]] = None
 
-    @property
-    def rendered(self) -> Dict[str, Any]:
-        if self._rendered is None:
-            with utils.log_slow(self._game.worker.log, 'board.render', f'render {self.board_type} board {self.name}'):
-                self._rendered = self._render()
-        return self._rendered
+    def get_rendered(self, is_admin: bool) -> Dict[str, Any]:
+        if is_admin:
+            if self._rendered_admin is None:
+                with utils.log_slow(self._game.worker.log, 'board.render', f'render {self.board_type} board (admin) {self.name}'):
+                    self._rendered_admin = self._render(is_admin=True)
+
+            return self._rendered_admin
+        else:
+            if self._rendered_normal is None:
+                with utils.log_slow(self._game.worker.log, 'board.render', f'render {self.board_type} board {self.name}'):
+                    self._rendered_normal = self._render(is_admin=False)
+
+            return self._rendered_normal
 
     def clear_render_cache(self) -> None:
-        self._rendered = None
+        self._rendered_admin = None
+        self._rendered_normal = None
+
+    @staticmethod
+    def _admin_knowledge(u: User) -> List[str]:
+        return [
+            f'U#{u._store.id}',
+            f'remark:{u._store.login_key} {u._store.format_login_properties()}',
+        ]
 
     @abstractmethod
-    def _render(self) -> Dict[str, Any]:
+    def _render(self, is_admin: bool) -> Dict[str, Any]:
         raise NotImplementedError()
 
     def on_tick_change(self) -> None:
@@ -65,7 +81,7 @@ class ScoreBoard(Board):
         self.board = sorted([x for x in b if is_valid(x)], key=sorter)
         self.uid_to_rank = {user._store.id: idx+1 for idx, (user, _score) in enumerate(self.board)}
 
-    def _render(self) -> Dict[str, Any]:
+    def _render(self, is_admin: bool) -> Dict[str, Any]:
         self._game.worker.log('debug', 'board.render', f'rendering score board {self.name}')
 
         return {
@@ -80,7 +96,7 @@ class ScoreBoard(Board):
                 'rank': idx+1,
                 'nickname': u._store.profile.nickname_or_null or '--',
                 'group_disp': u._store.group_disp() if self.show_group else None,
-                'badges': u._store.badges(),
+                'badges': u._store.badges() + (self._admin_knowledge(u) if is_admin else []),
                 'score': score,
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
@@ -133,18 +149,7 @@ class FirstBloodBoard(Board):
         self.chall_board: Dict[Challenge, Submission] = {}
         self.flag_board: Dict[Flag, Submission] = {}
 
-        self._rendered: Optional[Dict[str, Any]] = None
-
-    @property
-    def rendered(self) -> Dict[str, Any]:
-        if self._rendered is None:
-            self._rendered = self._render()
-        return self._rendered
-
-    def clear_render_cache(self) -> None:
-        self._rendered = None
-
-    def _render(self) -> Dict[str, Any]:
+    def _render(self, is_admin: bool) -> Dict[str, Any]:
         self._game.worker.log('debug', 'board.render', f'rendering first blood board {self.name}')
 
         return {
@@ -157,13 +162,13 @@ class FirstBloodBoard(Board):
                     'flag_name': None,
                     'nickname': ch_sub.user._store.profile.nickname_or_null if ch_sub is not None else None,
                     'group_disp': ch_sub.user._store.group_disp() if (ch_sub is not None and self.show_group) else None,
-                    'badges': ch_sub.user._store.badges() if ch_sub is not None else None,
+                    'badges': (ch_sub.user._store.badges() + (self._admin_knowledge(ch_sub.user) if is_admin else [])) if ch_sub is not None else None,
                     'timestamp': int(ch_sub._store.timestamp_ms/1000) if ch_sub is not None else None,
                 }] + ([] if len(ch.flags)<=1 else [{
                     'flag_name': f.name,
                     'nickname': f_sub.user._store.profile.nickname_or_null if f_sub is not None else None,
                     'group_disp': f_sub.user._store.group_disp() if (f_sub is not None and self.show_group) else None,
-                    'badges': f_sub.user._store.badges() if f_sub is not None else None,
+                    'badges': (f_sub.user._store.badges() + (self._admin_knowledge(f_sub.user) if is_admin else [])) if f_sub is not None else None,
                     'timestamp': int(f_sub._store.timestamp_ms/1000) if f_sub is not None else None,
                 } for f in ch.flags for f_sub in [self.flag_board.get(f, None)]]),
 

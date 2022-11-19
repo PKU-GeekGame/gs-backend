@@ -310,7 +310,7 @@ async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, u
     }
 
 @wish_endpoint(bp, '/board/<board_name:str>')
-async def get_board(_req: Request, board_name: str, worker: Worker) -> Dict[str, Any]:
+async def get_board(_req: Request, board_name: str, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
     if worker.game is None:
         return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
 
@@ -318,8 +318,10 @@ async def get_board(_req: Request, board_name: str, worker: Worker) -> Dict[str,
     if b is None:
         return {'error': 'NOT_FOUND', 'error_msg': '排行榜不存在'}
 
+    is_admin = user is not None and secret.IS_ADMIN(user._store)
+
     return {
-        **b.rendered,
+        **b.get_rendered(is_admin),
         'type': b.board_type,
         'desc': b.desc,
     }

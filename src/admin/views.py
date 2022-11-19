@@ -431,15 +431,7 @@ class UserProfileView(ViewBase):
         self.emit_event(glitter.EventType.UPDATE_USER, model.user_id)
 
 def _user_oauth_info_formatter(_view: Any, _context: Any, model: store.UserStore, _name: str) -> str:
-    props = model.login_properties
-    if props['type']=='iaaa':
-        return f'[IAAA] {props["info"]["name"]}（{props["info"]["dept"]} {props["info"]["detailType"]} {props["info"]["identityStatus"]}）'
-    elif props['type']=='microsoft':
-        return f'[MS] {props["info"]["displayName"]} ({props["info"]["userPrincipalName"]})'
-    elif props['type']=='github':
-        return f'[GitHub] {props["info"]["name"]} ({props["info"]["login"]})'
-    else:
-        return f'[{props["type"]}]'
+    return model.format_login_properties()
 
 def _user_game_status_formatter(_view: Any, _context: Any, model: store.UserStore, _name: str) -> str:
     reducer: Reducer = current_app.config['reducer_obj']
