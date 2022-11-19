@@ -367,7 +367,7 @@ class SubmissionView(ViewBase):
 
     column_display_pk = True
     column_searchable_list = ['id']
-    column_filters = ['user_id']
+    column_filters = ['user_id', 'challenge_key']
     column_default_sort = ('id', True)
 
     column_labels = {
