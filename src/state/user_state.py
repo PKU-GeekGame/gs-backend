@@ -57,8 +57,10 @@ class Users(WithGameLifecycle):
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         submission.user.on_scoreboard_update(submission, in_batch)
         if submission.matched_flag:
+            # also update other passed users because score might have changed
             for u in submission.matched_flag.passed_users:
-                u.on_scoreboard_update(submission, in_batch)
+                if u is not submission.user:
+                    u.on_scoreboard_update(submission, in_batch)
 
     def on_scoreboard_batch_update_done(self) -> None:
         for user in self.list:
