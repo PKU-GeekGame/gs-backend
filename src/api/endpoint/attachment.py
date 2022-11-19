@@ -2,9 +2,8 @@ from sanic import Blueprint, Request, HTTPResponse, response
 from pathlib import Path
 from typing import Optional, Callable
 import importlib.util
-import shutil
 
-from .. import store_anticheat_log
+from .. import store_anticheat_log, get_cur_user
 from ...state import User, Challenge
 from ...logic import Worker
 from ... import utils
@@ -38,7 +37,10 @@ async def download_attachment(p: str) -> HTTPResponse:
 
 
 @bp.route('/<ch_key:str>/<fn:str>', unquote=True)
-async def get_attachment(req: Request, ch_key: str, fn: str, worker: Worker, user: Optional[User]) -> HTTPResponse:
+async def get_attachment(req: Request, ch_key: str, fn: str) -> HTTPResponse:
+    worker: Worker = req.app.ctx.worker
+    user: Optional[User] = get_cur_user(req)
+
     if user is None:
         return response.text('未登录', status=403)
     if worker.game is None:
