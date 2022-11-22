@@ -73,6 +73,7 @@ class StatusView(AdminIndexView):  # type: ignore
                 u_status = 'have_score'
 
             users_cnt_by_group.setdefault(u_group, {}).setdefault(u_status, 0)
+            users_cnt_by_group.setdefault(u_group, {}).setdefault('total', 0)
             users_cnt_by_group[u_group][u_status] += 1
             users_cnt_by_group[u_group]['total'] += 1
 
