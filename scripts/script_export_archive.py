@@ -10,7 +10,7 @@ import sys
 sys.path.append(str(Path('.').resolve()))
 
 from src.logic.worker import Worker
-from src.state import Game, Challenge, ScoreBoard, FirstBloodBoard, Announcements
+from src.state import Game, Challenge, ScoreBoard, FirstBloodBoard
 from src import utils
 from src import secret
 

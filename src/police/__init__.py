@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from ..logic import Worker
 from ..state import Submission, User
@@ -99,6 +100,9 @@ async def run_forever() -> None:
                         sub: Submission = msg['submission']
                         with utils.log_slow(worker.log, 'police.police_process', f'check submission {sub._store.id}', 1):
                             await check_submission(sub, worker)
+                    elif msg.get('type', None)=='push':
+                        payload = msg['payload']
+                        await worker.push_message(f'[PUSH] {json.dumps(payload, indent=1)}', f'push')
 
 def police_process() -> None:
     asyncio.run(run_forever())
