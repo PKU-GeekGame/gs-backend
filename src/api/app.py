@@ -18,6 +18,13 @@ OAUTH_HTTP_TIMEOUT = 20
 
 utils.fix_zmq_asyncio_windows()
 
+def get_http_client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        http2=True,
+        proxies=secret.OAUTH_HTTP_PROXIES,  # type: ignore
+        timeout=OAUTH_HTTP_TIMEOUT,
+    )
+
 app = Sanic('guiding-star-backend')
 app.config.DEBUG = False
 app.config.OAS = False
@@ -26,7 +33,7 @@ app.config.KEEP_ALIVE_TIMEOUT = 15
 app.config.REQUEST_MAX_SIZE = 1024*1024*(1+secret.WRITEUP_MAX_SIZE_MB)
 
 app.ext.add_dependency(Worker, lambda req: req.app.ctx.worker)
-app.ext.add_dependency(httpx.AsyncClient, lambda req: req.app.ctx.oauth_http_client)
+app.ext.add_dependency(httpx.AsyncClient, lambda _req: get_http_client())
 app.ext.add_dependency(Optional[User], get_cur_user)
 
 @app.before_server_start
@@ -37,12 +44,6 @@ async def setup_game_state(cur_app: Sanic, _loop: Any) -> None:
     cur_app.ctx.worker = worker
     await worker._before_run()
     cur_app.ctx._worker_task = asyncio.create_task(worker._mainloop())
-
-    cur_app.ctx.oauth_http_client = httpx.AsyncClient(
-        http2=True,
-        proxies=secret.OAUTH_HTTP_PROXIES,  # type: ignore
-        timeout=OAUTH_HTTP_TIMEOUT,
-    )
 
 async def handle_error(req: Request, exc: Exception) -> HTTPResponse:
     if isinstance(exc, SanicException):
