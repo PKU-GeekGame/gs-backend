@@ -5,6 +5,9 @@ from typing import List, Dict, Any
 import json
 import shutil
 import csv
+import sys
+
+sys.path.append(str(Path('.').resolve()))
 
 from src.logic.worker import Worker
 from src.state import Game, Challenge, ScoreBoard, FirstBloodBoard, Announcements
@@ -16,9 +19,9 @@ if EXPORT_PATH.is_dir():
     shutil.rmtree(EXPORT_PATH)
 EXPORT_PATH.mkdir()
 
-UID_FOR_DYN_ATTACHMENT = 2
+UID_FOR_PREVIEW = 1 # used for dyn_attachment and template rendering
 
-with open('/scripts/probid_mapping.json') as f:
+with open('scripts/probid_mapping.json') as f:
     PROBID_MAPPING: Dict[str, str] = json.load(f)
 
 def gen_md_table(headers: List[str], rows: List[List[str]]) -> str:
@@ -83,8 +86,9 @@ def export_problemset(game: Game) -> None:
     for ch in game.challenges.list:
         d.append(f'## [{ch._store.category}] {ch._store.title}')
         d.append(f'**[【→ 官方题解和源码】](../official_writeup/{PROBID_MAPPING[ch._store.key]}/)**')
-        d.append(ch._store.desc_template)
+        d.append(ch.render_desc(game.users.user_by_id[UID_FOR_PREVIEW]))
 
+    (EXPORT_PATH / 'problemset').mkdir()
     with (EXPORT_PATH / 'problemset' / 'README.md').open('w', encoding='utf-8') as f:
         f.write('\n\n'.join(d))
 
@@ -95,20 +99,26 @@ def copy_attachment(act: Dict[str, Any], p: Path) -> str:
     fn = act['filename']
 
     if act['type'] == 'attachment':
-        shutil.copyfile(secret.ATTACHMENT_PATH / act['file_path'], p / fn)
+        try:
+            shutil.copyfile(secret.ATTACHMENT_PATH / act['file_path'], p / fn)
+        except FileNotFoundError:
+            print('!! ATTACHMENT NOT FOUND', p / fn)
     elif act['type'] == 'dyn_attachment':
-        shutil.copyfile(secret.ATTACHMENT_PATH / act['module_path'] / '_cache' / f'{UID_FOR_DYN_ATTACHMENT}.bin', p / fn)
+        try:
+            shutil.copyfile(secret.ATTACHMENT_PATH / act['module_path'] / '_cache' / f'{UID_FOR_PREVIEW}.bin', p/fn)
+        except FileNotFoundError:
+            print('!! DYN_ATTACHMENT NOT FOUND', p/fn) 
 
     return fn
 
-def export_official_writeup(ch: Challenge, p: Path) -> None:
+def export_official_writeup(game: Game, ch: Challenge, p: Path) -> None:
     p.mkdir()
 
     d = []
 
     d.append(f'# [{ch._store.category}] {ch._store.title}')
     d.append(
-        f'- 命题人：{ch._store.chall_metadata.get("author", "???")}' +
+        f'- 命题人：{ch._store.chall_metadata.get("author", "???")}\n' +
         '\n'.join([
             f'- {f.name or "题目分值"}：{f.base_score} 分'
             for f in ch.flags
@@ -116,7 +126,7 @@ def export_official_writeup(ch: Challenge, p: Path) -> None:
     )
 
     d.append('## 题目描述')
-    d.append(ch._store.desc_template)
+    d.append(ch.render_desc(game.users.user_by_id[UID_FOR_PREVIEW]))
 
     for act in ch._store.actions:
         if act['type'] in ['attachment', 'dyn_attachment']:
@@ -148,7 +158,7 @@ def export_ranking_list(game: Game):
         for key, b in game.boards.items()
     ))
 
-    d.append('分数排行截止到前100名。只有“北京大学”组别的校内选手参与评奖。')
+    d.append('分数排名截止到前100名。只有“北京大学”组别的校内选手参与评奖。')
     d.append(f'排行榜存档时间为 {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}，选手昵称可能有变化。')
 
     with (EXPORT_PATH / 'ranking' / 'README.md').open('w', encoding='utf-8') as f:
@@ -180,7 +190,7 @@ def export_ranking_score(b: ScoreBoard, p: Path) -> None:
             w.writerow([
                 i + 1,
                 row['nickname'],
-                row['group_disp'] + format_badge(row['badges']),
+                (row['group_disp'] or '') + format_badge(row['badges'] or []),
                 row['score'],
                 format_ts(row['last_succ_submission_ts']),
             ])
@@ -197,35 +207,37 @@ def export_ranking_firstblood(b: FirstBloodBoard, p: Path) -> None:
                 w.writerow([
                     row_c['title'],
                     row_f['flag_name'] or '/',
-                    row_f['nickname'],
-                    row_f['group_disp'] + format_badge(row_f['badges']),
-                    format_ts(row_c['timestamp']),
+                    row_f['nickname'] or '',
+                    (row_f['group_disp'] or '') + format_badge(row_f['badges'] or []),
+                    '' if row_f['timestamp'] is None else format_ts(row_f['timestamp']),
                 ])
 
-def export_announcements(ann: Announcements):
+def export_announcements(game: Game):
     d = []
 
     d.append('# 公告')
 
-    for a in ann.list:
+    for a in game.announcements.list:
         d.append(f'## {a.title}')
         d.append(f'（发布时间：{format_ts(a.timestamp_s)}）' )
-        d.append(a._store.content_template)
+        d.append(a._render_template(game.cur_tick, None))
 
+    (EXPORT_PATH / 'announcements').mkdir()
     with (EXPORT_PATH / 'announcements' / 'README.md').open('w', encoding='utf-8') as f:
         f.write('\n\n'.join(d))
 
 def export_game(game: Game):
     export_problemset(game)
 
+    (EXPORT_PATH / 'official_writeup').mkdir()
     for ch in game.challenges.list:
-        export_official_writeup(ch, EXPORT_PATH / 'official_writeup' / PROBID_MAPPING[ch._store.key])
+        export_official_writeup(game, ch, EXPORT_PATH / 'official_writeup' / PROBID_MAPPING[ch._store.key])
 
     (EXPORT_PATH / 'ranking').mkdir()
     export_ranking_list(game)
 
     for key, b in game.boards.items():
-        p = EXPORT_PATH / 'ranking' / f'{key}.md'
+        p = EXPORT_PATH / 'ranking' / f'{key}.csv'
         if isinstance(b, ScoreBoard):
             export_ranking_score(b, p)
         elif isinstance(b, FirstBloodBoard):
@@ -233,7 +245,7 @@ def export_game(game: Game):
         else:
             assert False, f'unknown type for board {key}: {type(b)}'
 
-    export_announcements(game.announcements)
+    export_announcements(game)
 
 if __name__=='__main__':
     utils.fix_zmq_asyncio_windows()
