@@ -18,11 +18,17 @@ from ... import secret
 bp = Blueprint('wish', url_prefix='/wish')
 
 TEMPLATE_LIST = [
-    ('faq', '选手常见问题'),
+    ('faq', '选手常见问题', 0),
+    ('credits', '工作人员', 9000),
 ]
 
 @wish_endpoint(bp, '/game_info')
-async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    cur_tick = worker.game.cur_tick
+
     return {
         'user': None if user is None else {
             'id': user._store.id,
@@ -40,7 +46,7 @@ async def game_info(_req: Request, _worker: Worker, user: Optional[User]) -> Dic
         'feature': {
             'push': secret.WS_PUSH_ENABLED and user is not None and user.check_play_game() is None,
             'game': user is not None,
-            'templates': TEMPLATE_LIST,
+            'templates': [[key, title] for key, title, effective_after in TEMPLATE_LIST if cur_tick>=effective_after],
         },
     }
 
