@@ -28,6 +28,7 @@ class StatusView(AdminIndexView):  # type: ignore
         reducer.received_telemetries[reducer.process_name] = (time.time(), reducer.collect_telemetry())
 
         USER_STATUS = {
+            'total': '总数',
             'disabled': '已禁用',
             'pending_terms': '未同意条款',
             'pending_profile': '未完善信息',
@@ -73,6 +74,7 @@ class StatusView(AdminIndexView):  # type: ignore
 
             users_cnt_by_group.setdefault(u_group, {}).setdefault(u_status, 0)
             users_cnt_by_group[u_group][u_status] += 1
+            users_cnt_by_group[u_group]['total'] += 1
 
         return self.render(
             'status.html',
