@@ -251,7 +251,10 @@ if __name__=='__main__':
     utils.fix_zmq_asyncio_windows()
 
     worker = Worker('worker-test')
-    worker.game.boards['banned'] = ScoreBoard('身怀绝技的大哥们', None, worker.game, ['banned'], True)
     asyncio.run(worker._before_run())
+
+    worker.game.boards['banned'] = ScoreBoard('身怀绝技的大哥们', None, worker.game, ['banned'], True)
+    worker.game.need_reloading_scoreboard = True
+    worker.reload_scoreboard_if_needed()
 
     export_game(worker.game)
