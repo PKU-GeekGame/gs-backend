@@ -466,8 +466,8 @@ class UserView(ViewBase):
     column_exclude_list = ['token', 'auth_token', 'login_properties']
     column_display_pk = True
 
-    column_searchable_list = ['id', 'login_key']
-    column_filters = ['group', 'terms_agreed']
+    column_searchable_list = ['id']
+    column_filters = ['group', 'terms_agreed', 'login_key']
     column_labels = {
         'profile.nickname_or_null': 'Nickname',
         'profile.qq_or_null': 'QQ',
