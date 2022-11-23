@@ -1,10 +1,11 @@
 from __future__ import annotations
 import OpenSSL.crypto
 import pathlib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from .store import UserStore
+    from . import utils
 
 ##
 ## SECRET KEYS
@@ -71,6 +72,10 @@ WRITEUP_MAX_SIZE_MB = 20
 WS_PUSH_ENABLED = True
 POLICE_ENABLED = True
 ANTICHEAT_RECEIVER_ENABLED = True
+
+STDOUT_LOG_LEVEL: List[utils.LogLevel] = ['debug', 'info', 'warning', 'error', 'critical', 'success']
+DB_LOG_LEVEL: List[utils.LogLevel] = ['info', 'warning', 'error', 'critical', 'success']
+PUSH_LOG_LEVEL: List[utils.LogLevel] = ['error', 'critical']
 
 #### URLS
 

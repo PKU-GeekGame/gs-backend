@@ -175,16 +175,17 @@ class StateContainerBase(ABC):
                 self._game.on_scoreboard_update(submission, in_batch=True)
             self._game.on_scoreboard_batch_update_done()
 
-    def log(self, level: str, module: str, message: str) -> None:
-        print(f'{self.process_name} [{level}] {module}: {message}')
+    def log(self, level: utils.LogLevel, module: str, message: str) -> None:
+        if level in secret.STDOUT_LOG_LEVEL:
+            print(f'{self.process_name} [{level}] {module}: {message}')
 
-        if level!='debug':
+        if level in secret.DB_LOG_LEVEL:
             with self.SqlSession() as session:
                 log = LogStore(level=level, process=self.process_name, module=module, message=message)
                 session.add(log)
                 session.commit()
 
-        if level in ['error', 'critical']:
+        if level in secret.PUSH_LOG_LEVEL:
             asyncio.get_event_loop().create_task(
                 self.push_message(f'[{level.upper()} {module}]\n{message}', f'log-{level}')
             )
