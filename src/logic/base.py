@@ -52,8 +52,9 @@ class StateContainerBase(ABC):
 
         # initialized later in self.init_game
         self._game: Game = None # type: ignore
-
         self.game_dirty: bool = True
+
+        self._submission_stores: Dict[int, SubmissionStore] = {}
 
         self.local_messages: Dict[int, Dict[str, Any]] = {}
         self.next_message_id: int = 1
@@ -82,6 +83,8 @@ class StateContainerBase(ABC):
                     use_boards=self.use_boards,
                 )
                 self._game.on_tick_change()
+
+                self._submission_stores = {sub.id: sub for sub in self.load_all_data(SubmissionStore)}
                 self.reload_scoreboard_if_needed()
             except Exception as e:
                 self.log('error', 'base.init_game', f'exception during initialization, will try again: {utils.get_traceback(e)}')
@@ -120,10 +123,6 @@ class StateContainerBase(ABC):
     def on_reload_trigger(self, _event: glitter.Event) -> None:
         self._game.trigger.on_store_reload(self.load_all_data(TriggerStore))
 
-    @on_event(glitter.EventType.RELOAD_SUBMISSION)
-    def on_reload_submission(self, _event: glitter.Event) -> None:
-        self._game.need_reloading_scoreboard = True
-
     @on_event(glitter.EventType.UPDATE_ANNOUNCEMENT)
     def on_update_announcement(self, event: glitter.Event) -> None:
         self._game.announcements.on_store_update(event.data, self.load_one_data(AnnouncementStore, event.data))
@@ -140,10 +139,22 @@ class StateContainerBase(ABC):
     def on_new_submission(self, event: glitter.Event) -> None:
         sub_store = self.load_one_data(SubmissionStore, event.data)
         assert sub_store is not None, 'submission not found'
+        self._submission_stores[event.data] = sub_store
+
         sub = Submission(self._game, sub_store)
         self._game.on_scoreboard_update(sub, in_batch=False)
 
         self.emit_local_message({'type': 'new_submission', 'submission': sub})
+
+    @on_event(glitter.EventType.UPDATE_SUBMISSION)
+    def on_update_submission(self, event: glitter.Event) -> None:
+        sub_store = self.load_one_data(SubmissionStore, event.data)
+        if sub_store is None: # remove sub, not likely, but possible
+            self._submission_stores.pop(event.data, None)
+        else:
+            self._submission_stores[event.data] = sub_store
+
+        self._game.need_reloading_scoreboard = True
 
     @on_event(glitter.EventType.TICK_UPDATE)
     def on_tick_update(self, event: glitter.Event) -> None:
@@ -170,9 +181,10 @@ class StateContainerBase(ABC):
         with utils.log_slow(self.log, 'base.reload_scoreboard_if_needed', 'reload scoreboard'):
             self._game.on_scoreboard_reset()
 
-            for sub_store in self.load_all_data(SubmissionStore):
+            for sub_store in self._submission_stores.values():
                 submission = Submission(self._game, sub_store)
                 self._game.on_scoreboard_update(submission, in_batch=True)
+
             self._game.on_scoreboard_batch_update_done()
 
     def log(self, level: utils.LogLevel, module: str, message: str) -> None:
@@ -192,7 +204,7 @@ class StateContainerBase(ABC):
 
     def load_all_data(self, cls: Type[T]) -> List[T]:
         with self.SqlSession() as session:
-            return session.execute(select(cls)).scalars().all()
+            return session.execute(select(cls).order_by(cls.id)).scalars().all()
 
     def load_one_data(self, cls: Type[T], id: int) -> Optional[T]:
         with self.SqlSession() as session:

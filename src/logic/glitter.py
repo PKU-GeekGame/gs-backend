@@ -18,11 +18,11 @@ class EventType(Enum):
 
     RELOAD_GAME_POLICY = b'\x11'
     RELOAD_TRIGGER = b'\x12'
-    RELOAD_SUBMISSION = b'\x13'
 
     UPDATE_ANNOUNCEMENT = b'\x21'
     UPDATE_CHALLENGE = b'\x22'
     UPDATE_USER = b'\x23'
+    UPDATE_SUBMISSION = b'\x24'
 
     NEW_SUBMISSION = b'\x31'
     TICK_UPDATE = b'\x32'

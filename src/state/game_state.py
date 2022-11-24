@@ -57,7 +57,7 @@ class Game(WithGameLifecycle):
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission._store.id in self.submissions:
-            self.log('warning', 'game.on_scoreboard_update', f'dropping processed submission #{submission._store.id}')
+            self.log('error', 'game.on_scoreboard_update', f'dropping processed submission #{submission._store.id}')
             return
 
         if not in_batch:

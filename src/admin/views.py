@@ -392,7 +392,7 @@ class SubmissionView(ViewBase):
         flash('警告：修改历史提交会重算排行榜', 'warning')
 
     def after_model_touched(self, model: store.ChallengeStore) -> None:
-        self.emit_event(glitter.EventType.RELOAD_SUBMISSION)
+        self.emit_event(glitter.EventType.UPDATE_SUBMISSION, model.id)
 
 class TriggerView(ViewBase):
     column_descriptions = {
