@@ -453,6 +453,14 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
         with user_writeup_metadata_path.open('w') as f:
             json.dump(metadata, f, indent=2)
 
+        await worker.push_message((
+            f'[WRITEUP] U#{user._store.id} {user._store.login_key}\n'
+            f' nick={user._store.profile.nickname_or_null}\n'
+            f' group={user._store.group}\n'
+            f' {user.tot_score}pt ({"" if user.writeup_required() else "NOT "} required)\n'
+            f' filename={file.name}\n'
+        ), f'writeup:{user._store.id}')
+
         return {}
 
     else:
