@@ -455,10 +455,10 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
 
         await worker.push_message((
             f'[WRITEUP] U#{user._store.id} {user._store.login_key}\n'
-            f' nick={user._store.profile.nickname_or_null}\n'
-            f' group={user._store.group}\n'
-            f' {user.tot_score}pt ({"" if user.writeup_required() else "NOT "} required)\n'
-            f' filename={file.name}\n'
+            f' nick: {user._store.profile.nickname_or_null}\n'
+            f' grp: {user._store.group} {user.tot_score}pt ({"" if user.writeup_required() else "NOT "}required)\n'
+            f' filename: {file.name}\n'
+            f' size: {len(file.body)/1024/1024:.2f}M'
         ), f'writeup:{user._store.id}')
 
         return {}
