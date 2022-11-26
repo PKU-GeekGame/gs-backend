@@ -256,7 +256,7 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
 
     err = ChallengeStore.check_submitted_flag(body.flag)
     if err is not None:
-        store_anticheat_log(req, ['submiut_flag', ch._store.key, body.flag, err])
+        store_anticheat_log(req, ['submit_flag', ch._store.key, body.flag, err])
         return {'error': err[0], 'error_msg': err[1]}
 
     rep = await worker.perform_action(glitter.SubmitFlagReq(
@@ -266,7 +266,7 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
         flag=body.flag,
     ))
 
-    store_anticheat_log(req, ['submiut_flag', ch._store.key, body.flag, rep.error_msg])
+    store_anticheat_log(req, ['submit_flag', ch._store.key, body.flag, rep.error_msg])
 
     if rep.error_msg is not None:
         return {'error': 'REDUCER_ERROR', 'error_msg': rep.error_msg}
