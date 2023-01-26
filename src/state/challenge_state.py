@@ -101,7 +101,7 @@ class Challenge(WithGameLifecycle):
         try:
             return utils.render_template(self._store.desc_template, {'group': group, 'tick': tick})
         except Exception as e:
-            self._game.worker.log('error', 'announcement.render_template', f'template render failed: {self._store.key} ({self._store.title}): {utils.get_traceback(e)}')
+            self._game.worker.log('error', 'challenge.render_template', f'template render failed: {self._store.key} ({self._store.title}): {utils.get_traceback(e)}')
             return '<i>（模板渲染失败）</i>'
 
     def render_desc(self, user: User) -> str:
