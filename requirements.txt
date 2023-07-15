@@ -1,5 +1,5 @@
 # store
-sqlalchemy~=1.4.31
+sqlalchemy~=2.0.19
 PyMySQL~=1.0.2
 
 # utils
@@ -19,9 +19,9 @@ sanic-ext~=22.12
 httpx[http2]~=0.23.0
 
 # admin
-flask~=2.0.2
-flask-sqlalchemy~=2.5.1
-flask-admin~=1.6.0
+flask~=2.3.2
+flask-sqlalchemy~=3.0.5
+flask-admin~=1.6.1
 Flask-Migrate~=3.1.0
 wtforms~=3.0.1
 markupsafe~=2.1.1

@@ -1,11 +1,14 @@
 from sqlalchemy import Column, Integer
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, Mapped
 
-SqlBase = declarative_base()
+class SqlBase:
+    __allow_unmapped__ = True
+
+SqlBase = declarative_base(cls=SqlBase)
 
 class Table(SqlBase):
     __abstract__ = True
-    id: int = Column(Integer, primary_key=True)
+    id: Mapped[int] = Column(Integer, primary_key=True)
 
 from .announcement_store import AnnouncementStore
 from .challenge_store import ChallengeStore
