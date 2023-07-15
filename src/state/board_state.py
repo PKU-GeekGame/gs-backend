@@ -39,7 +39,6 @@ class Board(WithGameLifecycle, ABC):
     @staticmethod
     def _admin_knowledge(u: User) -> List[str]:
         return [
-            f'U#{u._store.id}',
             f'remark:{u._store.login_key} {u._store.format_login_properties()}',
         ]
 
@@ -93,6 +92,7 @@ class ScoreBoard(Board):
             } for ch in self._game.challenges.list if ch.cur_effective],
 
             'list': [{
+                'uid': u._store.id,
                 'rank': idx+1,
                 'nickname': u._store.profile.nickname_or_null or '--',
                 'group_disp': u._store.group_disp() if self.show_group else None,
@@ -113,6 +113,7 @@ class ScoreBoard(Board):
             } for idx, (u, score) in enumerate(self.board[:self.MAX_DISPLAY_USERS])],
 
             'topstars': [{
+                'uid': u._store.id,
                 'nickname': u._store.profile.nickname_or_null or '--',
                 'submissions': [{
                     'timestamp_ms': sub._store.timestamp_ms,
@@ -160,12 +161,14 @@ class FirstBloodBoard(Board):
 
                 'flags': [{
                     'flag_name': None,
+                    'uid': ch_sub.user._store.id if ch_sub is not None else None,
                     'nickname': ch_sub.user._store.profile.nickname_or_null if ch_sub is not None else None,
                     'group_disp': ch_sub.user._store.group_disp() if (ch_sub is not None and self.show_group) else None,
                     'badges': (ch_sub.user._store.badges() + (self._admin_knowledge(ch_sub.user) if is_admin else [])) if ch_sub is not None else None,
                     'timestamp': int(ch_sub._store.timestamp_ms/1000) if ch_sub is not None else None,
                 }] + ([] if len(ch.flags)<=1 else [{
                     'flag_name': f.name,
+                    'uid': f_sub.user._store.id if f_sub is not None else None,
                     'nickname': f_sub.user._store.profile.nickname_or_null if f_sub is not None else None,
                     'group_disp': f_sub.user._store.group_disp() if (f_sub is not None and self.show_group) else None,
                     'badges': (f_sub.user._store.badges() + (self._admin_knowledge(f_sub.user) if is_admin else [])) if f_sub is not None else None,
