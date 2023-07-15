@@ -43,6 +43,28 @@ class UserProfileStore(Table):
         'banned': ['nickname', 'qq', 'comment'],
     }
 
+    @staticmethod
+    def _deep_val_nickname(name) -> Optional[str]:
+        invalids = {
+            '\u200B', '\u200C', '\u200D', '\u200E', '\u200F',
+            '\u202A', '\u202B', '\u202C', '\u202D', '\u202E',
+            '\u2060', '\u2061', '\u2062', '\u2063', '\u2064', '\u2065', '\u2066', '\u2067', '\u2068',
+            '\u2069', '\u206A', '\u206B', '\u206C', '\u206D', '\u206E', '\u206F'
+        }
+        whitespaces = {
+            '\u0009', '\u0020', '\u00A0', '\u2000', '\u2001', '\u2002', '\u2003', '\u2004', '\u2005', '\u2006', '\u2007',
+            '\u2008', '\u2009', '\u200A', '\u202F', '\u205F', '\u3000', '\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF',
+        }
+
+        for c in invalids:
+            if c in name:
+                return f'昵称不能包含非法字符（{c!r}）'
+
+        if all(c in whitespaces for c in name):
+            return f'昵称不能全为空格'
+
+        return None
+
     def check_profile(self, group: str) -> Optional[str]:
         required_profiles = self.PROFILE_FOR_GROUP.get(group, [])
 
@@ -52,6 +74,8 @@ class UserProfileStore(Table):
 
         if 'nickname' in required_profiles and not self.VAL_NICKNAME.match(self.nickname_or_null or ''):
             return '昵称格式错误，应为1到20字符'
+        if (err := self._deep_val_nickname(self.nickname_or_null or '')) is not None:
+            return err
         if 'qq' in required_profiles and not self.VAL_QQ.match(self.qq_or_null or ''):
             return 'QQ号格式错误'
         if 'tel' in required_profiles and not self.VAL_TEL.match(self.tel_or_null or ''):
