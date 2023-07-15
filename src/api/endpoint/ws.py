@@ -5,7 +5,9 @@ from collections import Counter
 from websockets.connection import CLOSED, CLOSING
 from typing import Dict, Optional, List
 
-from .. import get_cur_user, store_anticheat_log
+from ...logic import Worker
+from ...state import User
+from .. import store_anticheat_log
 from ... import secret
 
 bp = Blueprint('ws', url_prefix='/ws')
@@ -15,15 +17,11 @@ MAX_DEVICES_PER_USER = 16
 online_uids: Dict[int, int] = Counter()
 
 @bp.websocket('/push')
-async def push(req: Request, ws: WebsocketImplProtocol) -> None:
+async def push(req: Request, ws: WebsocketImplProtocol, worker: Worker, user: Optional[User]) -> None:
     if not secret.WS_PUSH_ENABLED:
         await ws.close(code=4337, reason='推送通知已禁用')
         return
 
-    # xxx: cannot use dependency injection in websocket handlers
-    # see https://github.com/sanic-org/sanic-ext/issues/61
-    worker = req.app.ctx.worker
-    user = get_cur_user(req)
     telemetry = worker.custom_telemetry_data
 
     worker.log('debug', 'api.ws.push', f'got connection from {user}')
@@ -54,7 +52,7 @@ async def push(req: Request, ws: WebsocketImplProtocol) -> None:
             async with worker.message_cond:
                 await worker.message_cond.wait_for(lambda: message_id<worker.next_message_id)
 
-                if ws.connection.state in [CLOSED, CLOSING]:
+                if ws.ws_proto.state in [CLOSED, CLOSING]:
                     return
 
                 while message_id<worker.next_message_id:

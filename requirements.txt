@@ -14,7 +14,8 @@ pyzmq~=22.3.0
 pyopenssl~=22.0.0
 
 # api
-sanic[ext]~=21.12.2
+sanic~=22.12
+sanic-ext~=22.12
 httpx[http2]~=0.23.0
 
 # admin

@@ -18,13 +18,6 @@ OAUTH_HTTP_TIMEOUT = 20
 
 utils.fix_zmq_asyncio_windows()
 
-def get_http_client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(
-        http2=True,
-        proxies=secret.OAUTH_HTTP_PROXIES,  # type: ignore
-        timeout=OAUTH_HTTP_TIMEOUT,
-    )
-
 app = Sanic('guiding-star-backend')
 app.config.DEBUG = False
 app.config.OAS = False
@@ -32,8 +25,18 @@ app.config.PROXIES_COUNT = 1
 app.config.KEEP_ALIVE_TIMEOUT = 15
 app.config.REQUEST_MAX_SIZE = 1024*1024*(1+secret.WRITEUP_MAX_SIZE_MB)
 
-app.ext.add_dependency(Worker, lambda req: req.app.ctx.worker)
-app.ext.add_dependency(httpx.AsyncClient, lambda _req: get_http_client())
+def get_worker(req: Request) -> Worker:
+    return req.app.ctx.worker
+
+def get_http_client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        http2=True,
+        proxies=secret.OAUTH_HTTP_PROXIES,  # type: ignore
+        timeout=OAUTH_HTTP_TIMEOUT,
+    )
+
+app.ext.add_dependency(Worker, get_worker)
+app.ext.add_dependency(httpx.AsyncClient, get_http_client)
 app.ext.add_dependency(Optional[User], get_cur_user)
 
 @app.before_server_start
