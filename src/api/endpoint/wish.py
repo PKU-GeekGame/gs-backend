@@ -309,6 +309,8 @@ async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, u
 
     return {
         'list': [{
+            'uid': u._store.id,
+            'tot_score': u.tot_score,
             'nickname': u._store.profile.nickname_or_null or '',
             'group_disp': u._store.group_disp(),
             'flags': [None if sub is None else int(sub._store.timestamp_ms/1000) for sub in users[u]],
