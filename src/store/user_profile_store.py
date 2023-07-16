@@ -44,7 +44,7 @@ class UserProfileStore(Table):
     }
 
     @staticmethod
-    def _deep_val_nickname(name) -> Optional[str]:
+    def _deep_val_nickname(name: str) -> Optional[str]:
         invalids = {
             '\u200B', '\u200C', '\u200D', '\u200E', '\u200F',
             '\u202A', '\u202B', '\u202C', '\u202D', '\u202E',

@@ -120,7 +120,7 @@ class StatusView(AdminIndexView):  # type: ignore
         reducer: Reducer = current_app.config['reducer_obj']
 
         with reducer.SqlSession() as session:
-            users: List[store.UserStore] = session.execute(select(store.UserStore)).scalars().all()
+            users: List[store.UserStore] = list(session.execute(select(store.UserStore)).scalars().all())
             for u in users:
                 u.token = utils.sign_token(u.id)
             session.commit()

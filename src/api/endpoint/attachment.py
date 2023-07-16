@@ -18,7 +18,7 @@ def load_module(module_path: Path) -> Callable[[User, Challenge], Path]:
 
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return mod.gen  # type: ignore
+    return mod.gen
 
 async def download_attachment(p: str) -> HTTPResponse:
     if secret.ATTACHMENT_URL is not None: # use X-Accel-Redirect

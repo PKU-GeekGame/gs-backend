@@ -30,6 +30,6 @@ def wish_endpoint(bp: Blueprint, uri: str, *, methods: Optional[List[str]] = Non
                 **retval,
             })
 
-        return bp.route(uri, methods, unquote=True)(wrapped) # type: ignore
+        return bp.route(uri, methods, unquote=True)(wrapped)
 
     return decorator

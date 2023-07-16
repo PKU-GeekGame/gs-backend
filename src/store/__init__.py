@@ -1,10 +1,10 @@
 from sqlalchemy import Column, Integer
 from sqlalchemy.orm import declarative_base, Mapped
 
-class SqlBase:
+class _SqlBase:
     __allow_unmapped__ = True
 
-SqlBase = declarative_base(cls=SqlBase)
+SqlBase = declarative_base(cls=_SqlBase)
 
 class Table(SqlBase):
     __abstract__ = True

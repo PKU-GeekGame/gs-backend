@@ -204,7 +204,7 @@ class StateContainerBase(ABC):
 
     def load_all_data(self, cls: Type[T]) -> List[T]:
         with self.SqlSession() as session:
-            return session.execute(select(cls).order_by(cls.id)).scalars().all()
+            return list(session.execute(select(cls).order_by(cls.id)).scalars().all())
 
     def load_one_data(self, cls: Type[T], id: int) -> Optional[T]:
         with self.SqlSession() as session:
