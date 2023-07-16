@@ -288,6 +288,8 @@ async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, u
     if ch is None or not ch.cur_effective:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
+    is_admin = secret.IS_ADMIN(user._store)
+
     users: Dict[User, List[Optional[Submission]]] = {}
     users_sort_key: List[Tuple[Tuple[int, int], User]] = []
     for u in ch.touched_users:
@@ -313,6 +315,7 @@ async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, u
             'tot_score': u.tot_score,
             'nickname': u._store.profile.nickname_or_null or '',
             'group_disp': u._store.group_disp(),
+            'badges': u._store.badges() + (u.admin_badges() if is_admin else []),
             'flags': [None if sub is None else int(sub._store.timestamp_ms/1000) for sub in users[u]],
         } for _sort_key, u in users_sort_key],
     }
@@ -334,8 +337,8 @@ async def get_board(_req: Request, board_name: str, worker: Worker, user: Option
         'desc': b.desc,
     }
 
-@wish_endpoint(bp, '/submissions')
-async def get_submissions(_req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+@wish_endpoint(bp, '/my_submissions')
+async def get_my_submissions(_req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
     if user is None:
         return {'error': 'NO_USER', 'error_msg': '未登录'}
     if worker.game is None:
@@ -367,6 +370,25 @@ async def get_submissions(_req: Request, worker: Worker, user: Optional[User]) -
             'overrides': get_overrides(sub),
             'timestamp_s': int(sub._store.timestamp_ms/1000),
         } for idx, sub in enumerate(user.submissions[::-1])],
+    }
+
+@wish_endpoint(bp, '/submissions/<uid:int>')
+async def get_others_submissions(_req: Request, uid: int, worker: Worker) -> Dict[str, Any]:
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    user = worker.game.users.user_by_id.get(uid, None)
+    if user is None or not user.succ_submissions:
+        return {'error': 'NO_USER', 'error_msg': '用户不存在或未答出任何题目'}
+
+    return {
+        'list': [{
+            'idx': idx, # row key
+            'challenge_title': sub.challenge._store.title if sub.challenge else None,
+            'matched_flag': sub.matched_flag.name if sub.matched_flag else None,
+            'gained_score': sub.gained_score(),
+            'timestamp_s': int(sub._store.timestamp_ms/1000),
+        } for idx, sub in enumerate(user.succ_submissions[::-1])],
     }
 
 file_ext_re = re.compile(r'^.*?((?:\.[a-z0-9]+)+)$')

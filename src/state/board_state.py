@@ -1,5 +1,4 @@
 from __future__ import annotations
-import time
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, List, Tuple, Dict, Any
 
@@ -35,12 +34,6 @@ class Board(WithGameLifecycle, ABC):
     def clear_render_cache(self) -> None:
         self._rendered_admin = None
         self._rendered_normal = None
-
-    @staticmethod
-    def _admin_knowledge(u: User) -> List[str]:
-        return [
-            f'remark:{u._store.login_key} {u._store.format_login_properties()}',
-        ]
 
     @abstractmethod
     def _render(self, is_admin: bool) -> Dict[str, Any]:
@@ -96,7 +89,7 @@ class ScoreBoard(Board):
                 'rank': idx+1,
                 'nickname': u._store.profile.nickname_or_null or '--',
                 'group_disp': u._store.group_disp() if self.show_group else None,
-                'badges': u._store.badges() + (self._admin_knowledge(u) if is_admin else []),
+                'badges': u._store.badges() + (u.admin_badges() if is_admin else []),
                 'score': score,
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
@@ -164,14 +157,14 @@ class FirstBloodBoard(Board):
                     'uid': ch_sub.user._store.id if ch_sub is not None else None,
                     'nickname': ch_sub.user._store.profile.nickname_or_null if ch_sub is not None else None,
                     'group_disp': ch_sub.user._store.group_disp() if (ch_sub is not None and self.show_group) else None,
-                    'badges': (ch_sub.user._store.badges() + (self._admin_knowledge(ch_sub.user) if is_admin else [])) if ch_sub is not None else None,
+                    'badges': (ch_sub.user._store.badges() + (ch_sub.user.admin_badges() if is_admin else [])) if ch_sub is not None else None,
                     'timestamp': int(ch_sub._store.timestamp_ms/1000) if ch_sub is not None else None,
                 }] + ([] if len(ch.flags)<=1 else [{
                     'flag_name': f.name,
                     'uid': f_sub.user._store.id if f_sub is not None else None,
                     'nickname': f_sub.user._store.profile.nickname_or_null if f_sub is not None else None,
                     'group_disp': f_sub.user._store.group_disp() if (f_sub is not None and self.show_group) else None,
-                    'badges': (f_sub.user._store.badges() + (self._admin_knowledge(f_sub.user) if is_admin else [])) if f_sub is not None else None,
+                    'badges': (f_sub.user._store.badges() + (f_sub.user.admin_badges() if is_admin else [])) if f_sub is not None else None,
                     'timestamp': int(f_sub._store.timestamp_ms/1000) if f_sub is not None else None,
                 } for f in ch.flags for f_sub in [self.flag_board.get(f, None)]]),
 

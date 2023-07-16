@@ -175,5 +175,11 @@ class User(WithGameLifecycle):
         h = hashlib.sha256(f'{self._store.token}-{ch._store.key}'.encode()).hexdigest()
         return int(h, 16) % n_part
 
+    def admin_badges(self) -> List[str]:
+        return [
+            f'U#{self._store.id}'
+            f'remark:{self._store.login_key} {self._store.format_login_properties()}',
+        ]
+
     def __repr__(self) -> str:
         return repr(self._store)
