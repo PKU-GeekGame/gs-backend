@@ -372,10 +372,14 @@ async def get_my_submissions(_req: Request, worker: Worker, user: Optional[User]
         } for idx, sub in enumerate(user.submissions[::-1])],
     }
 
-@wish_endpoint(bp, '/submissions/<uid:int>')
-async def get_others_submissions(_req: Request, uid: int, worker: Worker) -> Dict[str, Any]:
+@wish_endpoint(bp, '/submissions/<uid_s:str>')
+async def get_others_submissions(_req: Request, uid_s: str, worker: Worker) -> Dict[str, Any]:
     if worker.game is None:
         return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    # xxx: sanic fails with <uid:int> due to this issue
+    # https://github.com/sanic-org/sanic/issues/2791
+    uid = int(uid_s)
 
     user = worker.game.users.user_by_id.get(uid, None)
     if user is None or not user.succ_submissions:
