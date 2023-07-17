@@ -43,7 +43,7 @@ app.ext.add_dependency(Optional[User], get_cur_user)
 async def setup_game_state(cur_app: Sanic, _loop: Any) -> None:
     logging.getLogger('sanic.root').setLevel(logging.INFO)
 
-    worker = Worker(cur_app.config.get('WORKER_NAME', f'worker-{os.getpid()}'), receiving_messages=True)
+    worker = Worker(cur_app.config.get('GS_WORKER_NAME', f'worker-{os.getpid()}'), receiving_messages=True)
     cur_app.ctx.worker = worker
     await worker._before_run()
     cur_app.ctx._worker_task = asyncio.create_task(worker._mainloop())
@@ -81,5 +81,6 @@ svc = Blueprint.group(auth.bp, wish.bp, template.bp, ws.bp, attachment.bp, sybil
 app.blueprint(svc)
 
 def start(idx0: int, worker_name: str) -> None:
-    app.config.WORKER_NAME = worker_name
-    app.run(**secret.WORKER_API_SERVER_KWARGS(idx0), workers=1) # type: ignore
+    app.config.GS_WORKER_NAME = worker_name # used by gs worker
+    app.config.WORKER_NAME = worker_name # used (also may be changed!) by sanic logging
+    app.run(**secret.WORKER_API_SERVER_KWARGS(idx0), single_process=True) # type: ignore
