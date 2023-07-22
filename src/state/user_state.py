@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from ..store import *
 from . import WithGameLifecycle
 from ..state import ScoreBoard
+from ..store import UserStore
 
 class Users(WithGameLifecycle):
     def __init__(self, game: Game, stores: List[UserStore]):
