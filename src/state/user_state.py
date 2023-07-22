@@ -111,9 +111,9 @@ class User(WithGameLifecycle):
                 self.succ_submissions.append(submission)
 
         if submission.matched_flag is not None and submission.matched_flag in self.passed_flags:
-            self._update_tot_score(submission._store.timestamp_ms)
+            self._update_tot_score(submission._store.timestamp_ms//1000)
 
-    def _update_tot_score(self, timestamp_ms: Optional[int] = None) -> None:
+    def _update_tot_score(self, timestamp_s: Optional[int] = None) -> None:
         prev_score = self.tot_score
 
         self.tot_score = 0
@@ -127,8 +127,8 @@ class User(WithGameLifecycle):
             self.tot_score_by_cat.setdefault(cat, 0)
             self.tot_score_by_cat[cat] += score
 
-        if timestamp_ms and self.tot_score!=prev_score:
-            self.tot_score_history[timestamp_ms] = self.tot_score
+        if timestamp_s and self.tot_score!=prev_score:
+            self.tot_score_history[timestamp_s] = self.tot_score
 
     @property
     def last_succ_submission(self) -> Optional[Submission]:
