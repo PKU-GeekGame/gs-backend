@@ -95,7 +95,7 @@ class User(WithGameLifecycle):
         self.succ_submissions = []
         self.submissions = []
         self.tot_score_history = {}
-        self._update_tot_score(None)
+        self._update_tot_score()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if submission._store.user_id==self._store.id: # always true as delegated from Users
@@ -111,11 +111,14 @@ class User(WithGameLifecycle):
                 self.succ_submissions.append(submission)
 
         if submission.matched_flag is not None and submission.matched_flag in self.passed_flags:
-            self._update_tot_score(submission._store.timestamp_ms//1000)
+            self._update_score_history(submission._store.timestamp_ms//1000)
+            if not in_batch:
+                self._update_tot_score()
 
-    def _update_tot_score(self, timestamp_s: Optional[int] = None) -> None:
-        prev_score = self.tot_score
+    def on_scoreboard_batch_update_done(self) -> None:
+        self._update_tot_score()
 
+    def _update_tot_score(self) -> None:
         self.tot_score = 0
         self.tot_score_by_cat = {}
 
@@ -127,7 +130,14 @@ class User(WithGameLifecycle):
             self.tot_score_by_cat.setdefault(cat, 0)
             self.tot_score_by_cat[cat] += score
 
-        if timestamp_s and self.tot_score!=prev_score:
+    def _update_score_history(self, timestamp_s: int) -> None:
+        prev_score = self.tot_score
+        self.tot_score = 0
+
+        for f, sub in self.passed_flags.items():
+            self.tot_score += sub.gained_score()
+
+        if self.tot_score!=prev_score:
             self.tot_score_history[timestamp_s] = self.tot_score
 
     @property
