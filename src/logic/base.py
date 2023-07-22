@@ -33,7 +33,8 @@ def make_callback_decorator() -> Tuple[Callable[[Any], Callable[[CbMethod], CbMe
 on_event, event_listeners = make_callback_decorator()
 
 class StateContainerBase(ABC):
-    RECOVER_THROTTLE_S = 1
+    RECOVER_THROTTLE_S = 3
+    RELOAD_SCOREBOARD_DEBOUNCE_S = 1
     MAX_KEEPING_MESSAGES = 32
 
     def __init__(self, process_name: str, receiving_messages: bool = False, use_boards: bool = True):
@@ -62,6 +63,8 @@ class StateContainerBase(ABC):
 
         self.state_counter: int = 1
         self.custom_telemetry_data: Dict[str, Any] = {}
+
+        self._reload_scoreboard_task: Optional[asyncio.Task[None]] = None
 
     @property
     def game(self) -> Optional[Game]:
@@ -187,6 +190,17 @@ class StateContainerBase(ABC):
 
             self._game.on_scoreboard_batch_update_done()
 
+    def reload_scoreboard_if_needed_later(self) -> None:
+        if not self._game.need_reloading_scoreboard or self._reload_scoreboard_task:
+            return
+
+        async def task() -> None:
+            await asyncio.sleep(self.RELOAD_SCOREBOARD_DEBOUNCE_S)
+            self.reload_scoreboard_if_needed()
+            self._reload_scoreboard_task = None
+
+        self._reload_scoreboard_task = asyncio.create_task(task())
+
     def log(self, level: utils.LogLevel, module: str, message: str) -> None:
         if level in secret.STDOUT_LOG_LEVEL:
             print(f'{self.process_name} [{level}] {module}: {message}')
@@ -219,7 +233,7 @@ class StateContainerBase(ABC):
         try:
             with utils.log_slow(self.log, 'base.process_event', f'handle event {event.type}'):
                 listener(self, event)
-            self.reload_scoreboard_if_needed()
+            self.reload_scoreboard_if_needed_later()
 
         except Exception as e:
             self.log('critical', 'base.process_event', f'exception during event listener, will recover: {e!r}')
