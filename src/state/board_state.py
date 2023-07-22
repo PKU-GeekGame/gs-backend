@@ -108,10 +108,7 @@ class ScoreBoard(Board):
             'topstars': [{
                 'uid': u._store.id,
                 'nickname': u._store.profile.nickname_or_null or '--',
-                'history': [{
-                    'timestamp_ms': ts,
-                    'score': score,
-                } for ts, score in u.tot_score_history.items()]
+                'history': [[ts, score] for ts, score in u.tot_score_history.items()],
             } for u, _score in self.board[:self.MAX_TOPSTAR_USERS]],
 
             'time_range': [
