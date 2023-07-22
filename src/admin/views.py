@@ -115,35 +115,20 @@ class StatusView(AdminIndexView):  # type: ignore
         flash('已发送测试消息', 'success')
         return redirect(url_for('.index'))
 
-    @expose('/regenerate_token')
-    def regenerate_token(self) -> ResponseReturnValue:
-        reducer: Reducer = current_app.config['reducer_obj']
+    # DANGEROUS: regenerating token will corrupt dynamic flags in existing submissions!
 
-        with reducer.SqlSession() as session:
-            users: List[store.UserStore] = list(session.execute(select(store.UserStore)).scalars().all())
-            for u in users:
-                u.token = utils.sign_token(u.id)
-            session.commit()
-            flash(f'已重新生成 {len(users)} 个 token，请手动重启 reducer 和所有 worker', 'success')
-
-        return redirect(url_for('.index'))
-
-    @expose('/check_dyn_flag/<ch_key>/<int:uid>')
-    def check_dyn_flag(self, ch_key: str, uid: int) -> ResponseReturnValue:
-        reducer: Reducer = current_app.config['reducer_obj']
-        ch = reducer._game.challenges.chall_by_key.get(ch_key, None)
-        u = reducer._game.users.user_by_id.get(uid, None)
-
-        if ch is None:
-            return '题目不存在'
-        if u is None:
-            return '用户不存在'
-
-        ret = f'TOKEN = {u._store.token!r}\n\nFLAGS = {[f.correct_flag(u) for f in ch.flags]}'
-
-        resp = make_response(ret, 200)
-        resp.mimetype = 'text/plain'
-        return resp
+    # @expose('/regenerate_token')
+    # def regenerate_token(self) -> ResponseReturnValue:
+    #     reducer: Reducer = current_app.config['reducer_obj']
+    #
+    #     with reducer.SqlSession() as session:
+    #         users: List[store.UserStore] = list(session.execute(select(store.UserStore)).scalars().all())
+    #         for u in users:
+    #             u.token = utils.sign_token(u.id)
+    #         session.commit()
+    #         flash(f'已重新生成 {len(users)} 个 token，请手动重启 reducer 和所有 worker', 'success')
+    #
+    #     return redirect(url_for('.index'))
 
 class ViewBase(sqla.ModelView): # type: ignore
     form_base_class = SecureForm
@@ -298,6 +283,33 @@ class ChallengeView(ViewBase):
         resp = make_response(json.dumps(challs, indent=1, ensure_ascii=False), 200)
         resp.mimetype = 'text/plain'
         return resp
+
+    @expose('/test_flag', methods=['GET', 'POST'])
+    def test_flag(self) -> ResponseReturnValue:
+        url = request.args.get('url', self.get_url('.index_view'))
+
+        if request.method=='GET':
+            return self.render('test_challenge_flag.html')
+        else:
+            ch_key = request.form['key']
+            uid = int(request.form['uid'])
+
+            reducer: Reducer = current_app.config['reducer_obj']
+            ch = reducer._game.challenges.chall_by_key.get(ch_key, None)
+            u = reducer._game.users.user_by_id.get(uid, None)
+
+            if ch is None:
+                flash(f'题目 {ch_key} 不存在', 'error')
+                return redirect(url)
+            if u is None:
+                flash(f'用户 {uid} 不存在', 'error')
+                return redirect(url)
+
+            ret = f'TOKEN = {u._store.token!r}\n\nFLAGS = {[f.correct_flag(u) for f in ch.flags]}'
+
+            resp = make_response(ret, 200)
+            resp.mimetype = 'text/plain'
+            return resp
 
     def create_form(self, **kwargs: Any) -> Form:
         form = super().create_form(**kwargs)
@@ -459,6 +471,8 @@ def _user_board_info_formatter(_view: Any, _context: Any, model: store.UserStore
     return f'{user.tot_score} [{", ".join(user._store.badges())}]'
 
 class UserView(ViewBase):
+    list_template = 'list_user.html'
+
     can_create = False
     can_delete = False
     can_export = True
@@ -509,6 +523,42 @@ class UserView(ViewBase):
 
     def after_model_touched(self, model: store.UserStore) -> None:
         self.emit_event(glitter.EventType.UPDATE_USER, model.id)
+
+    @expose('/move_group', methods=['GET', 'POST'])
+    def move_group(self) -> ResponseReturnValue:
+        url = request.args.get('url', self.get_url('.index_view'))
+
+        if request.method=='GET':
+            return self.render('move_user_group.html', groups=store.UserStore.GROUPS)
+        else:
+            reducer: Reducer = current_app.config['reducer_obj']
+            uids = sorted(list(set([int(u) for u in request.form['uids'].split()])))
+            group = request.form['group']
+
+            if group not in store.UserStore.GROUPS:
+                flash(f'用户组 {group} 不存在', 'error')
+                return redirect(url)
+
+            with reducer.SqlSession() as session:
+                for uid in uids:
+                    user: Optional[store.UserStore] = session.execute(
+                        select(store.UserStore).where(store.UserStore.id==uid)
+                    ).scalar()
+
+                    if user is None:
+                        flash(f'用户 {uid} 不存在', 'error')
+                        return redirect(url)
+
+                    user.group = group
+
+                session.commit()
+
+            for uid in uids:
+                self.emit_event(glitter.EventType.UPDATE_USER, uid)
+
+            flash(f'成功修改用户组到 {group}：{" ".join([str(u) for u in uids])}', 'success')
+
+            return redirect(url)
 
 VIEWS = {
     'AnnouncementStore': AnnouncementView,

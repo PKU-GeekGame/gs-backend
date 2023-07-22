@@ -1,0 +1,7 @@
+{% extends 'admin/model/list.html' %}
+
+{% block model_menu_bar_before_filters %}
+    <li>
+        <a href="{{ get_url('.move_group', url=return_url) }}">Move Group</a>
+    </li>
+{% endblock %}

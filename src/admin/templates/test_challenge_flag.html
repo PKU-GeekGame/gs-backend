@@ -1,0 +1,19 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+    <form action="#" method="post">
+        <p>
+            <label for="key">Key:</label>
+            <input name="key" id="key" placeholder="e.g., prob01">
+        </p>
+        <p>
+            <label for="uid">UID:</label>
+            <input name="uid" id="uid" placeholder="e.g., 1">
+        </p>
+        <br>
+        <p>
+            <button class="btn btn-primary" type="submit">Test Flag</button>
+            将计算此 UID 对应题目的动态 Flag
+        </p>
+    </form>
+{% endblock %}
