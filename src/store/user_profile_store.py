@@ -2,12 +2,19 @@ from sqlalchemy import Column, Integer, ForeignKey, BigInteger, String
 from sqlalchemy.orm import relationship
 import time
 import re
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Set
+from unicategories import categories
 
 if TYPE_CHECKING:
     # noinspection PyUnresolvedReferences
     from . import UserStore
 from . import Table
+
+def unicode_chars(*cats: str) -> Set[str]:
+    ret = set()
+    for cat in cats:
+        ret |= set(categories[cat].characters())
+    return ret
 
 class UserProfileStore(Table):
     __tablename__ = 'user_profile'
@@ -43,24 +50,24 @@ class UserProfileStore(Table):
         'banned': ['nickname', 'qq', 'comment'],
     }
 
-    @staticmethod
-    def _deep_val_nickname(name: str) -> Optional[str]:
-        invalids = {
-            '\u200B', '\u200C', '\u200D', '\u200E', '\u200F',
-            '\u202A', '\u202B', '\u202C', '\u202D', '\u202E',
-            '\u2060', '\u2061', '\u2062', '\u2063', '\u2064', '\u2065', '\u2066', '\u2067', '\u2068',
-            '\u2069', '\u206A', '\u206B', '\u206C', '\u206D', '\u206E', '\u206F'
-        }
-        whitespaces = {
-            '\u0009', '\u0020', '\u00A0', '\u2000', '\u2001', '\u2002', '\u2003', '\u2004', '\u2005', '\u2006', '\u2007',
-            '\u2008', '\u2009', '\u200A', '\u202F', '\u205F', '\u3000', '\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF',
-        }
+    # https://www.compart.com/en/unicode/category
+    DISALLOWED_CHARS = (
+       unicode_chars('Cc', 'Cf', 'Cs', 'Mc', 'Me', 'Mn', 'Zl', 'Zp')
+       | {chr(c) for c in range(0x12423, 0x12431+1)}
+       | {chr(0x0d78)}
+    ) - {chr(0x200b), chr(0x200c), chr(0x200d)}
+    WHITESPACE_CHARS = unicode_chars('Zs') | {chr(0x200b), chr(0x200c), chr(0x200d)}
 
-        for c in invalids:
-            if c in name:
-                return f'昵称不能包含非法字符（{c!r}）'
+    @classmethod
+    def _deep_val_nickname(cls, name: str) -> Optional[str]:
+        all_whitespace = True
+        for c in name:
+            if c in cls.DISALLOWED_CHARS:
+                return f'昵称中不能包含字符 {hex(ord(c))}'
+            if c not in cls.WHITESPACE_CHARS:
+                all_whitespace = False
 
-        if all(c in whitespaces for c in name):
+        if all_whitespace:
             return f'昵称不能全为空格'
 
         return None
