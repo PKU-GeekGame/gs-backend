@@ -30,6 +30,7 @@ class ChallengeStore(Table):
         'Binary': '#864a2d',
         'Algorithm': '#2f2d86',
     }
+    FALLBACK_CAT_COLOR = '#000000'
 
     @validates('chall_metadata')
     def validate_chall_metadata(self, _key: str, chall_metadata: Any) -> Any:
@@ -156,3 +157,6 @@ class ChallengeStore(Table):
         elif cls.VAL_FLAG.match(flag) is None:
             return 'FLAG_PATTERN', 'Flag格式错误'
         return None
+
+    def category_color(self):
+        return self.CAT_COLORS.get(self.category, self.FALLBACK_CAT_COLOR)

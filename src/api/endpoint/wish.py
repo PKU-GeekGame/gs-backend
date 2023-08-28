@@ -130,8 +130,6 @@ async def triggers(_req: Request, worker: Worker) -> Dict[str, Any]:
         } for trigger in worker.game.trigger._stores]
     }
 
-FALLBACK_CAT_COLOR = '#000000'
-
 def reorder_by_cat(values: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     for cat in ChallengeStore.CAT_COLORS.keys():
@@ -169,7 +167,7 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'key': ch._store.key,
             'title': ch._store.title + (f' [>={ch._store.effective_after}]' if not ch.cur_effective else ''),
             'category': ch._store.category,
-            'category_color': ChallengeStore.CAT_COLORS.get(ch._store.category, FALLBACK_CAT_COLOR),
+            'category_color': ch._store.category_color(),
 
             'metadata': ch.describe_metadata(None),
             'flags': [f.describe_json(user) for f in ch.flags],
@@ -365,6 +363,8 @@ async def get_my_submissions(_req: Request, worker: Worker, user: Optional[User]
         'list': [{
             'idx': idx, # row key
             'challenge_title': sub.challenge._store.title if sub.challenge else None,
+            'category': sub.challenge._store.category if sub.challenge else None,
+            'category_color': sub.challenge._store.category_color() if sub.challenge else None,
             'matched_flag': sub.matched_flag.name if sub.matched_flag else None,
             'gained_score': sub.gained_score(),
             'overrides': get_overrides(sub),
@@ -389,6 +389,8 @@ async def get_others_submissions(_req: Request, uid_s: str, worker: Worker) -> D
         'list': [{
             'idx': idx, # row key
             'challenge_title': sub.challenge._store.title if sub.challenge else None,
+            'category': sub.challenge._store.category if sub.challenge else None,
+            'category_color': sub.challenge._store.category_color() if sub.challenge else None,
             'matched_flag': sub.matched_flag.name if sub.matched_flag else None,
             'gained_score': sub.gained_score(),
             'timestamp_s': int(sub._store.timestamp_ms/1000),
