@@ -4,7 +4,7 @@ from functools import wraps
 from inspect import isawaitable
 from typing import Callable, Dict, Any, Union, Awaitable, List, Optional
 
-ACCEPTED_WISH_VERS = ['wish.2023.v2']
+ACCEPTED_WISH_VERS = ['wish.2023.v3']
 
 WishHandler = Callable[..., Union[Dict[str, Any], Awaitable[Dict[str, Any]]]]
 
@@ -19,7 +19,7 @@ def wish_endpoint(bp: Blueprint, uri: str, *, methods: Optional[List[str]] = Non
             if v not in ACCEPTED_WISH_VERS:
                 return response.json({
                     'error': 'WISH_VERSION_MISMATCH',
-                    'error_msg': f'前端版本 {v} 不是最新',
+                    'error_msg': f'比赛平台前端版本（{v}）需要更新',
                 })
 
             retval_ = fn(req, *args, **kwargs)
