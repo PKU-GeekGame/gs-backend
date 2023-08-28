@@ -77,6 +77,14 @@ class ScoreBoard(Board):
     def _render(self, is_admin: bool) -> Dict[str, Any]:
         self._game.worker.log('debug', 'board.render', f'rendering score board {self.name}')
 
+        def _make_delta(d: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+            x0, y0 = 0, 0
+            ret = []
+            for x, y in d:
+                ret.append((x-x0, y-y0))
+                x0, y0 = x, y
+            return ret
+
         return {
             'challenges': [{
                 'key': ch._store.key,
@@ -94,22 +102,22 @@ class ScoreBoard(Board):
                 'score': score,
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
-                    ch._store.key: ch.user_status(u)
+                    ch._store.key: status
                     for ch in self._game.challenges.list if ch.cur_effective
+                    if (status := ch.user_status(u)) != 'untouched'
                 },
                 'flag_status': {
-                    f'{f.challenge._store.key}_{f.idx0}': {
-                        'timestamp_s': int(sub._store.timestamp_ms/1000),
-                        'gained_score': sub.gained_score(),
-                    }
-                    for f, sub in u.passed_flags.items()
+                    f'{f.challenge._store.key}_{f.idx0}': [
+                        int(sub._store.timestamp_ms/1000), # timestamp_s
+                        sub.gained_score(), # gained_score
+                    ] for f, sub in u.passed_flags.items()
                 },
             } for idx, (u, score) in enumerate(self.board[:self.MAX_DISPLAY_USERS])],
 
             'topstars': [{
                 'uid': u._store.id,
                 'nickname': u._store.profile.nickname_or_null or '--',
-                'history': [[ts, score] for ts, score in u.tot_score_history.items()],
+                'history': _make_delta(list(u.tot_score_history.items())),
             } for u, _score in self.board[:self.MAX_TOPSTAR_USERS]],
 
             'time_range': [
