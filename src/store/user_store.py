@@ -86,8 +86,8 @@ class UserStore(Table):
         ):
             ret.append('rookie')
 
-        extra = self.login_properties.get('badge_remark', '')
-        if extra:
-            ret.append(f'remark:{extra}')
+        extra = self.login_properties.get('badges', None)
+        if isinstance(extra, list):
+            ret.extend(extra)
 
         return ret
