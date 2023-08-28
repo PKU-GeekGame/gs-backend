@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from . import *
     ScoreBoardItemType = Tuple[User, int]
 from . import WithGameLifecycle
+from ..store import UserStore
 from .. import utils
 
 class Board(WithGameLifecycle, ABC):
@@ -177,13 +178,17 @@ class FirstBloodBoard(Board):
         if submission.matched_flag is not None:
             assert submission.challenge is not None, 'submission matched flag to no challenge'
 
+            should_skip_push = in_batch or (
+                submission.user._store.group in UserStore.MAIN_BOARD_GROUPS and self.group!=UserStore.MAIN_BOARD_GROUPS # will push in the main board
+            )
+
             if self.group is None or submission.user._store.group in self.group:
                 passed_all_flags = submission.challenge in submission.user.passed_challs
 
                 if submission.matched_flag not in self.flag_board:
                     self.flag_board[submission.matched_flag] = submission
 
-                    if not in_batch and not passed_all_flags:
+                    if not should_skip_push and not passed_all_flags:
                         self._game.worker.emit_local_message({
                             'type': 'push',
                             'payload': {
@@ -199,7 +204,7 @@ class FirstBloodBoard(Board):
                 if submission.challenge not in self.chall_board and passed_all_flags:
                     self.chall_board[submission.challenge] = submission
 
-                    if not in_batch:
+                    if not should_skip_push:
                         self._game.worker.emit_local_message({
                             'type': 'push',
                             'payload': {
