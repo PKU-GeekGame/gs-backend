@@ -44,8 +44,8 @@ class UserProfileStore(Table):
     VAL_COMMENT = re.compile(r'^.{0,100}$')
 
     PROFILE_FOR_GROUP = {
-        'staff': ['nickname', 'gender', 'tel', 'qq', 'comment'],
-        'pku': ['nickname', 'gender', 'tel', 'qq', 'comment'],
+        'staff': ['nickname', 'tel', 'qq', 'comment'],
+        'pku': ['nickname', 'tel', 'qq', 'comment'],
         'other': ['nickname', 'qq', 'comment'],
         'banned': ['nickname', 'qq', 'comment'],
     }

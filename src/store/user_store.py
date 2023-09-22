@@ -78,11 +78,8 @@ class UserStore(Table):
 
         ret = []
 
-        if in_main_board and self.profile.gender_or_null=='female':
-            ret.append('girl')
         if in_main_board and self.login_properties['type']=='iaaa' and (
-            self.login_properties['info'].get('identityId', '').startswith('22000')
-            or self.login_properties['info'].get('identityId', '').startswith('22009')
+            self.login_properties['info'].get('identityId', '').startswith('23000')
         ):
             ret.append('rookie')
 

@@ -25,7 +25,6 @@ if __name__=='__main__':
     print(*['RANK', 'SCORE', 'UID', 'NICKNAME', 'NAME', 'STU_ID', 'DEPT', 'TYPE', 'TEL', 'QQ'], sep='\t')
 
     rookies = []
-    girls = []
     for ind, (u, score) in enumerate(b.board[:N_TOP]):
         prop = u._store.login_properties
         prof = u._store.profile
@@ -39,17 +38,10 @@ if __name__=='__main__':
         badges =  u._store.badges()
         if 'rookie' in badges and len(rookies)<3:
             rookies.append(row)
-        if 'girl' in badges and len(girls)<3:
-            girls.append(row)
 
     print('【新生奖】')
     print(*['RANK', 'SCORE', 'UID', 'NICKNAME', 'NAME', 'STU_ID', 'DEPT', 'TYPE', 'TEL', 'QQ'], sep='\t')
     for row in rookies:
-        print(*row, sep='\t')
-
-    print('【女生奖】')
-    print(*['RANK', 'SCORE', 'UID', 'NICKNAME', 'NAME', 'STU_ID', 'DEPT', 'TYPE', 'TEL', 'QQ'], sep='\t')
-    for row in girls:
         print(*row, sep='\t')
 
     b = worker.game.boards['first_pku']

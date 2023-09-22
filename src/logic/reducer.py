@@ -108,13 +108,6 @@ class Reducer(StateContainerBase):
 
             allowed_profiles = UserProfileStore.PROFILE_FOR_GROUP.get(user.group, [])
 
-            if (
-                'gender' in allowed_profiles
-                and user.profile.gender_or_null is not None
-                and user.profile.gender_or_null!=req.profile.get('gender')
-            ):
-                return '不允许修改性别，如填写错误请联系工作人员'
-
             # create profile
 
             profile = UserProfileStore(user_id=user.id)

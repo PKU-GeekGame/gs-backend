@@ -166,8 +166,6 @@ def export_ranking_list(game: Game):
 
 def format_badge(badges: List[str]) -> str:
     ret = []
-    if 'girl' in badges:
-        ret.append('女生')
     if 'rookie' in badges:
         ret.append('新生')
 
