@@ -43,13 +43,13 @@ Although nobody uses Windows on a server, it is a good news if you develop on Wi
   - Fill in everything in that file
     - And create directories mentioned in the file
 - Prepare the database
-  - Set environment variable `FLASK_APP=src/admin/app`
+  - Set environment variable: `export FLASK_APP=src/admin/app`
   - `flask db init`
   - `flask db migrate`
-  - It may warn you about circular dependency of two constraints.
-    You need to manually tweak the generated file in `migrations/versions`  
-    - Comment out `sa.ForeignKeyConstraint(['profile_id'], ['user_profile.id'], ),`
-    - Insert `op.create_foreign_key(None, 'user', 'user_profile', ['profile_id'], ['id'])` at the end of the method
+  - The above command will complain about the circular dependency of two constraints (`SAWarning: Cannot correctly sort tables; there are unresolvable cycles between tables "user, user_profile" ...`).
+    You need to manually tweak the generated Python file in `migrations/versions`  
+    - Comment out the line `sa.ForeignKeyConstraint(['profile_id'], ['user_profile.id'], ),`
+    - Insert `op.create_foreign_key(None, 'user', 'user_profile', ['profile_id'], ['id'])` at the end of the `upgrade` method
   - `flask db upgrade`
 
 **Start the server:**
