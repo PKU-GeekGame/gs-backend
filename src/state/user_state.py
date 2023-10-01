@@ -111,11 +111,10 @@ class User(WithGameLifecycle):
 
                 self.succ_submissions.append(submission)
 
-        # tot_score can be changed when someone else caused a score update to a passed flag
+        # tot_score may be changed when someone else caused a score update to a passed flag
         if (
             submission.matched_flag is not None
             and submission.matched_flag in self.passed_flags
-            and submission.user._store.group in UserStore.MAIN_BOARD_GROUPS
         ):
             self._update_score_history(submission._store.timestamp_ms//1000)
             if not in_batch:
