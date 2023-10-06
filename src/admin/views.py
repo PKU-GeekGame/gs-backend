@@ -572,33 +572,34 @@ VIEWS = {
     'UserProfileStore': UserProfileView,
 }
 
-# fix crlf and encoding on windows
 class FileAdmin(fileadmin.BaseFileAdmin):  # type: ignore
-    class FixingCrlfFileStorage(fileadmin.LocalFileStorage):  # type: ignore
+    class BugfixFileStorage(fileadmin.LocalFileStorage): # type: ignore
+        # fix crlf and encoding on windows
         def write_file(self, path: str, content: str) -> int:
             with open(path, 'w', encoding='utf-8') as f:
                 return f.write(content.replace('\r\n', '\n'))
 
-    # https://github.com/flask-admin/flask-admin/issues/2388
-    def get_files(self, path, directory):
-        items = []
-        for f in os.listdir(directory):
-            fp = os.path.join(directory, f)
-            rel_path = os.path.join(path, f)
-            is_dir = self.is_dir(fp)
-            try:
-                size = os.path.getsize(fp)
-            except FileNotFoundError:
-                size = 0
-            try:
-                last_modified = os.path.getmtime(fp)
-            except FileNotFoundError:
-                last_modified = 0
-            items.append((f, rel_path, is_dir, size, last_modified))
-        return items
+        # fix http 500 regarding broken symlinks
+        # https://github.com/flask-admin/flask-admin/issues/2388
+        def get_files(self, path, directory): # type: ignore
+            items = []
+            for f in os.listdir(directory):
+                fp = os.path.join(directory, f)
+                rel_path = os.path.join(path, f)
+                is_dir = self.is_dir(fp)
+                try:
+                    size = os.path.getsize(fp)
+                except FileNotFoundError:
+                    size = 0
+                try:
+                    last_modified = os.path.getmtime(fp)
+                except FileNotFoundError:
+                    last_modified = 0
+                items.append((f, rel_path, is_dir, size, last_modified))
+            return items
 
     def __init__(self, base_path: str, *args: Any, **kwargs: Any) -> None:
-        storage = self.FixingCrlfFileStorage(base_path)
+        storage = self.BugfixFileStorage(base_path)
         super().__init__(*args, storage=storage, **kwargs)
 
 class TemplateView(FileAdmin):
