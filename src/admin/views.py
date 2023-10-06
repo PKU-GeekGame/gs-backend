@@ -575,12 +575,14 @@ VIEWS = {
 class FileAdmin(fileadmin.BaseFileAdmin):  # type: ignore
     class BugfixFileStorage(fileadmin.LocalFileStorage): # type: ignore
         # fix crlf and encoding on windows
+
         def write_file(self, path: str, content: str) -> int:
             with open(path, 'w', encoding='utf-8') as f:
                 return f.write(content.replace('\r\n', '\n'))
 
         # fix http 500 regarding broken symlinks
         # https://github.com/flask-admin/flask-admin/issues/2388
+
         def get_files(self, path, directory): # type: ignore
             items = []
             for f in os.listdir(directory):
@@ -597,6 +599,9 @@ class FileAdmin(fileadmin.BaseFileAdmin):  # type: ignore
                     last_modified = 0
                 items.append((f, rel_path, is_dir, size, last_modified))
             return items
+
+        def path_exists(self, path):
+            return os.path.exists(path) or os.path.islink(path)
 
     def __init__(self, base_path: str, *args: Any, **kwargs: Any) -> None:
         storage = self.BugfixFileStorage(base_path)
