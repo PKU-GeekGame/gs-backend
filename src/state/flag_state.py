@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 from . import WithGameLifecycle
 from ..store import UserStore
 from .. import utils
+from .. import secret
 
 def leet_flag(flag: str, token: str, salt: str) -> str:
     uid = int(hashlib.sha256((token+salt).encode()).hexdigest(), 16)
@@ -36,7 +37,7 @@ def leet_flag(flag: str, token: str, salt: str) -> str:
 
 def dyn_flag(flag: Flag, user: User) -> str:
     assert isinstance(flag.val, str)
-    mod_path = Path(flag.val)
+    mod_path = secret.ATTACHMENT_PATH / flag.val
 
     with utils.chdir(mod_path):
         gen_mod = utils.load_module(mod_path / 'flag.py')
