@@ -10,6 +10,7 @@ from markupsafe import Markup
 from flask import current_app, flash, redirect, url_for, make_response, request
 import asyncio
 import json
+import os
 import time
 from flask.typing import ResponseReturnValue
 from typing import Any, Optional, Type, Dict, List
@@ -577,6 +578,24 @@ class FileAdmin(fileadmin.BaseFileAdmin):  # type: ignore
         def write_file(self, path: str, content: str) -> int:
             with open(path, 'w', encoding='utf-8') as f:
                 return f.write(content.replace('\r\n', '\n'))
+
+    # https://github.com/flask-admin/flask-admin/issues/2388
+    def get_files(self, path, directory):
+        items = []
+        for f in os.listdir(directory):
+            fp = os.path.join(directory, f)
+            rel_path = os.path.join(path, f)
+            is_dir = self.is_dir(fp)
+            try:
+                size = os.path.getsize(fp)
+            except FileNotFoundError:
+                size = 0
+            try:
+                last_modified = os.path.getmtime(fp)
+            except FileNotFoundError:
+                last_modified = 0
+            items.append((f, rel_path, is_dir, size, last_modified))
+        return items
 
     def __init__(self, base_path: str, *args: Any, **kwargs: Any) -> None:
         storage = self.FixingCrlfFileStorage(base_path)
