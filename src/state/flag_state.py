@@ -2,12 +2,14 @@ from __future__ import annotations
 import hashlib
 import string
 from functools import lru_cache
-from typing import TYPE_CHECKING, Set, Dict, Any, Union, List
+from pathlib import Path
+from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable
 
 if TYPE_CHECKING:
     from . import Game, Challenge, User, Submission
 from . import WithGameLifecycle
 from ..store import UserStore
+from .. import utils
 
 def leet_flag(flag: str, token: str, salt: str) -> str:
     uid = int(hashlib.sha256((token+salt).encode()).hexdigest(), 16)
@@ -32,6 +34,18 @@ def leet_flag(flag: str, token: str, salt: str) -> str:
 
     return 'flag{'+rcont+'}'
 
+def dyn_flag(flag: Flag, user: User) -> str:
+    assert isinstance(flag.val, str)
+    mod_path = Path(flag.val)
+
+    with utils.chdir(mod_path):
+        gen_mod = utils.load_module(mod_path / 'flag.py')
+        gen_fn: Callable[[User, Flag], str] = gen_mod.flag
+        out_flag = gen_fn(user, flag)
+        assert isinstance(out_flag, str), f'gen_fn must return a str, got {type(out_flag)}'
+
+    return out_flag
+
 class Flag(WithGameLifecycle):
     def __init__(self, game: Game, descriptor: Dict[str, Any], chall: Challenge, idx0: int):
         self._game: Game = game
@@ -55,14 +69,23 @@ class Flag(WithGameLifecycle):
 
     @lru_cache(maxsize=4096)
     def correct_flag(self, user: User) -> str:
-        if self.type=='static':
-            return self.val  # type: ignore
-        elif self.type=='leet':
-            return leet_flag(self.val, user._store.token, self.salt)  # type: ignore
-        elif self.type=='partitioned':
-            return self.val[user.get_partition(self.challenge, len(self.val))]
-        else:
-            raise ValueError(f'Unknown flag type: {self.type}')
+        try:
+            if self.type=='static':
+                assert isinstance(self.val, str)
+                return self.val
+            elif self.type=='leet':
+                assert isinstance(self.val, str)
+                return leet_flag(self.val, user._store.token, self.salt)
+            elif self.type=='partitioned':
+                assert isinstance(self.val, list)
+                return self.val[user.get_partition(self.challenge, len(self.val))]
+            elif self.type=='dynamic':
+                return dyn_flag(self, user)
+            else:
+                raise ValueError(f'Unknown flag type: {self.type}')
+        except Exception as e:
+            self._game.worker.log('error', 'flag.correct_flag', f'error calculating flag {repr(self)} for U#{user._store.id}: {utils.get_traceback(e)}')
+            return '😅FAIL'
 
     def validate_flag(self, user: User, flag: str) -> bool:
         return flag==self.correct_flag(user)

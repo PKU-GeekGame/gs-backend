@@ -20,7 +20,7 @@ class UserStore(Table):
 
     enabled = Column(Boolean, nullable=False, default=True)
     group: str = Column(String(32), nullable=False)
-    token = Column(String(MAX_TOKEN_LEN), nullable=True) # initialized in register logic
+    token: str = Column(String(MAX_TOKEN_LEN), nullable=True) # initialized in register logic
     auth_token: str = Column(String(128), nullable=True, unique=True, index=True) # initialized in register logic
 
     profile_id = Column(Integer, ForeignKey('user_profile.id'), nullable=True) # initialized in register logic

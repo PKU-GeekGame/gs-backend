@@ -1,5 +1,7 @@
 import random
 import time
+import importlib.util
+from types import ModuleType
 import markdown
 from markdown.postprocessors import Postprocessor
 from markdown.extensions import Extension
@@ -135,3 +137,12 @@ def sys_status() -> Dict[str, Union[int, float]]:
         'disk_used': disk.used/G,
         'disk_free': disk.free/G,
     }
+
+def load_module(file_path: Path) -> ModuleType:
+    # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
+    spec = importlib.util.spec_from_file_location('_dyn_module', str(file_path))
+    assert spec is not None and spec.loader is not None # no import loader in this env, which is weird
+
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod

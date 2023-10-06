@@ -53,7 +53,7 @@ class ChallengeStore(Table):
             assert 'val' in flag, 'flag should have val'
             assert 'base_score' in flag, 'flag should have base_score'
 
-            assert flag['type'] in ['static', 'leet', 'partitioned'], 'unknown flag type'
+            assert flag['type'] in ['static', 'leet', 'partitioned', 'dynamic'], 'unknown flag type'
             assert isinstance(flag['name'], str), 'flag name should be str'
             assert isinstance(flag['base_score'], int), 'flag base_score should be int'
             if flag['type']=='partitioned':
@@ -67,6 +67,7 @@ class ChallengeStore(Table):
         'static': '''{"name": "", "type": "static", "val" : "flag{}", "base_score": 100}''',
         'leet': '''{"name": "", "type": "leet", "val" : "flag{}", "salt": "", "base_score": 100}''',
         'partitioned': '''{"name": "", "type": "partitioned", "val" : ["flag{}"], "base_score": 100}''',
+        'dynamic': '''{"name": "", "type": "dynamic", "val" : "module_path", "base_score": 100}''',
     }
 
     @validates('actions')
@@ -158,5 +159,5 @@ class ChallengeStore(Table):
             return 'FLAG_PATTERN', 'Flag格式错误'
         return None
 
-    def category_color(self):
+    def category_color(self) -> str:
         return self.CAT_COLORS.get(self.category, self.FALLBACK_CAT_COLOR)

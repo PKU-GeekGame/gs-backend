@@ -1,7 +1,6 @@
 from sanic import Blueprint, Request, HTTPResponse, response
 from pathlib import Path
 from typing import Optional, Callable
-import importlib.util
 
 from .. import store_anticheat_log, get_cur_user
 from ...state import User, Challenge
@@ -10,15 +9,6 @@ from ... import utils
 from ... import secret
 
 bp = Blueprint('attachment', url_prefix='/attachment')
-
-def load_module(module_path: Path) -> Callable[[User, Challenge], Path]:
-    # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
-    spec = importlib.util.spec_from_file_location('_dyn_attachment', str(module_path / 'gen.py'))
-    assert spec is not None and spec.loader is not None # no import loader in this env, which is weird
-
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod.gen
 
 async def download_attachment(p: str) -> HTTPResponse:
     if secret.ATTACHMENT_URL is not None: # use X-Accel-Redirect
@@ -81,9 +71,10 @@ async def get_attachment(req: Request, ch_key: str, fn: str) -> HTTPResponse:
 
         try:
             with utils.chdir(mod_path):
-                gen_fn = load_module(mod_path)
+                gen_mod = utils.load_module(mod_path / 'gen.py')
+                gen_fn: Callable[[User, Challenge], Path] = gen_mod.gen
                 out_path = gen_fn(user, chall)
-                assert isinstance(out_path, Path), f'gen_fn must return a Path, got {type(gen_fn)}'
+                assert isinstance(out_path, Path), f'gen_fn must return a Path, got {type(out_path)}'
                 out_path = out_path.resolve()
 
             out_path.chmod(0o644)
