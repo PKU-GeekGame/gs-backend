@@ -63,7 +63,7 @@ async def handle_error(req: Request, exc: Exception) -> HTTPResponse:
 
     # xxx: dependency injection is broken during startup
     # https://github.com/sanic-org/sanic-ext/issues/218
-    if isinstance(exc, TypeError) and time.time() - getattr(req.app.ctx, 'startup_finished', 1e50) < 1000:
+    if isinstance(exc, TypeError) and time.time() - getattr(req.app.ctx, 'startup_finished', 1e50) < 3:
         req.app.ctx.worker.log('warning', 'app.handle_error', f'exception in request during startup ({debug_info}): {utils.get_traceback(exc)}')
         return response.text('服务正在启动', status=502)
     else:
