@@ -600,7 +600,7 @@ class FileAdmin(fileadmin.BaseFileAdmin):  # type: ignore
                 items.append((f, rel_path, is_dir, size, last_modified))
             return items
 
-        def path_exists(self, path):
+        def path_exists(self, path): # type: ignore
             return os.path.exists(path) or os.path.islink(path)
 
     def __init__(self, base_path: str, *args: Any, **kwargs: Any) -> None:
