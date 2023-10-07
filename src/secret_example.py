@@ -13,13 +13,23 @@ if TYPE_CHECKING:
 
 #### API KEYS
 
-GITHUB_APP_ID = 'xxx'
+GITHUB_APP_ID = 'xxx' # None to disable this endpoint
 GITHUB_APP_SECRET = 'xxx'
 
-MS_APP_ID = 'xxx'
+MS_APP_ID = 'xxx' # None to disable this endpoint
 MS_APP_SECRET = 'xxx'
 
-FEISHU_WEBHOOK_ADDR = 'https://open.feishu.cn/open-apis/bot/v2/hook/...'
+IAAA_APP_ID = None # None to disable this endpoint
+IAAA_KEY = 'xxx'
+
+CARSI_APP_ID = None # None to disable this endpoint
+CARSI_DOMAIN = 'spoauth2pre.carsi.edu.cn'
+CARSI_APP_SECRET = 'xxx'
+# https://carsi.atlassian.net/wiki/spaces/CAW/pages/27103892/3.+CARSI+SP+OAuth+Joining+CARSI+for+OAuth+SP
+#with open('/path/to/carsi.priv') as f:
+#    CARSI_PRIV_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read())
+
+FEISHU_WEBHOOK_ADDR = 'https://open.feishu.cn/open-apis/bot/v2/hook/...' # None to disable feishu push
 
 #### RANDOM BULLSHITS
 

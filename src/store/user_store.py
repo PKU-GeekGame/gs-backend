@@ -60,14 +60,20 @@ class UserStore(Table):
     def format_login_properties(self) -> str:
         props = self.login_properties
 
-        if props['type']=='iaaa':
-            return f'[IAAA] {props["info"]["name"]}（{props["info"]["dept"]} {props["info"]["detailType"]} {props["info"]["identityStatus"]}）'
-        elif props['type']=='microsoft':
-            return f'[MS] {props["info"]["displayName"]} ({props["info"]["userPrincipalName"]})'
-        elif props['type']=='github':
-            return f'[GitHub] {props["info"]["name"]} ({props["info"]["login"]})'
-        else:
-            return f'[{props["type"]}]'
+        try:
+            if props['type']=='iaaa':
+                return f'[IAAA] {props["info"]["name"]}（{props["info"]["dept"]} {props["info"]["detailType"]} {props["info"]["identityStatus"]}）'
+            elif props['type']=='microsoft':
+                return f'[MS] {props["info"]["displayName"]} ({props["info"]["userPrincipalName"]})'
+            elif props['type']=='github':
+                return f'[GitHub] {props["info"]["name"]} ({props["info"]["login"]})'
+            elif props['type']=='carsi':
+                return f'[Carsi] {props["info"]["usertype"]} @ {props["info"]["domain"]}'
+            else:
+                return f'[{props["type"]}]'
+
+        except Exception as e:
+            return f'[{props["type"]}] ERR: {repr(e)}'
 
     def group_disp(self) -> str:
         g = self.group

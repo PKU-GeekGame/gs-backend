@@ -1,5 +1,5 @@
+import base64
 from dataclasses import dataclass
-
 import httpx
 from sanic import Blueprint, Request, HTTPResponse, response
 from sanic_ext import validate
@@ -28,18 +28,19 @@ async def auth_logout(_req: Request) -> HTTPResponse:
     del res.cookies['admin_2fa'] # type: ignore
     return res
 
-@dataclass
-class AuthManualParam:
-    identity: str
+if secret.MANUAL_AUTH_ENABLED:
+    @dataclass
+    class AuthManualParam:
+        identity: str
 
-@bp.route('/manual')
-@validate(query=AuthManualParam)
-@auth_response
-async def auth_manual(_req: Request, query: AuthManualParam, _worker: Worker) -> AuthResponse:
-    if not secret.MANUAL_AUTH_ENABLED:
-        raise AuthError('手动登录已禁用')
+    @bp.route('/manual')
+    @validate(query=AuthManualParam)
+    @auth_response
+    async def auth_manual(_req: Request, query: AuthManualParam, _worker: Worker) -> AuthResponse:
+        if not secret.MANUAL_AUTH_ENABLED: # impossible, but add a fail safe here
+            raise AuthError('手动登录已禁用')
 
-    return f'manual:{query.identity}', {'type': 'manual'}, 'staff'
+        return f'manual:{query.identity}', {'type': 'manual'}, 'staff'
 
 @dataclass
 class AuthSuParam:
@@ -62,117 +63,193 @@ async def auth_su(_req: Request, query: AuthSuParam, worker: Worker, user: Optio
 
     return su_user
 
-@bp.route('/github/login')
-async def auth_github_req(req: Request) -> HTTPResponse:
-    return oauth2_redirect(
-        'https://github.com/login/oauth/authorize',
-        {
+if secret.GITHUB_APP_ID:
+    @bp.route('/github/login')
+    async def auth_github_req(req: Request) -> HTTPResponse:
+        return oauth2_redirect(
+            'https://github.com/login/oauth/authorize',
+            {
+                'client_id': secret.GITHUB_APP_ID,
+            },
+            secret.BUILD_OAUTH_CALLBACK_URL(
+                req.app.url_for('auth.auth_github_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
+            ),
+        )
+
+    @bp.route('/github/login/callback')
+    @auth_response
+    async def auth_github_res(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
+        oauth_code = req.args.get('code', None)
+        if not oauth_code:
+            raise AuthError('OAuth登录失败')
+
+        oauth2_check_state(req)
+
+        token_res = await http_client.post('https://github.com/login/oauth/access_token', params={
             'client_id': secret.GITHUB_APP_ID,
-        },
-        secret.BUILD_OAUTH_CALLBACK_URL(
-            req.app.url_for('auth.auth_github_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
-        ),
-    )
+            'client_secret': secret.GITHUB_APP_SECRET,
+            'code': oauth_code,
+        }, headers={
+            'Accept': 'application/json',
+        })
+        token = token_res.json().get('access_token', None)
+        if token is None:
+            worker.log('warning', 'api.auth.github', f'get access_token failed:\n{token_res.json()}')
+            raise AuthError('GitHub Token不存在')
 
-@bp.route('/github/login/callback')
-@auth_response
-async def auth_github_res(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
-    oauth_code = req.args.get('code', None)
-    if not oauth_code:
-        raise AuthError('OAuth登录失败')
+        info_res = await http_client.get('https://api.github.com/user', headers={
+            'Authorization': f'token {token}',
+            'Accept': 'application/vnd.github.v3+json',
+        })
+        info = info_res.json()
 
-    oauth2_check_state(req)
+        uid = info.get('id', None)
+        if uid is None:
+            worker.log('warning', 'api.auth.github', f'get user failed:\n{info}')
+            raise AuthError('GitHub UID不存在')
 
-    token_res = await http_client.post('https://github.com/login/oauth/access_token', params={
-        'client_id': secret.GITHUB_APP_ID,
-        'client_secret': secret.GITHUB_APP_SECRET,
-        'code': oauth_code,
-    }, headers={
-        'Accept': 'application/json',
-    })
-    token = token_res.json().get('access_token', None)
-    if token is None:
-        worker.log('warning', 'api.auth.github', f'get access_token failed:\n{token_res.json()}')
-        raise AuthError('GitHub Token不存在')
+        return f'github:{uid}', {
+            'type': 'github',
+            'info': info,
+            'access_token': token
+        }, 'other'
 
-    info_res = await http_client.get('https://api.github.com/user', headers={
-        'Authorization': f'token {token}',
-        'Accept': 'application/vnd.github.v3+json',
-    })
-    info = info_res.json()
+if secret.MS_APP_ID:
+    @bp.route('/microsoft/login')
+    async def auth_ms_req(req: Request) -> HTTPResponse:
+        return oauth2_redirect(
+            'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize',
+            {
+                'client_id': secret.MS_APP_ID,
+                'response_type': 'code',
+                'response_mode': 'query',
+                'scope': 'User.Read',
+            },
+            secret.BUILD_OAUTH_CALLBACK_URL(
+                req.app.url_for('auth.auth_ms_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
+            ),
+        )
 
-    uid = info.get('id', None)
-    if uid is None:
-        worker.log('warning', 'api.auth.github', f'get user failed:\n{info}')
-        raise AuthError('GitHub UID不存在')
+    @bp.route('/microsoft/login/callback')
+    @auth_response
+    async def auth_ms_res(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
+        oauth_code = req.args.get('code', None)
+        if not oauth_code:
+            raise AuthError('OAuth登录失败')
 
-    return f'github:{uid}', {
-        'type': 'github',
-        'info': info,
-        'access_token': token
-    }, 'other'
+        oauth2_check_state(req)
 
-@bp.route('/microsoft/login')
-async def auth_ms_req(req: Request) -> HTTPResponse:
-    return oauth2_redirect(
-        'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize',
-        {
+        token_res = await http_client.post('https://login.microsoftonline.com/consumers/oauth2/v2.0/token', data={
             'client_id': secret.MS_APP_ID,
-            'response_type': 'code',
-            'response_mode': 'query',
+            'client_secret': secret.MS_APP_SECRET,
+            'code': oauth_code,
+            'grant_type': 'authorization_code',
             'scope': 'User.Read',
-        },
-        secret.BUILD_OAUTH_CALLBACK_URL(
-            req.app.url_for('auth.auth_ms_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
-        ),
-    )
+            'redirect_uri': secret.BUILD_OAUTH_CALLBACK_URL(
+                req.app.url_for('auth.auth_ms_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
+            ),
+        })
+        token_json = token_res.json()
+        token = token_json.get('access_token', None)
+        if token is None:
+            worker.log('warning', 'api.auth.ms', f'get access_token failed:\n{token_json}')
+            raise AuthError('MS Token不存在')
 
-@bp.route('/microsoft/login/callback')
-@auth_response
-async def auth_ms_res(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
-    oauth_code = req.args.get('code', None)
-    if not oauth_code:
-        raise AuthError('OAuth登录失败')
+        info_res = await http_client.get('https://graph.microsoft.com/v1.0/me', headers={
+            'Authorization': f'Bearer {token}',
+        })
+        info = info_res.json()
 
-    oauth2_check_state(req)
+        uid = info.get('id', None)
+        if uid is None:
+            worker.log('warning', 'api.auth.ms', f'get user failed:\n{info}')
+            raise AuthError('MS UID不存在')
 
-    token_res = await http_client.post('https://login.microsoftonline.com/consumers/oauth2/v2.0/token', data={
-        'client_id': secret.MS_APP_ID,
-        'client_secret': secret.MS_APP_SECRET,
-        'code': oauth_code,
-        'grant_type': 'authorization_code',
-        'scope': 'User.Read',
-        'redirect_uri': secret.BUILD_OAUTH_CALLBACK_URL(
-            req.app.url_for('auth.auth_ms_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
-        ),
-    })
-    token_json = token_res.json()
-    token = token_json.get('access_token', None)
-    if token is None:
-        worker.log('warning', 'api.auth.ms', f'get access_token failed:\n{token_json}')
-        raise AuthError('MS Token不存在')
+        return f'ms:{uid}', {
+            'type': 'microsoft',
+            'info': info,
+            'access_token': token,
+        }, 'other'
 
-    info_res = await http_client.get('https://graph.microsoft.com/v1.0/me', headers={
-        'Authorization': f'Bearer {token}',
-    })
-    info = info_res.json()
+if secret.IAAA_APP_ID:
+    @bp.route('/pku/redirect')
+    async def auth_pku_req(req: Request) -> HTTPResponse:
+        return await iaaa_login()
 
-    uid = info.get('id', None)
-    if uid is None:
-        worker.log('warning', 'api.auth.ms', f'get user failed:\n{info}')
-        raise AuthError('MS UID不存在')
+    @bp.route('/pku/login')
+    @auth_response
+    async def auth_pku_res(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
+        return await iaaa_check(req, http_client, worker)
 
-    return f'ms:{uid}', {
-        'type': 'microsoft',
-        'info': info,
-        'access_token': token,
-    }, 'other'
+if secret.CARSI_APP_ID:
+    def carsi_decrypt(data_b64: str) -> str:
+        import OpenSSL.crypto
+        from cryptography.hazmat.primitives.asymmetric import padding
 
-@bp.route('/pku/redirect')
-async def auth_pku_req(req: Request) -> HTTPResponse:
-    return await iaaa_login()
+        data = base64.b64decode(data_b64.encode())
+        k = secret.CARSI_PRIV_KEY.to_cryptography_key()
+        return k.decrypt(data, padding.PKCS1v15()).decode() # type: ignore
 
-@bp.route('/pku/login')
-@auth_response
-async def auth_pku_res(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
-    return await iaaa_check(req, http_client, worker)
+    @bp.route('/carsi/login')
+    async def auth_carsi_req(req: Request) -> HTTPResponse:
+        return oauth2_redirect(
+            'https://spoauth2pre.carsi.edu.cn/api/authorize',
+            {
+                'response_type': 'code',
+                'client_id': secret.CARSI_APP_ID,
+            },
+            secret.BUILD_OAUTH_CALLBACK_URL(
+                req.app.url_for('auth.auth_carsi_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
+            ),
+        )
+
+    @bp.route('/carsi/login/callback')
+    @auth_response
+    async def auth_carsi_res(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
+        oauth_code = req.args.get('code', None)
+        if not oauth_code:
+            raise AuthError('OAuth登录失败')
+
+        #oauth2_check_state(req)
+
+        token_res = await http_client.post(f'https://{secret.CARSI_DOMAIN}/api/token', data={
+            'grant_type': 'authorization_code',
+            'client_id': secret.CARSI_APP_ID,
+            'client_secret': secret.CARSI_APP_SECRET,
+            'code': oauth_code,
+        })
+        token = token_res.json().get('access_token', None)
+        if token is None:
+            worker.log('warning', 'api.auth.carsi', f'get access_token failed:\n{token_res.json()}')
+            raise AuthError('Carsi Token不存在')
+
+        info_res = await http_client.get(f'https://{secret.CARSI_DOMAIN}/api/resource', params={
+            'access_token': token,
+            'client_id': secret.CARSI_APP_ID,
+        })
+        info = info_res.json()
+
+        uid_enc = info.get('carsi-persistent-uid', None)
+        if uid_enc is None:
+            worker.log('warning', 'api.auth.carsi', f'get user failed:\n{info}')
+            raise AuthError('Carsi UID不存在')
+
+        uid = carsi_decrypt(uid_enc)
+        affiliation = carsi_decrypt(info['carsi-affiliation'])
+        usertype, _at, domain = affiliation.rpartition('@')
+        assert _at == '@', affiliation
+
+        return f'carsi:{uid}', {
+            'type': 'carsi',
+            'info': {
+                'usertype': usertype,
+                'domain': domain,
+            },
+            'access_token': token
+        }, 'other'
+
+    @bp.route('/carsi/logout')
+    async def auth_carsi_logout(_req: Request) -> HTTPResponse:
+        del res.cookies['auth_token']  # type: ignore
+        del res.cookies['admin_2fa']  # type: ignore
+        return response.json({"status": 1, "msg": ""})
