@@ -103,7 +103,7 @@ class Reducer(StateContainerBase):
             if user is None:
                 return 'user not found'
 
-            if 1000*time.time()-user.profile.timestamp_ms<2900:
+            if 1000*time.time()-user.profile.timestamp_ms<9800:
                 return '请求太频繁'
 
             allowed_profiles = UserProfileStore.PROFILE_FOR_GROUP.get(user.group, [])
