@@ -6,7 +6,7 @@ from ..state import Submission, User
 from .. import utils
 
 TIME_MAX = 1e50
-MAX_ROWS = 10
+MAX_ROWS = 7
 
 async def check_submission(sub: Submission, worker: Worker) -> None:
     if sub.matched_flag is not None or sub.duplicate_submission: # correct answer, no need to check
@@ -68,7 +68,7 @@ async def check_submission(sub: Submission, worker: Worker) -> None:
             f'- U#{u._store.id} {u._store.login_key} {describe_origin(u)}'
             for u in origin_users[:MAX_ROWS]
         )
-        + (f'\n(showing first {MAX_ROWS})' if MAX_ROWS!=len(origin_users) else '')
+        + (f'\n(showing first {MAX_ROWS})' if MAX_ROWS<=len(origin_users) else '')
     )
 
     worker.log('success', 'police.check_submission', report_text)
