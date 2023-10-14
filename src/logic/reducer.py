@@ -78,6 +78,7 @@ class Reducer(StateContainerBase):
 
             profile = UserProfileStore(
                 user_id=uid,
+                timestamp_ms=0,
                 # other metadata can be pre-filled here
             )
             session.add(profile)
