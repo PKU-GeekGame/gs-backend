@@ -92,7 +92,7 @@ def fix_zmq_asyncio_windows() -> None:
         pass
 
 @contextmanager
-def log_slow(logger: Callable[[LogLevel, str, str], None], module: str, func: str, threshold: float = 0.3) -> Iterator[None]:
+def log_slow(logger: Callable[[LogLevel, str, str], None], module: str, func: str, threshold: float = 0.5) -> Iterator[None]:
     t1 = time.monotonic()
     try:
         yield
