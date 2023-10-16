@@ -57,11 +57,6 @@ class Users(WithGameLifecycle):
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         submission.user.on_scoreboard_update(submission, in_batch)
-        if submission.matched_flag:
-            # also update other passed users because score might have changed
-            for u in submission.matched_flag.passed_users:
-                if u is not submission.user:
-                    u.on_scoreboard_update(submission, in_batch)
 
     def on_scoreboard_batch_update_done(self) -> None:
         for user in self.list:
@@ -80,7 +75,6 @@ class User(WithGameLifecycle):
         self.submissions: List[Submission] = []
         self.tot_score: int = 0
         self.tot_score_by_cat: Dict[str, int] = {}
-        self.tot_score_history: Dict[int, int] = {}
 
         self.on_store_reload(self._store)
 
@@ -95,30 +89,27 @@ class User(WithGameLifecycle):
         self.passed_challs = {}
         self.succ_submissions = []
         self.submissions = []
-        self.tot_score_history = {}
         self._update_tot_score()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
-        if submission._store.user_id==self._store.id: # always true as delegated from Users
-            self.submissions.append(submission)
+        assert submission._store.user_id==self._store.id # always true as delegated from Users
 
-            if submission.matched_flag is not None:
-                ch = submission.matched_flag.challenge
+        self.submissions.append(submission)
 
-                self.passed_flags[submission.matched_flag] = submission
-                if self in ch.passed_users:
-                    self.passed_challs[ch] = submission
+        if submission.matched_flag is not None:
+            ch = submission.matched_flag.challenge
 
-                self.succ_submissions.append(submission)
+            self.passed_flags[submission.matched_flag] = submission
+            if self in ch.passed_users: # passed all flags in that challenge?
+                self.passed_challs[ch] = submission
 
-        # tot_score may be changed when someone else caused a score update to a passed flag
-        if (
-            submission.matched_flag is not None
-            and submission.matched_flag in self.passed_flags
-        ):
-            self._update_score_history(submission._store.timestamp_ms//1000)
+            self.succ_submissions.append(submission)
+
             if not in_batch:
-                self._update_tot_score()
+                # update tot score of all passed users because their score might have changed
+                for u in submission.matched_flag.passed_users:
+                    u._update_tot_score()
+
 
     def on_scoreboard_batch_update_done(self) -> None:
         self._update_tot_score()
@@ -132,18 +123,9 @@ class User(WithGameLifecycle):
             score = sub.gained_score()
 
             self.tot_score += score
-            self.tot_score_by_cat.setdefault(cat, 0)
-            self.tot_score_by_cat[cat] += score
 
-    def _update_score_history(self, timestamp_s: int) -> None:
-        prev_score = self.tot_score
-        self.tot_score = 0
-
-        for f, sub in self.passed_flags.items():
-            self.tot_score += sub.gained_score()
-
-        if self.tot_score!=prev_score:
-            self.tot_score_history[timestamp_s] = self.tot_score
+            old = self.tot_score_by_cat.get(cat, 0)
+            self.tot_score_by_cat[cat] = old + score
 
     @property
     def last_succ_submission(self) -> Optional[Submission]:
@@ -199,6 +181,42 @@ class User(WithGameLifecycle):
             f'U#{self._store.id}',
             f'remark:{self._store.login_key} {self._store.format_login_properties()}',
         ]
+
+    def get_score_history(self) -> List[Tuple[int, int]]: # (timestamp_s_delta, score_delta)
+        events = []
+        for f, sub in self.passed_flags.items():
+            pass_sub_id = sub._store.id
+
+            prev_score = 0
+            _passed = False
+            for since_id, score in f.score_history:
+                if pass_sub_id==since_id:
+                    _passed = True
+                    events.append((pass_sub_id, score))
+
+                elif pass_sub_id<since_id:
+                    if not _passed:
+                        _passed = True
+                        events.append((pass_sub_id, prev_score))
+
+                    delta = score - prev_score
+                    events.append((since_id, delta))
+
+                prev_score = score
+
+            if not _passed:
+                events.append((pass_sub_id, prev_score))
+
+        events.sort(key=lambda x: x[0])
+
+        ret = []
+        last_time_s = 0
+        for sid, score_delta in events:
+            time_s = self._game.submissions[sid]._store.timestamp_ms // 1000
+            ret.append((time_s-last_time_s, score_delta))
+            last_time_s = time_s
+
+        return ret
 
     def __repr__(self) -> str:
         return repr(self._store)

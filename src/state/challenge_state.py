@@ -123,20 +123,18 @@ class Challenge(WithGameLifecycle):
         self._update_tot_score()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
-        if submission.challenge is not None and submission.challenge._store.id==self._store.id: # always true as delegated from Challenges
-            all_passed = True
-            for flag in self.flags:
-                flag.on_scoreboard_update(submission, in_batch)
+        assert submission.challenge is not None and submission.challenge._store.id==self._store.id # always true as delegated from Challenges
 
-                if submission.user not in flag.passed_users:
-                    all_passed = False
+        if submission.matched_flag is not None:
+            submission.matched_flag.on_scoreboard_update(submission, in_batch)
+
+            self._update_tot_score()
+            self.touched_users.add(submission.user)
+
+            all_passed = all(submission.user in flag.passed_users for flag in self.flags)
 
             if all_passed:
                 self.passed_users.add(submission.user)
-
-            if submission.matched_flag is not None:
-                self._update_tot_score()
-                self.touched_users.add(submission.user)
 
     def _update_tot_score(self) -> None:
         self.tot_base_score = 0

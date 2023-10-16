@@ -2,8 +2,7 @@ from __future__ import annotations
 import hashlib
 import string
 from functools import lru_cache
-from pathlib import Path
-from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable
+from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable, Tuple
 
 if TYPE_CHECKING:
     from . import Game, Challenge, User, Submission
@@ -61,14 +60,22 @@ class Flag(WithGameLifecycle):
         self.base_score: int = descriptor['base_score']
 
         self.cur_score: int = 0
+        self.score_history: List[Tuple[int, int]] = []
+
         self.passed_users: Set[User] = set()
         self.passed_users_for_score_calculation: Set[User] = set()
 
-    def _update_cur_score(self) -> None:
+    def _calc_cur_score(self) -> int:
         u = len(self.passed_users_for_score_calculation)
-        self.cur_score = int(self.base_score * (.4 + .6 * (.98**u)))
+        return int(self.base_score * (.4 + .6 * (.98**u)))
 
-    @lru_cache(maxsize=4096)
+    def _update_cur_score(self, sub: Submission) -> None:
+        new_score = self._calc_cur_score()
+        if self.cur_score != new_score:
+            self.cur_score = new_score
+            self.score_history.append((sub._store.id, new_score))
+
+    @lru_cache(maxsize=None)
     def correct_flag(self, user: User) -> str:
         try:
             if self.type=='static':
@@ -93,19 +100,23 @@ class Flag(WithGameLifecycle):
 
     def on_scoreboard_reset(self) -> None:
         self.cur_score = self.base_score
+        self.score_history = [(0, self.base_score)]
+
         self.passed_users = set()
         self.passed_users_for_score_calculation = set()
-        self._update_cur_score()
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
-        if submission.matched_flag is self:
-            self.passed_users.add(submission.user)
-            if (
-                submission.user._store.group in UserStore.MAIN_BOARD_GROUPS # user is in main board
-                and submission._store.precentage_override_or_null is None # submission not in second phase
-            ):
-                self.passed_users_for_score_calculation.add(submission.user)
-            self._update_cur_score()
+        assert submission.matched_flag is self # always true as delegated from Challenge
+
+        self.passed_users.add(submission.user)
+
+        if (
+            submission.user._store.group in UserStore.MAIN_BOARD_GROUPS # user is in main board
+            and submission._store.precentage_override_or_null is None # submission not in second phase
+        ):
+            self.passed_users_for_score_calculation.add(submission.user)
+
+        self._update_cur_score(submission)
 
     def __repr__(self) -> str:
         return f'[{self.challenge._store.key}#{self.idx0+1}]'

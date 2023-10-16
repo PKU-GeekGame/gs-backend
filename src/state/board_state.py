@@ -77,14 +77,6 @@ class ScoreBoard(Board):
     def _render(self, is_admin: bool) -> Dict[str, Any]:
         self._game.worker.log('debug', 'board.render', f'rendering score board {self.name}')
 
-        def _make_delta(d: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-            x0, y0 = 0, 0
-            ret = []
-            for x, y in d:
-                ret.append((x-x0, y-y0))
-                x0, y0 = x, y
-            return ret
-
         return {
             'challenges': [{
                 'key': ch._store.key,
@@ -117,7 +109,7 @@ class ScoreBoard(Board):
             'topstars': [{
                 'uid': u._store.id,
                 'nickname': u._store.profile.nickname_or_null or '--',
-                'history': _make_delta(list(u.tot_score_history.items())),
+                'history': u.get_score_history(),
             } for u, _score in self.board[:self.MAX_TOPSTAR_USERS]],
 
             'time_range': [
@@ -209,7 +201,7 @@ class FirstBloodBoard(Board):
                             'togroups': self.group,
                         })
 
-                if submission.challenge not in self.chall_board and passed_all_flags:
+                if passed_all_flags and submission.challenge not in self.chall_board:
                     self.chall_board[submission.challenge] = submission
 
                     if not should_skip_push:

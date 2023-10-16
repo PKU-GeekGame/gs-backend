@@ -65,7 +65,7 @@ class Game(WithGameLifecycle):
 
         self.submissions[submission._store.id] = submission
 
-        self.policy.on_scoreboard_update(submission, in_batch)
+        #self.policy.on_scoreboard_update(submission, in_batch) # optimized out because nothing to do
         self.challenges.on_scoreboard_update(submission, in_batch)
         self.users.on_scoreboard_update(submission, in_batch)
         for b in self.boards.values():
