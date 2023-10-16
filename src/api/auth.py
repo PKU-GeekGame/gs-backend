@@ -55,12 +55,16 @@ async def _register_or_login(req: Request, worker: Worker, login_key: str, prope
     user = worker.game.users.user_by_login_key.get(login_key)
 
     if user is None:  # reg new user
+        if not secret.REGISTRATION_ENABLED:
+            raise AuthError('目前不允许注册新账户')
+
         rep = await worker.perform_action(glitter.RegUserReq(
             client=worker.process_name,
             login_key=login_key,
             login_properties=properties,
             group=group,
         ))
+
         if rep.error_msg is None:
             user = worker.game.users.user_by_login_key.get(login_key)
             assert user is not None, 'user should be created'

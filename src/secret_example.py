@@ -109,6 +109,8 @@ def BUILD_OAUTH_CALLBACK_URL(url: str) -> str:
 
 MANUAL_AUTH_ENABLED = True # it should be disabled in production after setting up
 
+REGISTRATION_ENABLED = True # can register new user; if set to false, only existing users can login
+
 def IS_ADMIN(user: UserStore) -> bool:
     ADMIN_UIDS = [1]
     return (
