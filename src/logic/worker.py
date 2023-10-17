@@ -36,7 +36,7 @@ class Worker(StateContainerBase):
         self.state_counter_cond: asyncio.Condition = asyncio.Condition()
 
         self.last_heartbeat_time: float = 0
-        self._haertbeat_task: Optional[asyncio.Task[None]] = None
+        self._heartbeat_task: Optional[asyncio.Task[None]] = None
 
     async def _sync_with_reducer(self, *, throttled: bool = True) -> None:
         self.game_dirty = True
@@ -124,7 +124,7 @@ class Worker(StateContainerBase):
                     self.state_counter_cond.notify_all()
 
                 # send heartbeat if needed
-                self._haertbeat_task = asyncio.create_task(self.send_heartbeat())
+                self._heartbeat_task = asyncio.create_task(self.send_heartbeat())
 
 
     async def perform_action(self, req: glitter.ActionReq) -> glitter.ActionRep:
