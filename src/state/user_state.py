@@ -62,6 +62,18 @@ class Users(WithGameLifecycle):
         for user in self.list:
             user.on_scoreboard_batch_update_done()
 
+class ScoreHistory:
+    def __init__(self) -> None:
+        self.last_ts = 0
+        self.last_score = 0
+        self.diff: List[Tuple[int, int]] = [] # (ts_delta, score_delta)
+
+    def append(self, ts: int, score: int) -> None:
+        if score!=self.last_score:
+            self.diff.append((ts-self.last_ts, score-self.last_score))
+            self.last_ts = ts
+            self.last_score = score
+
 class User(WithGameLifecycle):
     WRITEUP_REQUIRED_RANK = 35
 
@@ -76,6 +88,8 @@ class User(WithGameLifecycle):
         self.tot_score: int = 0
         self.tot_score_by_cat: Dict[str, int] = {}
 
+        self._score_history: Optional[ScoreHistory] = None
+
         self.on_store_reload(self._store)
 
     def on_store_reload(self, store: UserStore) -> None:
@@ -89,7 +103,10 @@ class User(WithGameLifecycle):
         self.passed_challs = {}
         self.succ_submissions = []
         self.submissions = []
-        self._update_tot_score()
+
+        self._score_history = None # delay initialize to first use
+
+        self._update_tot_score(None)
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         assert submission._store.user_id==self._store.id # always true as delegated from Users
@@ -108,13 +125,13 @@ class User(WithGameLifecycle):
             if not in_batch:
                 # update tot score of all passed users because their score might have changed
                 for u in submission.matched_flag.passed_users:
-                    u._update_tot_score()
+                    u._update_tot_score(submission)
 
 
     def on_scoreboard_batch_update_done(self) -> None:
-        self._update_tot_score()
+        self._update_tot_score(None)
 
-    def _update_tot_score(self) -> None:
+    def _update_tot_score(self, score_updating_sub: Optional[Submission]) -> None:
         self.tot_score = 0
         self.tot_score_by_cat = {}
 
@@ -127,6 +144,44 @@ class User(WithGameLifecycle):
             old = self.tot_score_by_cat.get(cat, 0)
             self.tot_score_by_cat[cat] = old + score
 
+        if score_updating_sub is not None and self._score_history is not None:
+            self._score_history.append(score_updating_sub._store.timestamp_ms//1000, self.tot_score)
+
+    def _recalc_score_history(self) -> None:
+        events = []
+        for f, sub in self.passed_flags.items():
+            pass_sub_id = sub._store.id
+
+            prev_score = 0
+            _passed = False
+            for since_id, score in f.score_history:
+                if pass_sub_id==since_id:
+                    _passed = True
+                    events.append((pass_sub_id, score))
+
+                elif pass_sub_id<since_id:
+                    if not _passed:
+                        _passed = True
+                        events.append((pass_sub_id, prev_score))
+
+                    delta = score - prev_score
+                    events.append((since_id, delta))
+
+                prev_score = score
+
+            if not _passed:
+                events.append((pass_sub_id, prev_score))
+
+        events.sort(key=lambda x: x[0])
+
+        self._score_history = ScoreHistory()
+        tot_score = 0
+        for sid, score_delta in events:
+            time_s = self._game.submissions[sid]._store.timestamp_ms//1000
+            tot_score += score_delta
+
+            self._score_history.append(time_s, tot_score)
+
     @property
     def last_succ_submission(self) -> Optional[Submission]:
         return self.succ_submissions[-1] if len(self.succ_submissions)>0 else None
@@ -134,6 +189,14 @@ class User(WithGameLifecycle):
     @property
     def last_submission(self) -> Optional[Submission]:
         return self.submissions[-1] if len(self.submissions)>0 else None
+
+    @property
+    def score_history_diff(self) -> List[Tuple[int, int]]:
+        if self._score_history is None:
+            self._recalc_score_history()
+            assert self._score_history is not None
+
+        return self._score_history.diff
 
     def check_login(self) -> Optional[Tuple[str, str]]:
         if not self._store.enabled:
@@ -181,42 +244,6 @@ class User(WithGameLifecycle):
             f'U#{self._store.id}',
             f'remark:{self._store.login_key} {self._store.format_login_properties()}',
         ]
-
-    def get_score_history(self) -> List[Tuple[int, int]]: # (timestamp_s_delta, score_delta)
-        events = []
-        for f, sub in self.passed_flags.items():
-            pass_sub_id = sub._store.id
-
-            prev_score = 0
-            _passed = False
-            for since_id, score in f.score_history:
-                if pass_sub_id==since_id:
-                    _passed = True
-                    events.append((pass_sub_id, score))
-
-                elif pass_sub_id<since_id:
-                    if not _passed:
-                        _passed = True
-                        events.append((pass_sub_id, prev_score))
-
-                    delta = score - prev_score
-                    events.append((since_id, delta))
-
-                prev_score = score
-
-            if not _passed:
-                events.append((pass_sub_id, prev_score))
-
-        events.sort(key=lambda x: x[0])
-
-        ret = []
-        last_time_s = 0
-        for sid, score_delta in events:
-            time_s = self._game.submissions[sid]._store.timestamp_ms // 1000
-            ret.append((time_s-last_time_s, score_delta))
-            last_time_s = time_s
-
-        return ret
 
     def __repr__(self) -> str:
         return repr(self._store)

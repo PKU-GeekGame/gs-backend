@@ -109,7 +109,7 @@ class ScoreBoard(Board):
             'topstars': [{
                 'uid': u._store.id,
                 'nickname': u._store.profile.nickname_or_null or '--',
-                'history': u.get_score_history(),
+                'history': u.score_history_diff,
             } for u, _score in self.board[:self.MAX_TOPSTAR_USERS]],
 
             'time_range': [
