@@ -21,3 +21,12 @@ class SubmissionStore(Table):
 
     score_override_or_null = Column(Integer, nullable=True)
     precentage_override_or_null = Column(Integer, nullable=True)
+
+    def tweak_score(self, flag_score: int) -> int:
+        if self.score_override_or_null is not None:
+            return self.score_override_or_null
+
+        if self.precentage_override_or_null is not None:
+            return int(flag_score * self.precentage_override_or_null / 100)
+
+        return flag_score

@@ -151,23 +151,20 @@ class User(WithGameLifecycle):
         events = []
         for f, sub in self.passed_flags.items():
             pass_sub_id = sub._store.id
+            tweak = sub._store.tweak_score
 
             prev_score = 0
             _passed = False
             for since_id, score in f.score_history:
-                if pass_sub_id==since_id:
-                    _passed = True
-                    events.append((pass_sub_id, score))
-
-                elif pass_sub_id<since_id:
+                if pass_sub_id<=since_id:
                     if not _passed:
                         _passed = True
                         events.append((pass_sub_id, prev_score))
 
-                    delta = score - prev_score
+                    delta = tweak(score)-prev_score
                     events.append((since_id, delta))
 
-                prev_score = score
+                prev_score = tweak(score)
 
             if not _passed:
                 events.append((pass_sub_id, prev_score))

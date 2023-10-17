@@ -30,20 +30,10 @@ class Submission:
         return None
 
     def gained_score(self) -> int:
-        # note that flag score is constantly changing
-
-        if self._store.score_override_or_null is not None:
-            return self._store.score_override_or_null
-
         if self.matched_flag is None:
             return 0
-
-        score = self.matched_flag.cur_score
-
-        if self._store.precentage_override_or_null is not None:
-            score = int(score*self._store.precentage_override_or_null/100)
-
-        return score
+        else:
+            return self._store.tweak_score(self.matched_flag.cur_score)
 
     def __repr__(self) -> str:
         return f'[Sub#{self._store.id} U#{self.user._store.id} Ch={self._store.challenge_key!r} Flag={self.matched_flag!r}]'
