@@ -69,10 +69,20 @@ class ScoreHistory:
         self.diff: List[Tuple[int, int]] = [] # (ts_delta, score_delta)
 
     def append(self, ts: int, score: int) -> None:
-        if score!=self.last_score:
-            self.diff.append((ts-self.last_ts, score-self.last_score))
-            self.last_ts = ts
-            self.last_score = score
+        score_diff = score-self.last_score
+        if score_diff==0:
+            return
+
+        ts_diff = ts-self.last_ts
+
+        if self.diff and ts_diff==0: # same ts, modify prev diff
+            prev_ts_diff, prev_score_diff = self.diff[-1]
+            self.diff[-1] = (prev_ts_diff, prev_score_diff+score_diff)
+        else: # append a new diff
+            self.diff.append((ts_diff, score_diff))
+
+        self.last_ts = ts
+        self.last_score = score
 
 class User(WithGameLifecycle):
     WRITEUP_REQUIRED_RANK = 35
