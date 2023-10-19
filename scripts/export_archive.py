@@ -42,7 +42,7 @@ def rm_common_header(rows: List[List[str]], n: int) -> None:
         last_r = new_r
 
 def export_problemset(game: Game) -> None:
-    HEADERS = ['分类', '#', '官方题解和源码', '题目标题', 'Flag', '分值', '校内通过', '总通过']
+    HEADERS = ['分类', '官方题解和源码', '题目标题', 'Flag', '分值', '校内通过', '总通过']
 
     d = []
 
@@ -64,7 +64,6 @@ def export_problemset(game: Game) -> None:
 
             rows.append([
                 ch._store.category,
-                ch._store.key,
                 f'[→ {ch._store.key}](../official_writeup/{ch._store.key}/)',
                 ch._store.title,
                 flag.name or '/',
