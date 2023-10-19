@@ -21,9 +21,6 @@ EXPORT_PATH.mkdir()
 
 UID_FOR_PREVIEW = 1 # used for dyn_attachment and template rendering
 
-with open('scripts/probid_mapping.json') as f:
-    PROBID_MAPPING: Dict[str, str] = json.load(f)
-
 def gen_md_table(headers: List[str], rows: List[List[str]]) -> str:
     ret = []
     ret.append(f'| {" | ".join(headers)} |')
@@ -68,7 +65,7 @@ def export_problemset(game: Game) -> None:
             rows.append([
                 ch._store.category,
                 ch._store.key,
-                f'[→ {PROBID_MAPPING[ch._store.key]}](../official_writeup/{PROBID_MAPPING[ch._store.key]}/)',
+                f'[→ {ch._store.key}](../official_writeup/{ch._store.key}/)',
                 ch._store.title,
                 flag.name or '/',
                 flag.base_score,
@@ -85,7 +82,7 @@ def export_problemset(game: Game) -> None:
 
     for ch in game.challenges.list:
         d.append(f'## [{ch._store.category}] {ch._store.title}')
-        d.append(f'**[【→ 官方题解和源码】](../official_writeup/{PROBID_MAPPING[ch._store.key]}/)**')
+        d.append(f'**[【→ 官方题解和源码】](../official_writeup/{ch._store.key}/)**')
         d.append(ch.render_desc(game.users.user_by_id[UID_FOR_PREVIEW]))
 
     (EXPORT_PATH / 'problemset').mkdir()
@@ -229,7 +226,7 @@ def export_game(game: Game):
 
     (EXPORT_PATH / 'official_writeup').mkdir()
     for ch in game.challenges.list:
-        export_official_writeup(game, ch, EXPORT_PATH / 'official_writeup' / PROBID_MAPPING[ch._store.key])
+        export_official_writeup(game, ch, EXPORT_PATH / 'official_writeup' / ch._store.key)
 
     (EXPORT_PATH / 'ranking').mkdir()
     export_ranking_list(game)

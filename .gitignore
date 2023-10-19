@@ -10,5 +10,3 @@ __pycache__/
 /src/api/endpoint/auth_pku.py
 
 /data/
-
-/scripts/probid_mapping.json
