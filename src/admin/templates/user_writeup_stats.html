@@ -20,7 +20,8 @@
     <thead>
     <tr>
         <th>U#</th>
-        <th>Login</th>
+        <th>Key</th>
+        <th>Properties</th>
         <th>Score</th>
         <th>Nickname</th>
         <th>Last Submission</th>
@@ -38,9 +39,8 @@
                     <i>{{ row.uid }}</i>
                 {% endif %}
             </td>
-            <td>
-                {{ row.login_properties }}
-            </td>
+            <td>{{ row.login_key }}</td>
+            <td>{{ row.login_properties }}</td>
             <td>{{ row.score }}</td>
             <td>{{ row.nickname }}</td>
             {% if row.writeup is none %}

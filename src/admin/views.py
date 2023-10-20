@@ -586,6 +586,7 @@ class UserView(ViewBase):
                 'required': required,
                 'nickname': u._store.profile.nickname_or_null,
                 'score': score,
+                'login_key': u._store.login_key,
                 'login_properties': u._store.format_login_properties(),
                 'writeup': None if metadata is None else {
                     **metadata,
