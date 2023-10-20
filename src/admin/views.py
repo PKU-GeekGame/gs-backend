@@ -583,6 +583,7 @@ class UserView(ViewBase):
 
             return {
                 'uid': str(u._store.id),
+                'required': required,
                 'nickname': u._store.profile.nickname_or_null,
                 'score': score,
                 'login_properties': u._store.format_login_properties(),

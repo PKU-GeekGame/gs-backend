@@ -7,7 +7,7 @@
             background-color: lightgreen;
         }
         .writeup-publish-Maybe {
-            background-color: darkgray;
+            background-color: lightgray;
         }
         .writeup-publish-Always-No {
             background-color: lightcoral;
@@ -31,7 +31,13 @@
     <tbody>
     {% for row in rows %}
         <tr>
-            <td>{{ row.uid }}</td>
+            <td>
+                {% if row.required %}
+                    <b>{{ row.uid }}</b>
+                {% else %}
+                    <i>{{ row.uid }}</i>
+                {% endif %}
+            </td>
             <td>
                 {{ row.login_properties }}
             </td>
