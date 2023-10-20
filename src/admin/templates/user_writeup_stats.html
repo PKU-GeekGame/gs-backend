@@ -1,0 +1,65 @@
+{% extends 'admin/master.html' %}
+
+{% block head_css %}
+    {{ super() }}
+    <style>
+        .writeup-publish-Always-Yes {
+            background-color: lightgreen;
+        }
+        .writeup-publish-Maybe {
+            background-color: darkgray;
+        }
+        .writeup-publish-Always-No {
+            background-color: lightcoral;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <table class="table table-bordered">
+    <thead>
+    <tr>
+        <th>U#</th>
+        <th>Login</th>
+        <th>Score</th>
+        <th>Nickname</th>
+        <th>Last Submission</th>
+        <th>File</th>
+        <th>License</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for row in rows %}
+        <tr>
+            <td>{{ row.uid }}</td>
+            <td>
+                {{ row.login_properties }}
+            </td>
+            <td>{{ row.score }}</td>
+            <td>{{ row.nickname }}</td>
+            {% if row.writeup is none %}
+                <td colspan="3">
+                    <span style="background-color: yellow; font-weight: bold">MISSING</span>
+                </td>
+            {% else %}
+                <td>
+                    <a href="{{ get_url('writeup.index_view', path='/'+row.uid) }}">
+                        {{ row.writeup.timestamp_ms | timestamp_ms }}
+                    </a>
+                </td>
+                <td>
+                    <a href="{{ get_url('writeup.download', path='/'+row.uid+'/'+row.writeup.filename) }}">
+                        {{ row.writeup.size | size }}
+                        (.{{ row.writeup.file_ext }})
+                    </a>
+                </td>
+                <td>
+                    <span class="writeup-publish-{{ row.writeup.publish }}">{{ row.writeup.publish }}</span>
+                    ({{ row.writeup.rights }})
+                </td>
+            {% endif %}
+        </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+{% endblock %}

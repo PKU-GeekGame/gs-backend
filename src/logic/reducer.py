@@ -22,7 +22,7 @@ class Reducer(StateContainerBase):
     SYNC_INTERVAL_S = 3
 
     def __init__(self, process_name: str):
-        super().__init__(process_name, use_boards=False)
+        super().__init__(process_name)
 
         self.action_socket: Socket = self.glitter_ctx.socket(zmq.REP) # type: ignore
         self.event_socket: Socket = self.glitter_ctx.socket(zmq.PUB) # type: ignore

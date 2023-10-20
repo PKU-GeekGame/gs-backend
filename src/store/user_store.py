@@ -2,12 +2,15 @@ from __future__ import annotations
 from sqlalchemy import Column, String, JSON, Integer, ForeignKey, BigInteger, Boolean
 from sqlalchemy.orm import relationship, validates
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List
+
+from . import Table
+from .. import secret
 
 if TYPE_CHECKING:
     # noinspection PyUnresolvedReferences
     from . import UserProfileStore
-from . import Table
 
 class UserStore(Table):
     __tablename__ = 'user'
@@ -94,3 +97,11 @@ class UserStore(Table):
             ret.extend(extra)
 
         return ret
+
+    @property
+    def writeup_path(self) -> Path:
+        return secret.WRITEUP_PATH / str(self.id)
+
+    @property
+    def writeup_metadata_path(self) -> Path:
+        return self.writeup_path / 'metadata.json'

@@ -13,6 +13,7 @@ from ..wish import wish_endpoint
 from ...state import User, ScoreBoard, Submission
 from ...logic import Worker, glitter
 from ...store import UserProfileStore, ChallengeStore
+from ... import utils
 from ... import secret
 
 bp = Blueprint('wish', url_prefix='/wish')
@@ -415,8 +416,8 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
     if not worker.game.policy.cur_policy.can_submit_writeup:
         return {'error': 'POLICY_ERROR', 'error_msg': '现在不允许提交Writeup'}
 
-    user_writeup_dir_path = secret.WRITEUP_PATH / str(user._store.id)
-    user_writeup_metadata_path = user_writeup_dir_path / 'metadata.json'
+    user_writeup_path = user._store.writeup_path
+    user_writeup_metadata_path = user._store.writeup_metadata_path
 
     if req.method=='POST':
         metadata: Optional[Dict[str, Any]] = None
@@ -439,7 +440,7 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
                 filename = json.load(f)['filename']
             assert '/' not in filename and '\\' not in filename
 
-            old_file = user_writeup_dir_path/filename
+            old_file = user_writeup_path/filename
             if old_file.is_file():
                 delta = time.time() - old_file.stat().st_mtime
                 if delta<60:
@@ -463,11 +464,11 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
         filename = f'{user._store.id}_writeup_{timestamp_ms}{get_file_ext(file.name)}'
         assert '/' not in filename and '\\' not in filename
 
-        user_writeup_dir_path.mkdir(parents=True, exist_ok=True)
+        user_writeup_path.mkdir(parents=True, exist_ok=True)
 
-        with (user_writeup_dir_path / filename).open('wb') as f:
+        with (user_writeup_path / filename).open('wb') as f:
             f.write(file.body)
-        with (user_writeup_dir_path / filename).open('rb') as f:
+        with (user_writeup_path / filename).open('rb') as f:
             sha256 = hashlib.sha256(f.read()).hexdigest()
 
         metadata = {
@@ -488,7 +489,7 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
             f' nick: {user._store.profile.nickname_or_null}\n'
             f' grp: {user._store.group} {user.tot_score}pt ({"" if user.writeup_required() else "NOT "}required)\n'
             f' filename: {file.name}\n'
-            f' size: {len(file.body)/1024/1024:.2f}M'
+            f' size: {utils.format_size(len(file.body))}'
         ), f'writeup:{user._store.id}')
 
         return {}

@@ -74,6 +74,16 @@ def format_timestamp(timestamp_s: Union[float, int]) -> str:
         t += f'.{int((timestamp_s%1)*1000):03d}'
     return t
 
+def format_size(size: int) -> str:
+    if size<1024:
+        return f'{size}B'
+    elif size<1024**2:
+        return f'{size/1024:.1f}K'
+    elif size<1024**3:
+        return f'{size/(1024**2):.1f}M'
+    else:
+        return f'{size/(1024**3):.1f}G'
+
 def sign_token(uid: int) -> str:
     sig = base64.urlsafe_b64encode(OpenSSL.crypto.sign(secret.TOKEN_SIGNING_KEY, str(uid).encode(), 'sha256')).decode()
     return f'{uid}:{sig}'

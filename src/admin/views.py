@@ -15,7 +15,7 @@ import time
 from flask.typing import ResponseReturnValue
 from typing import Any, Optional, Type, Dict, List
 
-from ..state import Trigger
+from ..state import Trigger, User
 from . import fields
 from ..logic import glitter
 from ..logic.reducer import Reducer
@@ -530,7 +530,7 @@ class UserView(ViewBase):
         url = request.args.get('url', self.get_url('.index_view'))
 
         if request.method=='GET':
-            return self.render('move_user_group.html', groups=store.UserStore.GROUPS)
+            return self.render('user_move_group.html', groups=store.UserStore.GROUPS)
         else:
             reducer: Reducer = current_app.config['reducer_obj']
             uids = sorted(list(set([int(u) for u in request.form['uids'].split()])))
@@ -560,6 +560,41 @@ class UserView(ViewBase):
             flash(f'成功修改用户组到 {group}：{" ".join([str(u) for u in uids])}', 'success')
 
             return redirect(url)
+
+    @expose('/writeup_stats')
+    def writeup_stats(self) -> ResponseReturnValue:
+        reducer: Reducer = current_app.config['reducer_obj']
+
+        list_users = []
+        for u in reducer._game.users.list:
+            if u.writeup_required():
+                list_users.append(((True, u.tot_score), u))
+            elif u._store.writeup_metadata_path.is_file():
+                list_users.append(((False, u.tot_score), u))
+
+        list_users.sort(key=lambda x: x[0], reverse=True)
+
+        def get_row(u: User, required: bool, score: int) -> Dict[str, Any]:
+            if u._store.writeup_metadata_path.is_file():
+                with u._store.writeup_metadata_path.open('r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+            else:
+                metadata = None
+
+            return {
+                'uid': str(u._store.id),
+                'nickname': u._store.profile.nickname_or_null,
+                'score': score,
+                'login_properties': u._store.format_login_properties(),
+                'writeup': None if metadata is None else {
+                    **metadata,
+                    'file_ext': metadata['filename'].rpartition('.')[2],
+                },
+            }
+
+        rows = [get_row(u, required, score) for ((required, score), u) in list_users]
+
+        return self.render('user_writeup_stats.html', rows=rows)
 
 VIEWS = {
     'AnnouncementStore': AnnouncementView,
