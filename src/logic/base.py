@@ -228,7 +228,7 @@ class StateContainerBase(ABC):
         def default(_self: Any, ev: glitter.Event) -> None:
             self.log('warning', 'base.process_event', f'unknown event: {ev.type!r}')
 
-        listener = event_listeners.get(event.type, default)
+        listener: CbMethod = event_listeners.get(event.type, default)
 
         try:
             with utils.log_slow(self.log, 'base.process_event', f'handle event {event.type}'):

@@ -18,6 +18,7 @@ pyopenssl~=22.0.0
 sanic~=22.12
 sanic-ext~=22.12
 httpx[http2]~=0.23.0
+websockets>=11.0 # websockets.connections renamed to websockets.protocol since then
 
 # admin
 flask~=2.3.2

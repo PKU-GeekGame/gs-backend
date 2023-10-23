@@ -19,6 +19,7 @@ import asyncio
 import secrets
 from pathlib import Path
 import os
+import sys
 import psutil
 import re
 import jinja2
@@ -95,11 +96,12 @@ def fix_zmq_asyncio_windows() -> None:
     # RuntimeError: Proactor event loop does not implement add_reader family of methods required for zmq.
     # zmq will work with proactor if tornado >= 6.1 can be found.
     # Use `asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())` or install 'tornado>=6.1' to avoid this error.
-    try:
-        if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    except AttributeError:
-        pass
+    if sys.platform=='win32':
+        try:
+            if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except AttributeError:
+            pass
 
 @contextmanager
 def log_slow(logger: Callable[[LogLevel, str, str], None], module: str, func: str, threshold: float = 0.3) -> Iterator[None]:

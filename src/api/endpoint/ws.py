@@ -2,7 +2,7 @@ from sanic import Blueprint, Request
 from sanic.server.websockets.impl import WebsocketImplProtocol
 import json
 from collections import Counter
-from websockets.connection import CLOSED, CLOSING
+from websockets.protocol import CLOSED, CLOSING
 from typing import Dict, Optional, List
 
 from ...logic import Worker
