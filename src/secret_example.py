@@ -1,7 +1,7 @@
 from __future__ import annotations
 import OpenSSL.crypto
 import pathlib
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional, Tuple, Dict
 
 if TYPE_CHECKING:
     from .store import UserStore
@@ -13,16 +13,16 @@ if TYPE_CHECKING:
 
 #### API KEYS
 
-GITHUB_APP_ID = 'xxx' # None to disable this endpoint
+GITHUB_APP_ID: Optional[str] = None # None to disable this endpoint
 GITHUB_APP_SECRET = 'xxx'
 
-MS_APP_ID = 'xxx' # None to disable this endpoint
+MS_APP_ID: Optional[str] = None # None to disable this endpoint
 MS_APP_SECRET = 'xxx'
 
-IAAA_APP_ID = None # None to disable this endpoint
+IAAA_APP_ID: Optional[str] = None # None to disable this endpoint
 IAAA_KEY = 'xxx'
 
-CARSI_APP_ID = None # None to disable this endpoint
+CARSI_APP_ID: Optional[str] = None # None to disable this endpoint
 CARSI_DOMAIN = 'spoauth2pre.carsi.edu.cn'
 CARSI_APP_SECRET = 'xxx'
 # https://carsi.atlassian.net/wiki/spaces/CAW/pages/27103892/3.+CARSI+SP+OAuth+Joining+CARSI+for+OAuth+SP
@@ -67,12 +67,8 @@ GLITTER_EVENT_SOCKET_ADDR = 'ipc:///path/to/event.sock'
 
 N_WORKERS = 4
 
-WORKER_API_SERVER_KWARGS = lambda idx0: { # will be passed to `Sanic.run`
-    'host': '127.0.0.1',
-    'port': 8010+idx0,
-    'debug': False,
-    'access_log': False, # nginx already does this. disabling sanic access log makes it faster.
-}
+def WORKER_API_SERVER_ADDR(idx0: int) -> Tuple[str, int]:
+    return '127.0.0.1', 8010+idx0
 
 REDUCER_ADMIN_SERVER_ADDR = ('127.0.0.1', 5000)
 
@@ -91,12 +87,13 @@ PUSH_LOG_LEVEL: List[utils.LogLevel] = ['error', 'critical']
 
 FRONTEND_PORTAL_URL = '/' # redirected to this after (successful or failed) login
 ADMIN_URL = '/admin' # prefix of all admin urls
-ATTACHMENT_URL = '/_internal_attachments' # or `None` to opt-out X-Accel-Redirect
+ATTACHMENT_URL : Optional[str] = '/_internal_attachments' # None to opt-out X-Accel-Redirect
 
 BACKEND_HOSTNAME = 'your_contest.example.com' # used for oauth redirects
 BACKEND_SCHEME = 'https' # used for oauth redirects
 
-OAUTH_HTTP_PROXIES = { # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/#http-proxying
+OAUTH_HTTP_PROXIES: Optional[Dict[str, Optional[str]]] = {
+    # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/#http-proxying
     'all://*github.com': None, #'http://127.0.0.1:xxxx',
 }
 

@@ -92,4 +92,12 @@ app.blueprint(svc)
 def start(idx0: int, worker_name: str) -> None:
     app.config.GS_WORKER_NAME = worker_name # used by gs worker
     app.config.WORKER_NAME = worker_name # used (also may be changed!) by sanic logging
-    app.run(**secret.WORKER_API_SERVER_KWARGS(idx0), single_process=True) # type: ignore
+
+    host, port = secret.WORKER_API_SERVER_ADDR(idx0)
+    app.run(
+        host=host,
+        port=port,
+        debug=False,
+        access_log=False, # nginx already does this. disabling sanic access log makes it faster.
+        single_process=True
+    )
