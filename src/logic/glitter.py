@@ -76,10 +76,10 @@ class Action:
         self.req: ActionReq = req
 
     async def _send_req(self, sock: Socket) -> None:
-        await sock.send_multipart([secret.GLITTER_SSRF_TOKEN.encode(), pickle.dumps(self.req)]) # type: ignore
+        await sock.send_multipart([secret.GLITTER_SSRF_TOKEN.encode(), pickle.dumps(self.req)])
     @staticmethod
     async def _recv_rep(sock: Socket) -> ActionRep:
-        parts = await sock.recv_multipart() # type: ignore
+        parts = await sock.recv_multipart()
         assert len(parts)==1, 'malformed action rep packet: should contain one part'
         rep = pickle.loads(parts[0])
         assert isinstance(rep, ActionRep)
@@ -100,7 +100,7 @@ class Action:
 
     @classmethod
     async def listen(cls, sock: Socket) -> Optional[Action]:
-        pkt = await sock.recv_multipart() # type: ignore
+        pkt = await sock.recv_multipart()
         try:
             assert len(pkt)==2, 'action req packet should contain one part'
             assert pkt[0]==secret.GLITTER_SSRF_TOKEN.encode(), 'invalid ssrf token'
@@ -117,7 +117,7 @@ class Action:
 
     @staticmethod
     async def reply(rep: ActionRep, sock: Socket) -> None:
-        await sock.send_multipart([pickle.dumps(rep)]) # type: ignore
+        await sock.send_multipart([pickle.dumps(rep)])
 
 
 SYNC_TIMEOUT_MS = 7000
@@ -146,4 +146,4 @@ class Event:
             str(self.state_counter).encode('utf-8'),
             str(self.data).encode('utf-8'),
         ]
-        await sock.send_multipart(data) # type: ignore
+        await sock.send_multipart(data)
