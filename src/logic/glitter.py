@@ -132,8 +132,8 @@ class Event:
 
     @classmethod
     async def next(cls, sock: Socket) -> Event:
-        type, ts, id = await sock.recv_multipart() # type: ignore
-        type = EventType(type)
+        type_str, ts, id = await sock.recv_multipart()
+        type = EventType(type_str)
         cnt = int(ts.decode('utf-8'))
         data = int(id.decode('utf-8'))
         return cls(type=type, state_counter=cnt, data=data)
