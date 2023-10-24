@@ -12,7 +12,7 @@ unicategories~=0.1.2
 
 # logic
 pyzmq>=22.3.0
-pyopenssl~=22.0.0
+pyopenssl~=23.0.0
 
 # api
 sanic~=22.12
