@@ -66,6 +66,8 @@ async def auth_su(_req: Request, query: AuthSuParam, worker: Worker, user: Optio
 if secret.GITHUB_APP_ID:
     @bp.route('/github/login')
     async def auth_github_req(req: Request) -> HTTPResponse:
+        assert secret.GITHUB_APP_ID
+
         return oauth2_redirect(
             'https://github.com/login/oauth/authorize',
             {
@@ -117,6 +119,8 @@ if secret.GITHUB_APP_ID:
 if secret.MS_APP_ID:
     @bp.route('/microsoft/login')
     async def auth_ms_req(req: Request) -> HTTPResponse:
+        assert secret.MS_APP_ID
+
         return oauth2_redirect(
             'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize',
             {
@@ -183,6 +187,8 @@ if secret.IAAA_APP_ID:
 
 if secret.CARSI_APP_ID:
     def carsi_decrypt(data_b64: str) -> str:
+        assert hasattr(secret, 'CARSI_PRIV_KEY')
+
         from cryptography.hazmat.primitives.asymmetric import padding
         from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
@@ -193,6 +199,8 @@ if secret.CARSI_APP_ID:
 
     @bp.route('/carsi/login')
     async def auth_carsi_req(req: Request) -> HTTPResponse:
+        assert secret.CARSI_APP_ID
+
         return oauth2_redirect(
             'https://spoauth2pre.carsi.edu.cn/api/authorize',
             {
