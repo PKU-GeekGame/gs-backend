@@ -27,4 +27,4 @@ flask-admin~=1.6.1
 Flask-Migrate~=4.0.4
 wtforms~=3.0.1
 markupsafe~=2.1.1
-gevent~=21.12.0
+gevent>=21.12.0
