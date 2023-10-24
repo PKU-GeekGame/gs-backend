@@ -63,7 +63,7 @@ async def auth_su(_req: Request, query: AuthSuParam, worker: Worker, user: Optio
 
     return su_user
 
-if secret.GITHUB_APP_ID:
+if secret.GITHUB_APP_SWITCH:
     @bp.route('/github/login')
     async def auth_github_req(req: Request) -> HTTPResponse:
         return oauth2_redirect(
@@ -114,7 +114,7 @@ if secret.GITHUB_APP_ID:
             'access_token': token
         }, 'other'
 
-if secret.MS_APP_ID:
+if secret.MS_APP_SWITCH:
     @bp.route('/microsoft/login')
     async def auth_ms_req(req: Request) -> HTTPResponse:
         return oauth2_redirect(
@@ -171,7 +171,7 @@ if secret.MS_APP_ID:
             'access_token': token,
         }, 'other'
 
-if secret.IAAA_APP_ID:
+if secret.IAAA_APP_SWITCH:
     @bp.route('/pku/redirect')
     async def auth_pku_req(req: Request) -> HTTPResponse:
         return await iaaa_login()
@@ -181,7 +181,7 @@ if secret.IAAA_APP_ID:
     async def auth_pku_res(req: Request, http_client: httpx.AsyncClient, worker: Worker) -> AuthResponse:
         return await iaaa_check(req, http_client, worker)
 
-if secret.CARSI_APP_ID:
+if secret.CARSI_APP_SWITCH:
     def carsi_decrypt(data_b64: str) -> str:
         from cryptography.hazmat.primitives.asymmetric import padding
         from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
