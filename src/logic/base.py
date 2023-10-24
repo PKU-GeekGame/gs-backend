@@ -49,7 +49,7 @@ class StateContainerBase(ABC):
 
         self.log('debug', 'base.__init__', f'{self.process_name} started')
 
-        self.glitter_ctx: Context = Context() # type: ignore
+        self.glitter_ctx: Context = Context()
 
         # initialized later in self.init_game
         self._game: Game = None # type: ignore

@@ -19,8 +19,8 @@ class Worker(StateContainerBase):
     def __init__(self, process_name: str, receiving_messages: bool = False):
         super().__init__(process_name, receiving_messages=receiving_messages)
 
-        self.action_socket: Socket = self.glitter_ctx.socket(zmq.REQ) # type: ignore
-        self.event_socket: Socket = self.glitter_ctx.socket(zmq.SUB) # type: ignore
+        self.action_socket: Socket = self.glitter_ctx.socket(zmq.REQ)
+        self.event_socket: Socket = self.glitter_ctx.socket(zmq.SUB)
 
         self.action_socket.setsockopt(zmq.RCVTIMEO, glitter.CALL_TIMEOUT_MS)
         self.action_socket.setsockopt(zmq.SNDTIMEO, glitter.CALL_TIMEOUT_MS)
@@ -28,8 +28,8 @@ class Worker(StateContainerBase):
         self.event_socket.setsockopt(zmq.RCVTIMEO, glitter.SYNC_TIMEOUT_MS)
         self.event_socket.setsockopt(zmq.SNDTIMEO, glitter.SYNC_TIMEOUT_MS)
 
-        self.action_socket.connect(secret.GLITTER_ACTION_SOCKET_ADDR)  # type: ignore
-        self.event_socket.connect(secret.GLITTER_EVENT_SOCKET_ADDR)  # type: ignore
+        self.action_socket.connect(secret.GLITTER_ACTION_SOCKET_ADDR)
+        self.event_socket.connect(secret.GLITTER_EVENT_SOCKET_ADDR)
         self.event_socket.setsockopt(zmq.SUBSCRIBE, b'')
 
         self.state_counter = -1

@@ -24,16 +24,16 @@ class Reducer(StateContainerBase):
     def __init__(self, process_name: str):
         super().__init__(process_name)
 
-        self.action_socket: Socket = self.glitter_ctx.socket(zmq.REP) # type: ignore
-        self.event_socket: Socket = self.glitter_ctx.socket(zmq.PUB) # type: ignore
+        self.action_socket: Socket = self.glitter_ctx.socket(zmq.REP)
+        self.event_socket: Socket = self.glitter_ctx.socket(zmq.PUB)
 
         self.action_socket.setsockopt(zmq.RCVTIMEO, glitter.CALL_TIMEOUT_MS)
         self.action_socket.setsockopt(zmq.SNDTIMEO, glitter.CALL_TIMEOUT_MS)
         self.event_socket.setsockopt(zmq.RCVTIMEO, glitter.SYNC_TIMEOUT_MS)
         self.event_socket.setsockopt(zmq.SNDTIMEO, glitter.SYNC_TIMEOUT_MS)
 
-        self.action_socket.bind(secret.GLITTER_ACTION_SOCKET_ADDR) # type: ignore
-        self.event_socket.bind(secret.GLITTER_EVENT_SOCKET_ADDR) # type: ignore
+        self.action_socket.bind(secret.GLITTER_ACTION_SOCKET_ADDR)
+        self.event_socket.bind(secret.GLITTER_EVENT_SOCKET_ADDR)
 
         self.tick_updater_task: Optional[asyncio.Task[None]] = None
         self.health_check_task: Optional[asyncio.Task[None]] = None
