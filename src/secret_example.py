@@ -39,9 +39,9 @@ ADMIN_2FA_COOKIE = 'some_long_random_string'
 
 #### SIGNING KEYS
 
-# openssl ecparam -name secp256k1 -genkey -noout -out token.priv
-# openssl req -x509 -key token.priv -out token.pub -days 365
-with open('/path/to/token.priv') as f:
+# openssl ecparam -name secp256k1 -genkey -noout -out cert.key
+# openssl req -x509 -key cert.key -out cert.pem -days 365
+with open('/path/to/cert.key') as f:
     TOKEN_SIGNING_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read())
 
 ##
