@@ -44,10 +44,8 @@ class UserProfileStore(Table):
     VAL_COMMENT = re.compile(r'^.{0,100}$')
 
     PROFILE_FOR_GROUP = {
-        'staff': ['nickname', 'tel', 'qq', 'comment'],
-        'pku': ['nickname', 'tel', 'qq', 'comment'],
-        'other': ['nickname', 'qq', 'comment'],
-        'banned': ['nickname', 'qq', 'comment'],
+        k: ['nickname', 'qq']
+        for k in UserStore.GROUPS.keys()
     }
 
     # https://unicode.org/reports/tr51/proposed.html
@@ -107,4 +105,4 @@ class UserProfileStore(Table):
         return None
 
     def __repr__(self) -> str:
-        return f'[U#{self.user_id} P#{self.id} {self.nickname_or_null!r} qq={self.qq_or_null!r} email={self.email_or_null!r}]'
+        return f'[U#{self.user_id} P#{self.id} {self.nickname_or_null!r} qq={self.qq_or_null!r}]'

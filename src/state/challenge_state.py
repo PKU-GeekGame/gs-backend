@@ -152,12 +152,10 @@ class Challenge(WithGameLifecycle):
         else:
             return 'untouched'
 
-    def describe_metadata(self, board: Optional[Board]) -> Dict[str, Any]: # board=null if not in a board context (e.g., in game portal)
+    def describe_metadata(self) -> Dict[str, Any]:
         m = {} if self._store.chall_metadata is None else self._store.chall_metadata
-        is_main_board = isinstance(board, FirstBloodBoard) and board.group==UserStore.MAIN_BOARD_GROUPS
 
         return {
-            'first_blood_award_eligible': m.get('first_blood_award_eligible', False) and (is_main_board or board is None),
             'author': None if self._game.cur_tick<Trigger.TRIGGER_BOARD_END else m.get('author', None),
         }
 

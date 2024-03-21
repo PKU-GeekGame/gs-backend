@@ -42,25 +42,20 @@ def rm_common_header(rows: List[List[str]], n: int) -> None:
         last_r = new_r
 
 def export_problemset(game: Game) -> None:
-    HEADERS = ['分类', '官方题解和源码', '题目标题', 'Flag', '分值', '校内通过', '总通过']
+    HEADERS = ['分类', '官方题解和源码', '题目标题', 'Flag', '分值', '通过人数']
 
     d = []
 
     rows = []
     for ch in game.challenges.list:
         for flag in ch.flags:
-            n_passed = {
-                'pku_1': 0,
-                'pku_2': 0,
-                'other_1': 0,
-                'other_2': 0,
-            }
+            n_passed = 0
 
             for u in flag.passed_users:
-                sub = u.passed_flags[flag]
-                cat = '2' if sub._store.precentage_override_or_null is not None else '1'
-                grp = 'pku' if u._store.group == 'pku' else 'other'
-                n_passed[f'{grp}_{cat}'] += 1
+                #sub = u.passed_flags[flag]
+                #cat = '2' if sub._store.precentage_override_or_null is not None else '1'
+                #grp = 'pku' if u._store.group == 'pku' else 'other'
+                n_passed += 1
 
             rows.append([
                 ch._store.category,
@@ -68,8 +63,7 @@ def export_problemset(game: Game) -> None:
                 ch._store.title,
                 flag.name or '/',
                 flag.base_score,
-                f'{n_passed["pku_1"]}+{n_passed["pku_2"]}',
-                f'{n_passed["pku_1"]+n_passed["other_1"]}+{n_passed["pku_2"]+n_passed["other_2"]}',
+                f'{n_passed}',
             ])
 
     rm_common_header(rows, 4)

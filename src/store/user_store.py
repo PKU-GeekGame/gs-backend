@@ -31,13 +31,18 @@ class UserStore(Table):
     terms_agreed = Column(Boolean, nullable=False, default=False)
 
     GROUPS = {
-        'pku': '北京大学',
-        'other': '校外选手',
         'staff': '工作人员',
         'banned': '已封禁',
+
+        'huanan': '华南赛区',
+        'huazhong': '华东赛区',
+        'huadong': '华中赛区',
+        'huabei': '华北赛区',
+        'dongbei': '东北赛区',
+        'xinan': '西南赛区',
+        'xibei': '西北赛区',
     }
-    MAIN_BOARD_GROUPS = ['pku']
-    TOT_BOARD_GROUPS = ['pku', 'other']
+    TOT_BOARD_GROUPS = [k for k in GROUPS if k not in ['staff', 'banned']]
 
     def __repr__(self) -> str:
         nick = '(no profile)' if self.profile is None else self.profile.nickname_or_null
@@ -64,16 +69,7 @@ class UserStore(Table):
         props = self.login_properties
 
         try:
-            if props['type']=='iaaa':
-                return f'[IAAA] {props["info"]["name"]}（{props["info"]["dept"]} {props["info"]["detailType"]} {props["info"]["identityStatus"]}）'
-            elif props['type']=='microsoft':
-                return f'[MS] {props["info"]["displayName"]} ({props["info"]["userPrincipalName"]})'
-            elif props['type']=='github':
-                return f'[GitHub] {props["info"]["name"]} ({props["info"]["login"]})'
-            elif props['type']=='carsi':
-                return f'[Carsi] {props["info"]["usertype"]} @ {props["info"]["domain"]}'
-            else:
-                return f'[{props["type"]}]'
+            return f'[{props["type"]}]'
 
         except Exception as e:
             return f'[{props["type"]}] ERR: {repr(e)}'
@@ -83,14 +79,7 @@ class UserStore(Table):
         return self.GROUPS.get(g, f'({g})')
 
     def badges(self) -> List[str]:
-        in_main_board = self.group in self.MAIN_BOARD_GROUPS
-
         ret = []
-
-        if in_main_board and self.login_properties['type']=='iaaa' and (
-            self.login_properties['info'].get('identityId', '').startswith('23000')
-        ):
-            ret.append('rookie')
 
         extra = self.login_properties.get('badges', None)
         if isinstance(extra, list):

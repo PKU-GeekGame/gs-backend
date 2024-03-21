@@ -393,7 +393,7 @@ class SubmissionView(ViewBase):
     }
     column_descriptions = {
         'score_override_or_null': '将选手分数覆盖为此值，与 score_override_or_null 同时存在时分数以此为准',
-        'precentage_override_or_null': '将选手分数乘以此百分比，设置后此提交将不计入通过人数',
+        'precentage_override_or_null': '将选手分数乘以此百分比',
     }
     column_formatters = {
         'timestamp_ms': fields.timestamp_ms_formatter,

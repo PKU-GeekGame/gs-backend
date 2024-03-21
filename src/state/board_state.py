@@ -148,7 +148,7 @@ class FirstBloodBoard(Board):
             'list': [{
                 'title': ch._store.title,
                 'key': ch._store.key,
-                'metadata': ch.describe_metadata(self),
+                'metadata': ch.describe_metadata(),
 
                 'flags': [{
                     'flag_name': None,
@@ -178,9 +178,7 @@ class FirstBloodBoard(Board):
         if submission.matched_flag is not None:
             assert submission.challenge is not None, 'submission matched flag to no challenge'
 
-            should_skip_push = in_batch or (
-                submission.user._store.group in UserStore.MAIN_BOARD_GROUPS and self.group!=UserStore.MAIN_BOARD_GROUPS # will push in the main board
-            )
+            should_skip_push = in_batch or not self.show_group # only push first blood for tot board
 
             if self.group is None or submission.user._store.group in self.group:
                 passed_all_flags = submission.challenge in submission.user.passed_challs

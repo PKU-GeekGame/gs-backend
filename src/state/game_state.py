@@ -30,10 +30,16 @@ class Game(WithGameLifecycle):
         self.challenges: Challenges = Challenges(self, challenge_stores)
         self.users: Users = Users(self, user_stores)
         self.boards: Dict[str, Board] = {
-            'score_pku': ScoreBoard('北京大学排名', None, self, UserStore.MAIN_BOARD_GROUPS, False),
-            'first_pku': FirstBloodBoard('北京大学一血榜', None, self, UserStore.MAIN_BOARD_GROUPS, False),
-            'score_all': ScoreBoard('总排名', '只有用户组为 “北京大学” 的用户参与评奖', self, UserStore.TOT_BOARD_GROUPS, True),
+            'score_all': ScoreBoard('总排名', None, self, UserStore.TOT_BOARD_GROUPS, True),
             'first_all': FirstBloodBoard('总一血榜', None, self, UserStore.TOT_BOARD_GROUPS, True),
+            **{
+                f'score_{g}': ScoreBoard(f'{UserStore.GROUPS[g]}排名', None, self, [g], False)
+                for g in UserStore.TOT_BOARD_GROUPS
+            },
+            **{
+                f'score_{g}': FirstBloodBoard(f'{UserStore.GROUPS[g]}一血榜', None, self, [g], False)
+                for g in UserStore.TOT_BOARD_GROUPS
+            },
         } if use_boards else {}
 
         self.n_corr_submission: int = 0

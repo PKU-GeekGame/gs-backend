@@ -12,7 +12,7 @@ from .. import store_anticheat_log
 from ..wish import wish_endpoint
 from ...state import User, ScoreBoard, Submission
 from ...logic import Worker, glitter
-from ...store import UserProfileStore, ChallengeStore
+from ...store import UserProfileStore, ChallengeStore, UserStore
 from ... import utils
 from ... import secret
 
@@ -156,8 +156,13 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
     policy = worker.game.policy.cur_policy
     is_admin = secret.IS_ADMIN(user._store)
 
-    active_board_key = 'score_pku' if user._store.group in user._store.MAIN_BOARD_GROUPS else 'score_all'
-    active_board_name = '北京大学' if user._store.group in user._store.MAIN_BOARD_GROUPS else '总'
+    # figure out active board
+    if (active_board_key := f'score_{user._store.group}') in worker.game.boards:
+        active_board_name = UserStore.GROUPS[user._store.group]
+    else:
+        active_board_key = 'score_all'
+        active_board_name = '总'
+
     active_board = worker.game.boards[active_board_key]
     assert isinstance(active_board, ScoreBoard)
 
@@ -170,7 +175,7 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'category': ch._store.category,
             'category_color': ch._store.category_color(),
 
-            'metadata': ch.describe_metadata(None),
+            'metadata': ch.describe_metadata(),
             'flags': [f.describe_json(user) for f in ch.flags],
             'status': ch.user_status(user),
 

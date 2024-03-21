@@ -111,8 +111,8 @@ class Flag(WithGameLifecycle):
         self.passed_users.add(submission.user)
 
         if (
-            submission.user._store.group in UserStore.MAIN_BOARD_GROUPS # user is in main board
-            and submission._store.precentage_override_or_null is None # submission not in second phase
+            submission.user._store.group in UserStore.TOT_BOARD_GROUPS # user is in tot board
+            #and submission._store.precentage_override_or_null is None # submission not in second phase
         ):
             self.passed_users_for_score_calculation.add(submission.user)
 
