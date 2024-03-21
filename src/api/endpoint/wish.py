@@ -67,8 +67,8 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
         return {'error': err[0], 'error_msg': err[1]}
 
     delta = time.time() - user._store.profile.timestamp_ms/1000
-    if delta<60:
-        return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {60-delta:.1f} 秒'}
+    if delta<5:
+        return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {5-delta:.1f} 秒'}
 
     required_fields = user._store.profile.PROFILE_FOR_GROUP.get(user._store.group, [])
     fields = {}
