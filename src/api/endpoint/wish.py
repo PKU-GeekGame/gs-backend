@@ -436,7 +436,7 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
             'writeup_required': user.writeup_required(),
             'submitted_metadata': None if metadata is None else {
                 k: metadata[k]
-                for k in ['filename', 'size', 'sha256', 'publish', 'rights']
+                for k in ['filename', 'size', 'sha256']
             },
             'max_size_mb': secret.WRITEUP_MAX_SIZE_MB,
         }
@@ -454,14 +454,8 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
                     return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {60-delta:.1f} 秒'}
 
         file: Optional[File] = req.files.get('file', None)
-        publish = req.form.get('publish', None)
-        rights = req.form.get('rights', None)
 
-        if (
-            publish is None or publish not in ['Always-Yes', 'Always-No', 'Maybe']
-            or rights is None or rights not in ['CC0', 'CC-BY-NC', 'All-Rights-Reserved']
-            or file is None
-        ):
+        if file is None:
             return {'error': 'INVALID_ARGUMENT', 'error_msg': '参数错误'}
 
         if len(file.body)>secret.WRITEUP_MAX_SIZE_MB*1024*1024:
@@ -479,8 +473,6 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
             sha256 = hashlib.sha256(f.read()).hexdigest()
 
         metadata = {
-            'publish': publish,
-            'rights': rights,
             'timestamp_ms': timestamp_ms,
             'size': len(file.body),
             'filename': filename,

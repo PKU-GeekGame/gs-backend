@@ -26,7 +26,6 @@
         <th>Nickname</th>
         <th>Last Submission</th>
         <th>File</th>
-        <th>License</th>
     </tr>
     </thead>
     <tbody>
@@ -58,10 +57,6 @@
                         {{ row.writeup.size | size }}
                         (.{{ row.writeup.file_ext }})
                     </a>
-                </td>
-                <td>
-                    <span class="writeup-publish-{{ row.writeup.publish }}">{{ row.writeup.publish }}</span>
-                    ({{ row.writeup.rights }})
                 </td>
             {% endif %}
         </tr>
