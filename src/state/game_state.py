@@ -37,7 +37,7 @@ class Game(WithGameLifecycle):
                 for g in UserStore.TOT_BOARD_GROUPS
             },
             **{
-                f'score_{g}': FirstBloodBoard(f'{UserStore.GROUPS[g]}一血榜', None, self, [g], False)
+                f'first_{g}': FirstBloodBoard(f'{UserStore.GROUPS[g]}一血榜', None, self, [g], False)
                 for g in UserStore.TOT_BOARD_GROUPS
             },
         } if use_boards else {}
