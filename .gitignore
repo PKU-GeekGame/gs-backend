@@ -7,6 +7,5 @@ __pycache__/
 /.mypy_cache
 
 /src/secret.py
-/src/api/endpoint/auth_pku.py
 
 /data/
