@@ -9,6 +9,29 @@
 
     <br>
 
+    <h2>创建用户</h2>
+    <form action="register_user" method="get">
+        <p>
+            <label>
+                用户名：
+                <input name="identity" required>
+            </label>
+        </p>
+        <p>
+            <label>
+                用户组：
+                <select name="group" required>
+                    {% for group, group_disp in groups.items() %}
+                        <option value="{{ group }}">{{ group_disp }} [{{ group }}]</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </p>
+        <p>
+            <button type="submit">创建</button>
+        </p>
+    </form>
+
     <h2>用户概况</h2>
     <table class="table table-bordered">
     <thead>

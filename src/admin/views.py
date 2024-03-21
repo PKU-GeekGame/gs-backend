@@ -81,6 +81,8 @@ class StatusView(AdminIndexView):  # type: ignore
         return self.render(
             'status.html',
 
+            groups=store.UserStore.GROUPS,
+
             sys_status=sys_status,
 
             user_fields=USER_STATUS,
@@ -101,6 +103,37 @@ class StatusView(AdminIndexView):  # type: ignore
         reducer.received_telemetries.clear()
 
         flash('已清空遥测数据', 'success')
+        return redirect(url_for('.index'))
+
+    @expose('/register_user')
+    def register_user(self) -> ResponseReturnValue:
+        identity = request.args.get('identity')
+        group = request.args.get('group')
+
+        login_key = f'user:{identity}'
+
+        loop: asyncio.AbstractEventLoop = current_app.config['reducer_loop']
+        reducer: Reducer = current_app.config['reducer_obj']
+
+        async def run_reg() -> Optional[str]:
+            return await reducer.on_reg_user(glitter.RegUserReq(
+                client='admin',
+                login_key=login_key,
+                login_properties={'type': 'user'},
+                group=group,
+            ))
+
+        rep = asyncio.run_coroutine_threadsafe(run_reg(), loop).result()
+
+        if rep is None:
+            user = reducer._game.users.user_by_login_key.get(login_key)
+            if user:
+                flash(f'注册成功，密码为：{user._store.auth_token}')
+            else:
+                flash('注册成功，但是找不到用户。怎么回事呢？')
+        else:
+            flash(f'注册失败：{rep}')
+
         return redirect(url_for('.index'))
 
     @expose('/test_push')

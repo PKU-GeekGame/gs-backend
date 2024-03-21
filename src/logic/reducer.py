@@ -86,7 +86,7 @@ class Reducer(StateContainerBase):
             assert profile.id is not None, 'created profile not in db'
 
             user.token = utils.sign_token(uid)
-            user.auth_token = f'{uid}_{utils.gen_random_str(48, crypto=True)}'
+            user.auth_token = f'{uid}_{utils.gen_random_str(12, crypto=True)}'
             user.profile_id = profile.id
 
             session.commit()

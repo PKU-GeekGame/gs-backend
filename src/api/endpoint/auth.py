@@ -18,23 +18,19 @@ async def auth_logout(_req: Request) -> HTTPResponse:
     del res.cookies['admin_2fa'] # type: ignore
     return res
 
-@dataclass
-class AuthManualParam:
-    identity: str
-    group: str
+if secret.MANUAL_AUTH_ENABLED:
+    @dataclass
+    class AuthManualParam:
+        identity: str
 
-@bp.route('/manual')
-@validate(query=AuthManualParam)
-@auth_response
-async def auth_manual(_req: Request, query: AuthManualParam, _worker: Worker, user: Optional[User]) -> AuthResponse:
-    if not secret.MANUAL_AUTH_ENABLED:
-        if not user or not secret.IS_ADMIN(user._store):
+    @bp.route('/manual')
+    @validate(query=AuthManualParam)
+    @auth_response
+    async def auth_manual(_req: Request, query: AuthManualParam, _worker: Worker) -> AuthResponse:
+        if not secret.MANUAL_AUTH_ENABLED:
             raise AuthError('手动登录已禁用')
 
-    if query.group not in UserStore.GROUPS:
-        raise AuthError('用户组不存在')
-
-    return f'manual:{query.identity}', {'type': 'manual'}, query.group
+        return f'manual:{query.identity}', {'type': 'manual'}, 'staff'
 
 @dataclass
 class AuthSuParam:
@@ -59,7 +55,6 @@ async def auth_su(_req: Request, query: AuthSuParam, worker: Worker, user: Optio
 
 @dataclass
 class AuthTokenParam:
-    login_key: str
     token: str
 
 @bp.route('/token')
@@ -69,8 +64,8 @@ async def auth_token(_req: Request, query: AuthTokenParam, worker: Worker) -> Au
     if worker.game is None:
         raise AuthError('服务暂时不可用')
 
-    user = worker.game.users.user_by_login_key.get(query.login_key, None)
-    if user is None or user._store.token != query.token:
-        raise AuthError('用户名或密码错误')
+    user = worker.game.users.user_by_auth_token.get(query.token, None)
+    if user is None:
+        raise AuthError('密码错误')
 
     return user
