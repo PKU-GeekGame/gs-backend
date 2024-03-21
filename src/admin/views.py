@@ -110,6 +110,9 @@ class StatusView(AdminIndexView):  # type: ignore
         identity = request.args.get('identity')
         group = request.args.get('group')
 
+        assert identity is not None
+        assert group is not None
+
         login_key = f'user:{identity}'
 
         loop: asyncio.AbstractEventLoop = current_app.config['reducer_loop']
