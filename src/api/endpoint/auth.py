@@ -27,8 +27,9 @@ class AuthManualParam:
 @validate(query=AuthManualParam)
 @auth_response
 async def auth_manual(_req: Request, query: AuthManualParam, _worker: Worker, user: Optional[User]) -> AuthResponse:
-    if not secret.MANUAL_AUTH_ENABLED and not secret.IS_ADMIN(user._store):
-        raise AuthError('手动登录已禁用')
+    if not secret.MANUAL_AUTH_ENABLED:
+        if not user or not secret.IS_ADMIN(user._store):
+            raise AuthError('手动登录已禁用')
 
     if query.group not in UserStore.GROUPS:
         raise AuthError('用户组不存在')
