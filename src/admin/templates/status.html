@@ -11,26 +11,28 @@
 
     <h2>创建用户</h2>
     <form action="register_user" method="get">
+        <div class="input-group">
+            <span class="input-group-addon">用户名</span>
+            <input name="identity" required class="form-control" placeholder="（仅在后台显示）">
+        </div>
+
+        <div class="input-group">
+            <span class="input-group-addon">组别</span>
+            <select name="group" required class="form-control">
+                {% for group, group_disp in groups.items() %}
+                    <option value=""></option>
+                    <option value="{{ group }}">{{ group_disp }} [{{ group }}]</option>
+                {% endfor %}
+            </select>
+        </div>
         <p>
-            <label>
-                用户名：
-                <input name="identity" required>
-            </label>
-        </p>
+
         <p>
-            <label>
-                用户组：
-                <select name="group" required>
-                    {% for group, group_disp in groups.items() %}
-                        <option value="{{ group }}">{{ group_disp }} [{{ group }}]</option>
-                    {% endfor %}
-                </select>
-            </label>
-        </p>
-        <p>
-            <button type="submit">创建</button>
+            <button class="btn btn-primary" type="submit">注册</button>
         </p>
     </form>
+
+    <br>
 
     <h2>用户概况</h2>
     <table class="table table-bordered">
