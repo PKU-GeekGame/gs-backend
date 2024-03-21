@@ -5,9 +5,7 @@ import re
 from typing import TYPE_CHECKING, Optional, Set
 from unicategories import categories
 
-if TYPE_CHECKING:
-    # noinspection PyUnresolvedReferences
-    from . import UserStore
+from . import UserStore
 from . import Table
 
 def unicode_chars(*cats: str) -> Set[str]:
