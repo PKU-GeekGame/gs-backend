@@ -24,7 +24,7 @@ class UserProfileStore(Table):
     timestamp_ms: int = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
 
     nickname_or_null = Column('nickname', String(MAX_INFO_LEN), nullable=True)
-    VAL_NICKNAME = re.compile(r'^.{1,20}$')
+    VAL_NICKNAME = re.compile(r'^.{1,30}$')
 
     qq_or_null = Column('qq', String(MAX_INFO_LEN), nullable=True)
     VAL_QQ = re.compile(r'^.{5,50}$')

@@ -213,15 +213,22 @@ class User(WithGameLifecycle):
     def check_update_profile(self) -> Optional[Tuple[str, str]]:
         if self.check_login() is not None:
             return self.check_login()
-        if not self._store.terms_agreed:
-            return 'SHOULD_AGREE_TERMS', '请阅读参赛须知'
-        if self._store.group=='banned':
-            return 'USER_BANNED', '此用户组被禁止参赛'
-        return None
+        return 'NOT_IMPLEMENTED', '不允许修改资料'
+
+        #if not self._store.terms_agreed:
+        #    return 'SHOULD_AGREE_TERMS', '请阅读参赛须知'
+        #if self._store.group=='banned':
+        #    return 'USER_BANNED', '此用户组被禁止参赛'
+        #return None
 
     def check_play_game(self) -> Optional[Tuple[str, str]]:
-        if self.check_update_profile() is not None:
-            return self.check_update_profile()
+        #if self.check_update_profile() is not None:
+        #    return self.check_update_profile()
+        if not self._store.terms_agreed:
+           return 'SHOULD_AGREE_TERMS', '请阅读参赛须知'
+        if self._store.group=='banned':
+           return 'USER_BANNED', '此用户组被禁止参赛'
+
         if self._store.profile.check_profile(self._store.group) is not None:
             return 'SHOULD_UPDATE_PROFILE', '请完善队伍资料'
         return None

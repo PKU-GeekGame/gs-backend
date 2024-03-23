@@ -66,13 +66,8 @@ class UserStore(Table):
         return login_properties
 
     def format_login_properties(self) -> str:
-        props = self.login_properties
-
-        try:
-            return f'[{props["type"]}]'
-
-        except Exception as e:
-            return f'[{props["type"]}] ERR: {repr(e)}'
+        #props = self.login_properties
+        return ''
 
     def group_disp(self) -> str:
         g = self.group

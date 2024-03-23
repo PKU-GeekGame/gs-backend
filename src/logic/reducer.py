@@ -64,6 +64,8 @@ class Reducer(StateContainerBase):
         if req.login_key in self._game.users.user_by_login_key:
             return 'user already exists'
 
+        nickname = req.login_properties.get('identity', '')
+
         with self.SqlSession() as session:
             user = UserStore(
                 login_key=req.login_key,
@@ -80,6 +82,7 @@ class Reducer(StateContainerBase):
                 user_id=uid,
                 timestamp_ms=0,
                 # other metadata can be pre-filled here
+                nickname_or_null=nickname,
             )
             session.add(profile)
             session.flush()

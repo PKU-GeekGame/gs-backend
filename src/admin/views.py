@@ -122,7 +122,7 @@ class StatusView(AdminIndexView):  # type: ignore
             return await reducer.on_reg_user(glitter.RegUserReq(
                 client='admin',
                 login_key=login_key,
-                login_properties={'type': 'user'},
+                login_properties={'type': 'user', 'identity': identity},
                 group=group,
             ))
 
@@ -516,7 +516,7 @@ class UserView(ViewBase):
     can_view_details = True
     details_modal = True
 
-    column_list = ['id', 'profile.nickname_or_null', 'group', 'profile.qq_or_null', 'login_key', 'oauth_info', 'game_status', 'board_info']
+    column_list = ['id', 'profile.nickname_or_null', 'group', 'login_key', 'oauth_info', 'game_status', 'board_info']
     column_exclude_list = ['token', 'auth_token', 'login_properties']
     column_display_pk = True
 
@@ -524,7 +524,6 @@ class UserView(ViewBase):
     column_filters = ['group', 'terms_agreed', 'login_key']
     column_labels = {
         'profile.nickname_or_null': 'Nickname',
-        'profile.qq_or_null': 'QQ',
     }
     form_choices = {
         'group': list(store.UserStore.GROUPS.items()),
