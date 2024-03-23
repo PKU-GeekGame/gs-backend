@@ -258,7 +258,7 @@ class User(WithGameLifecycle):
     def admin_badges(self) -> List[str]:
         return [
             f'U#{self._store.id}',
-            f'remark:{self._store.login_key} {self._store.format_login_properties()}',
+            #f'remark:{self._store.login_key} {self._store.format_login_properties()}',
         ]
 
     def __repr__(self) -> str:
