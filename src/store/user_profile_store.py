@@ -42,7 +42,7 @@ class UserProfileStore(Table):
     VAL_COMMENT = re.compile(r'^.{0,100}$')
 
     PROFILE_FOR_GROUP = {
-        k: ['nickname', 'qq']
+        k: ['nickname']
         for k in UserStore.GROUPS.keys()
     }
 
@@ -85,20 +85,20 @@ class UserProfileStore(Table):
             if getattr(self, f'{field}_or_null') is None:
                 return f'队伍资料不完整（{field}）'
 
-        if 'nickname' in required_profiles and not self.VAL_NICKNAME.match(self.nickname_or_null or ''):
-            return '昵称格式错误，应为1到20字符'
-        if (err := self._deep_val_nickname(self.nickname_or_null or '')) is not None:
-            return err
-        if 'qq' in required_profiles and not self.VAL_QQ.match(self.qq_or_null or ''):
-            return 'QQ号格式错误'
-        if 'tel' in required_profiles and not self.VAL_TEL.match(self.tel_or_null or ''):
-            return '电话号码格式错误'
-        if 'email' in required_profiles and not self.VAL_EMAIL.match(self.email_or_null or ''):
-            return '邮箱格式错误'
-        if 'gender' in required_profiles and not self.VAL_GENDER.match(self.gender_or_null or ''):
-            return '选择的性别无效'
-        if 'comment' in required_profiles and not self.VAL_COMMENT.match(self.comment_or_null or ''):
-            return '了解比赛的渠道格式错误'
+        # if 'nickname' in required_profiles and not self.VAL_NICKNAME.match(self.nickname_or_null or ''):
+        #     return '昵称格式错误，应为1到20字符'
+        # if (err := self._deep_val_nickname(self.nickname_or_null or '')) is not None:
+        #     return err
+        # if 'qq' in required_profiles and not self.VAL_QQ.match(self.qq_or_null or ''):
+        #     return 'QQ号格式错误'
+        # if 'tel' in required_profiles and not self.VAL_TEL.match(self.tel_or_null or ''):
+        #     return '电话号码格式错误'
+        # if 'email' in required_profiles and not self.VAL_EMAIL.match(self.email_or_null or ''):
+        #     return '邮箱格式错误'
+        # if 'gender' in required_profiles and not self.VAL_GENDER.match(self.gender_or_null or ''):
+        #     return '选择的性别无效'
+        # if 'comment' in required_profiles and not self.VAL_COMMENT.match(self.comment_or_null or ''):
+        #     return '了解比赛的渠道格式错误'
 
         return None
 
