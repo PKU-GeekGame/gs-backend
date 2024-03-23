@@ -85,7 +85,7 @@ class ScoreHistory:
         self.last_score = score
 
 class User(WithGameLifecycle):
-    #WRITEUP_REQUIRED_RANK = 35
+    WRITEUP_REQUIRED_RANK = 10
 
     def __init__(self, game: Game, store: UserStore):
         self._game: Game = game
@@ -241,12 +241,14 @@ class User(WithGameLifecycle):
         return None
 
     def writeup_required(self) -> bool:
-        #board = self._game.boards['score_tot']
-        #assert isinstance(board, ScoreBoard)
+        if self._store.group not in self._store.TOT_BOARD_GROUPS:
+            return False
+
+        board = self._game.boards.get(f'score_{self._store.group}')
+        assert isinstance(board, ScoreBoard)
 
         return (
-            self._store.group in self._store.TOT_BOARD_GROUPS
-            #and board.uid_to_rank.get(self._store.id, self.WRITEUP_REQUIRED_RANK+1)<=self.WRITEUP_REQUIRED_RANK
+            board.uid_to_rank.get(self._store.id, self.WRITEUP_REQUIRED_RANK+1)<=self.WRITEUP_REQUIRED_RANK
         )
 
     def get_partition(self, ch: Challenge, n_part: int) -> int: # for partitioned dynamic flag
