@@ -365,6 +365,7 @@ class GamePolicyView(ViewBase):
     column_descriptions = {
         'effective_after': '策略从该 Tick 编号后生效',
     }
+    column_default_sort = 'effective_after'
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
         flash('警告：修改赛程配置会重算排行榜', 'warning')
