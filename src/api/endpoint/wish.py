@@ -20,7 +20,8 @@ bp = Blueprint('wish', url_prefix='/wish')
 
 TEMPLATE_LIST = [
     ('faq', '选手常见问题', 0),
-    ('credits', '工作人员', 9000),
+    ('training', '赛前培训', 0),
+    #('credits', '工作人员', 9000),
 ]
 
 @wish_endpoint(bp, '/game_info')
