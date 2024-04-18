@@ -19,7 +19,7 @@ from ... import secret
 bp = Blueprint('wish', url_prefix='/wish')
 
 TEMPLATE_LIST = [
-    ('faq', '选手常见问题', 0),
+    ('faq', '常见问题', 0),
     ('training', '赛前培训', 0),
     #('credits', '工作人员', 9000),
 ]
