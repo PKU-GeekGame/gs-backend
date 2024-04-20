@@ -12,6 +12,7 @@ from src import utils
 async def main():
     worker = Worker('worker-test')
     await worker._before_run()
+    _t = asyncio.create_task(worker._mainloop())
 
     group_mapping = {
         **{k: k for k, v in UserStore.GROUPS.items()},
@@ -28,7 +29,9 @@ async def main():
 
     for group, identity in userlist:
         login_key = f'user:{identity}'
-        if login_key not in worker._game.users.user_by_login_key:
+        if login_key in worker._game.users.user_by_login_key:
+            user = worker._game.users.user_by_login_key[login_key]
+        else:
             rep = await worker.perform_action(glitter.RegUserReq(
                 client='script',
                 login_key=login_key,
@@ -39,9 +42,9 @@ async def main():
             if rep.error_msg is None:
                 user = worker.game.users.user_by_login_key.get(login_key)
                 assert user is not None, 'user should be created'
-                print(f'{UserStore.GROUPS[group]},{identity},{user._store.auth_token}')
             else:
                 raise RuntimeError(f'注册账户失败：{rep.error_msg}')
+        print(f'{UserStore.GROUPS[group]},{identity},{user._store.auth_token}')
 
 if __name__=='__main__':
     utils.fix_zmq_asyncio_windows()
