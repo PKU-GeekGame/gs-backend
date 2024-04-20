@@ -111,7 +111,7 @@ class StatusView(AdminIndexView):  # type: ignore
         group = request.args.get('group')
 
         assert identity is not None
-        assert group is not None
+        assert group is not None and group in store.UserStore.GROUPS
 
         login_key = f'user:{identity}'
 
