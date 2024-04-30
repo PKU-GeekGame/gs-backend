@@ -59,6 +59,7 @@ WRITEUP_PATH = pathlib.Path('/path/to/writeups').resolve()
 ATTACHMENT_PATH = pathlib.Path('/path/to/attachments').resolve()
 MEDIA_PATH = pathlib.Path('/path/to/media').resolve()
 SYBIL_LOG_PATH = pathlib.Path('/path/to/anticheat_log').resolve()
+SCORE_OFFSET_PATH = pathlib.Path('/path/to/score_offset.json').resolve()
 
 #### INTERNAL PORTS
 

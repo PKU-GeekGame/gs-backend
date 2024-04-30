@@ -1,13 +1,21 @@
 from __future__ import annotations
 import hashlib
+import json
 from typing import TYPE_CHECKING, List, Optional, Dict, Tuple
 
 if TYPE_CHECKING:
     from . import Game, Submission, Flag, Challenge
     from ..store import *
 from . import WithGameLifecycle
+from .. import secret
 from ..state import ScoreBoard
 from ..store import UserStore
+
+if secret.SCORE_OFFSET_PATH:
+    with open(secret.SCORE_OFFSET_PATH) as f:
+        SCORE_OFFSET = {int(k): v for k, v in json.load(f).items()}
+else:
+    SCORE_OFFSET = {}
 
 class Users(WithGameLifecycle):
     def __init__(self, game: Game, stores: List[UserStore]):
@@ -96,6 +104,7 @@ class User(WithGameLifecycle):
         self.succ_submissions: List[Submission] = []
         self.submissions: List[Submission] = []
         self.tot_score: int = 0
+        self.score_offset: int = 0
         self.tot_score_by_cat: Dict[str, int] = {}
 
         self._score_history: Optional[ScoreHistory] = None
@@ -107,6 +116,7 @@ class User(WithGameLifecycle):
             self._game.need_reloading_scoreboard = True
 
         self._store = store
+        self.score_offset = SCORE_OFFSET.get(self._store.id, 0)
 
     def on_scoreboard_reset(self) -> None:
         self.passed_flags = {}

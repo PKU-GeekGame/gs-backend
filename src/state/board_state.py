@@ -44,7 +44,7 @@ class Board(WithGameLifecycle, ABC):
         self.clear_render_cache()
 
 class ScoreBoard(Board):
-    MAX_DISPLAY_USERS = 100
+    MAX_DISPLAY_USERS = 600
     MAX_TOPSTAR_USERS = 10
 
     def __init__(self, name: str, desc: Optional[str], game: Game, group: Optional[List[str]], show_group: bool):
@@ -60,7 +60,7 @@ class ScoreBoard(Board):
             user, score = x
             return (
                 ((user._store.group in self.group) if self.group is not None else True)
-                and score>0
+                and score>0 or user.score_offset>0
             )
 
         def sorter(x: ScoreBoardItemType) -> Tuple[Any, ...]:
@@ -68,6 +68,7 @@ class ScoreBoard(Board):
             return (
                 -score,
                 -1 if user.last_succ_submission is None else user.last_succ_submission._store.id,
+                user.score_offset,
             )
 
         b = [(u, u.tot_score) for u in self._game.users.list]
@@ -92,6 +93,7 @@ class ScoreBoard(Board):
                 'group_disp': u._store.group_disp() if self.show_group else None,
                 'badges': u._store.badges() + (u.admin_badges() if is_admin else []),
                 'score': score,
+                'score_offset': u.score_offset,
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
                     ch._store.key: status
