@@ -38,7 +38,7 @@ class ChallengeStore(Table):
 
         return chall_metadata
 
-    METADATA_SNIPPET = '''{"author": "You", "first_blood_award_eligible": false, "score_deduction_eligible": true}'''
+    METADATA_SNIPPET = '''{}'''
 
     @validates('flags')
     def validate_flags(self, _key: str, flags: Any) -> Any:
@@ -64,10 +64,10 @@ class ChallengeStore(Table):
         return flags
 
     FLAG_SNIPPETS = {
-        'static': '''{"name": "", "type": "static", "val" : "flag{}", "base_score": 100}''',
-        'leet': '''{"name": "", "type": "leet", "val" : "flag{}", "salt": "", "base_score": 100}''',
-        'partitioned': '''{"name": "", "type": "partitioned", "val" : ["flag{}"], "base_score": 100}''',
-        'dynamic': '''{"name": "", "type": "dynamic", "val" : "module_path", "base_score": 100}''',
+        '静态': '''{"name": "", "type": "static", "val" : "flag{}", "base_score": 100}''',
+        'Leet': '''{"name": "", "type": "leet", "val" : "flag{}", "salt": "", "base_score": 100}''',
+        '分区': '''{"name": "", "type": "partitioned", "val" : ["flag{}"], "base_score": 100}''',
+        'Python': '''{"name": "", "type": "dynamic", "val" : "module_path", "base_score": 100}''',
     }
 
     @validates('actions')
@@ -144,11 +144,11 @@ class ChallengeStore(Table):
         return ret
 
     ACTION_SNIPPETS = {
-        'webpage': '''{"name": "题目网页", "effective_after": 0, "type": "webpage", "url" : "https://probXX.contest.pku.edu.cn/?token={{token}}"}''',
-        'webdocker': '''{"name": "题目网页", "effective_after": 0, "type": "webdocker", "host" : "probXX-manager.contest.pku.edu.cn"}''',
-        'terminal': '''{"name": "题目", "effective_after": 0, "type": "terminal", "host" : "probXX.contest.pku.edu.cn", "port" : 0}''',
-        'attachment': '''{"name": "题目附件", "effective_after": 0, "type": "attachment", "filename" : "probXX.zip", "file_path": ""}''',
-        'dyn_attachment': '''{"name": "题目附件", "effective_after": 0, "type": "dyn_attachment", "filename" : "probXX.zip", "module_path": ""}''',
+        '网页链接': '''{"name": "题目网页", "effective_after": 0, "type": "webpage", "url" : "https://probXX.contest.pku.edu.cn/?token={{token}}"}''',
+        'Web环境': '''{"name": "题目网页", "effective_after": 0, "type": "webdocker", "host" : "probXX-manager.contest.pku.edu.cn"}''',
+        'NC环境': '''{"name": "题目", "effective_after": 0, "type": "terminal", "host" : "probXX.contest.pku.edu.cn", "port" : 0}''',
+        '静态附件': '''{"name": "题目附件", "effective_after": 0, "type": "attachment", "filename" : "probXX.zip", "file_path": ""}''',
+        '动态附件': '''{"name": "题目附件", "effective_after": 0, "type": "dyn_attachment", "filename" : "probXX.zip", "module_path": ""}''',
     }
 
     @classmethod

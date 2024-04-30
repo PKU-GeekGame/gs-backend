@@ -225,12 +225,13 @@ class ChallengeView(ViewBase):
         'flags': lambda _v, _c, model, _n: '；'.join([f'[{f["base_score"]}pt] {f["name"]}' for f in model.flags]),
     }
     column_descriptions = {
-        'effective_after': '题目从该 Tick 编号后对选手可见',
+        'effective_after': '题目从该 Tick 编号后对选手可见，具体赛程参考 Trigger',
         'key': '题目唯一 ID，将会显示在 URL 中，比赛中不要随意修改，否则会导致已有提交失效',
         'sorting_index': '越小越靠前',
         'desc_template': '支持 Markdown 和 Jinja2 模板（group: Optional[str]、tick: int）',
-        'chall_metadata': '比赛结束后会向选手展示命题人',
-        'actions': '题面底部展示的动作列表',
+        'chall_metadata': 'JSON，目前没用',
+        'actions': '题面底部展示的动作列表，附件传到 Attachment 目录',
+        'flags': '题目有多 Flag 时前端会展示 name 字段，单 Flag 的题目不会展示',
     }
     form_overrides = {
         'desc_template': fields.MarkdownField,

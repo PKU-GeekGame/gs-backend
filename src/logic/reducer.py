@@ -167,7 +167,7 @@ class Reducer(StateContainerBase):
                 precentage_override_or_null=(
                     GamePolicyStore.DEDUCTION_PERCENTAGE_OVERRIDE if (
                         self._game.policy.cur_policy.is_submission_deducted
-                        and (ch._store.chall_metadata is None or ch._store.chall_metadata.get('score_deduction_eligible', True))
+                        #and (ch._store.chall_metadata is None or ch._store.chall_metadata.get('score_deduction_eligible', True))
                     ) else None
                 ),
             )

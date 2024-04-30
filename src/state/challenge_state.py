@@ -153,11 +153,10 @@ class Challenge(WithGameLifecycle):
             return 'untouched'
 
     def describe_metadata(self) -> Dict[str, Any]:
-        m = {} if self._store.chall_metadata is None else self._store.chall_metadata
+        #m = {} if self._store.chall_metadata is None else self._store.chall_metadata
+        #return {'author': None if self._game.cur_tick<Trigger.TRIGGER_BOARD_END else m.get('author', None),}
 
-        return {
-            'author': None if self._game.cur_tick<Trigger.TRIGGER_BOARD_END else m.get('author', None),
-        }
+        return {}
 
     def __repr__(self) -> str:
         return f'[Ch#{self._store.id} {self._store.key}: {self._store.title}]'
