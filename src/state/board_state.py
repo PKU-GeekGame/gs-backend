@@ -60,7 +60,7 @@ class ScoreBoard(Board):
             user, score = x
             return (
                 ((user._store.group in self.group) if self.group is not None else True)
-                and score>0 or user.score_offset>0
+                and (score>0 or user.score_offset>0)
             )
 
         def sorter(x: ScoreBoardItemType) -> Tuple[Any, ...]:
@@ -68,7 +68,7 @@ class ScoreBoard(Board):
             return (
                 -score,
                 -1 if user.last_succ_submission is None else user.last_succ_submission._store.id,
-                user.score_offset,
+                -user.score_offset,
             )
 
         b = [(u, u.tot_score) for u in self._game.users.list]
