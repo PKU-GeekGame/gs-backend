@@ -1,6 +1,7 @@
 from __future__ import annotations
 import hashlib
 import string
+import math
 from functools import lru_cache
 from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable, Tuple
 
@@ -67,7 +68,7 @@ class Flag(WithGameLifecycle):
 
     def _calc_cur_score(self) -> int:
         u = len(self.passed_users_for_score_calculation)
-        return int(self.base_score * (.4 + .6 * (.98**u)))
+        return int(self.base_score * (.2 + .8 * (.9**math.sqrt(u))))
 
     def _update_cur_score(self, sub: Submission) -> None:
         new_score = self._calc_cur_score()
