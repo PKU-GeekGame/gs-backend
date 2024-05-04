@@ -30,9 +30,9 @@ class Game(WithGameLifecycle):
         self.challenges: Challenges = Challenges(self, challenge_stores)
         self.users: Users = Users(self, user_stores)
         self.boards: Dict[str, Board] = {
-            'score_all': ScoreBoard('总排名', '此为实践赛排名，赛后会将实践赛和理论赛总分标准化后加权计算', self, UserStore.TOT_BOARD_GROUPS, True),
+            'score_all': ScoreBoard('总排名', '此为实践赛排名，赛后会将实践赛和理论赛总分标准化后加权计算最终分数', self, UserStore.TOT_BOARD_GROUPS, True),
             **{
-                f'score_{g}': ScoreBoard(f'{UserStore.GROUPS[g]}排名', '此为实践赛排名，赛后会将实践赛和理论赛总分标准化后加权计算', self, [g], False)
+                f'score_{g}': ScoreBoard(f'{UserStore.GROUPS[g]}排名', '此为实践赛排名，赛后会将实践赛和理论赛总分标准化后加权计算最终分数', self, [g], False)
                 for g in UserStore.TOT_BOARD_GROUPS
             },
             #**{
