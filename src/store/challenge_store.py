@@ -24,11 +24,11 @@ class ChallengeStore(Table):
     MAX_FLAG_LEN = 110
 
     CAT_COLORS = {
-        'Tutorial': '#333333',
         'Misc': '#7e2d86',
         'Web': '#2d8664',
-        'Binary': '#864a2d',
-        'Algorithm': '#2f2d86',
+        'Pwn': '#864a2d',
+        'Rev': '#2f2d86',
+        'AI': '#333333',
     }
     FALLBACK_CAT_COLOR = '#000000'
 
