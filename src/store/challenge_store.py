@@ -27,8 +27,8 @@ class ChallengeStore(Table):
         'Misc': '#7e2d86',
         'Web': '#2d8664',
         'Pwn': '#864a2d',
-        'Rev': '#2f2d86',
-        'AI': '#333333',
+        'Reverse': '#2f2d86',
+        'Algorithm': '#333333',
     }
     FALLBACK_CAT_COLOR = '#000000'
 
