@@ -257,8 +257,17 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
             return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {10-delta:.1f} 秒'}
 
     ch = worker.game.challenges.chall_by_key.get(body.challenge_key, None)
-    if ch is None or not ch.cur_effective:
+    if ch is None:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+    if not ch.cur_effective:
+        if secret.IS_ADMIN(user._store):
+            for f in ch.flags:
+                if f.validate_flag(user, body.flag):
+                    return {'error': 'NOT_FOUND', 'error_msg': f'题目未启用，Flag 匹配 {f.name or ""}'}
+            else:
+                return {'error': 'NOT_FOUND', 'error_msg': f'题目未启用，Flag 错误'}
+        else:
+            return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
     err = ChallengeStore.check_submitted_flag(body.flag)
     if err is not None:
