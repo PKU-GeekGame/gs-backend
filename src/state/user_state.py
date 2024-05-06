@@ -256,10 +256,9 @@ class User(WithGameLifecycle):
 
         board = self._game.boards.get(f'score_{self._store.group}')
         assert isinstance(board, ScoreBoard)
+        margin_score = board.board[self.WRITEUP_REQUIRED_RANK-1][1]
 
-        return (
-            board.uid_to_rank.get(self._store.id, self.WRITEUP_REQUIRED_RANK+1)<=self.WRITEUP_REQUIRED_RANK
-        )
+        return self.tot_score >= margin_score
 
     def get_partition(self, ch: Challenge, n_part: int) -> int: # for partitioned dynamic flag
         h = hashlib.sha256(f'{self._store.token}-{ch._store.key}'.encode()).hexdigest()
