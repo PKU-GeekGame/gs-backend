@@ -93,6 +93,7 @@ class ScoreBoard(Board):
 
             'list': [{
                 'uid': u._store.id,
+                'idx': idx,
                 'rank': score_to_rank[score],
                 'nickname': u._store.profile.nickname_or_null or '--',
                 'group_disp': u._store.group_disp() if self.show_group else None,
@@ -100,7 +101,7 @@ class ScoreBoard(Board):
                 'score': u.tot_score,
                 'score_offset': u.score_offset,
                 'normalized_score': round(score, 2),
-                'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
+                #'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
                     ch._store.key: status
                     for ch in self._game.challenges.list if ch.cur_effective
