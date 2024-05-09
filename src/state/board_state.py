@@ -80,7 +80,7 @@ class ScoreBoard(Board):
 
         # to ensure we show the lowest index when same score
         score_to_rank = {}
-        for idx, (u, score) in enumerate(self.board):
+        for idx, (u, score) in list(enumerate(self.board))[::-1]:
             score_to_rank[score] = idx+1
 
         return {
@@ -97,9 +97,9 @@ class ScoreBoard(Board):
                 'nickname': u._store.profile.nickname_or_null or '--',
                 'group_disp': u._store.group_disp() if self.show_group else None,
                 'badges': u._store.badges() + (u.admin_badges() if is_admin else []),
-                'score': score,
+                'score': u.tot_score,
                 'score_offset': u.score_offset,
-                'normalized_score': round(u.normalized_tot_score, 2),
+                'normalized_score': round(score, 2),
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
                     ch._store.key: status
