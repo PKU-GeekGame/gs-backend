@@ -18,7 +18,7 @@ else:
     SCORE_OFFSET = {}
 
 class Users(WithGameLifecycle):
-    max_score_offset = max(SCORE_OFFSET, default=0)
+    max_score_offset = max(SCORE_OFFSET.values(), default=0)
 
     def __init__(self, game: Game, stores: List[UserStore]):
         self._game: Game = game
