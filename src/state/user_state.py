@@ -18,9 +18,12 @@ else:
     SCORE_OFFSET = {}
 
 class Users(WithGameLifecycle):
+    max_score_offset = max(SCORE_OFFSET, default=0)
+
     def __init__(self, game: Game, stores: List[UserStore]):
         self._game: Game = game
         self._stores: List[UserStore] = []
+        self.max_score = 0
 
         self.list: List[User] = []
         self.user_by_id: Dict[int, User] = {}
@@ -65,10 +68,16 @@ class Users(WithGameLifecycle):
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         submission.user.on_scoreboard_update(submission, in_batch)
+        if not in_batch:
+            self.update_max_score()
 
     def on_scoreboard_batch_update_done(self) -> None:
         for user in self.list:
             user.on_scoreboard_batch_update_done()
+        self.update_max_score()
+
+    def update_max_score(self) -> None:
+        self.max_score = max((u.tot_score for u in self.list if u._store.group in UserStore.TOT_BOARD_GROUPS), default=0)
 
 class ScoreHistory:
     def __init__(self) -> None:
@@ -206,6 +215,13 @@ class User(WithGameLifecycle):
     @property
     def last_submission(self) -> Optional[Submission]:
         return self.submissions[-1] if len(self.submissions)>0 else None
+
+    @property
+    def normalized_tot_score(self):
+        return (
+            50 * self.tot_score / self._game.users.max_score +
+            50 * self.score_offset / self._game.users.max_score_offset
+        )
 
     @property
     def score_history_diff(self) -> List[Tuple[int, int]]:

@@ -71,12 +71,17 @@ class ScoreBoard(Board):
                 -user.score_offset,
             )
 
-        b = [(u, u.tot_score) for u in self._game.users.list]
+        b = [(u, u.normalized_tot_score) for u in self._game.users.list]
         self.board = sorted([x for x in b if is_valid(x)], key=sorter)
         self.uid_to_rank = {user._store.id: idx+1 for idx, (user, _score) in enumerate(self.board)}
 
     def _render(self, is_admin: bool) -> Dict[str, Any]:
         self._game.worker.log('debug', 'board.render', f'rendering score board {self.name}')
+
+        # to ensure we show the lowest index when same score
+        score_to_rank = {}
+        for idx, (u, score) in enumerate(self.board):
+            score_to_rank[score] = idx+1
 
         return {
             'challenges': [{
@@ -88,12 +93,13 @@ class ScoreBoard(Board):
 
             'list': [{
                 'uid': u._store.id,
-                'rank': idx+1,
+                'rank': score_to_rank[score],
                 'nickname': u._store.profile.nickname_or_null or '--',
                 'group_disp': u._store.group_disp() if self.show_group else None,
                 'badges': u._store.badges() + (u.admin_badges() if is_admin else []),
                 'score': score,
                 'score_offset': u.score_offset,
+                'normalized_score': u.normalized_tot_score,
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
                     ch._store.key: status
