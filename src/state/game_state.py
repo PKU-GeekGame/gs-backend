@@ -35,6 +35,7 @@ class Game(WithGameLifecycle):
                 f'score_{g}': ScoreBoard(f'{UserStore.GROUPS[g]}排名', '此为实践赛排名，赛后会将实践赛和理论赛总分标准化后加权计算最终分数', self, [g], False)
                 for g in UserStore.TOT_BOARD_GROUPS
             },
+            'banned': ScoreBoard('已封禁用户', None, self, ['banned'], True),
             #**{
             #    f'first_{g}': FirstBloodBoard(f'{UserStore.GROUPS[g]}一血榜', None, self, [g], False)
             #    for g in UserStore.TOT_BOARD_GROUPS

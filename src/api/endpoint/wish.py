@@ -188,7 +188,7 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
         } for ch in worker.game.challenges.list if ch.cur_effective or is_admin],
 
         'user_info': {
-            'status_line': f'实践赛总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
+            'status_line': f'最终成绩 {user.normalized_tot_score:.2f}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
             'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
             'active_board_key': active_board_key,
         },

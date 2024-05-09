@@ -99,7 +99,7 @@ class ScoreBoard(Board):
                 'badges': u._store.badges() + (u.admin_badges() if is_admin else []),
                 'score': score,
                 'score_offset': u.score_offset,
-                'normalized_score': u.normalized_tot_score,
+                'normalized_score': round(u.normalized_tot_score, 2),
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
                     ch._store.key: status
