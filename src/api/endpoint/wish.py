@@ -446,6 +446,9 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
                 if delta<60:
                     return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {60-delta:.1f} 秒'}
 
+        if req.files is None or req.form is None:
+            return {'error': 'INVALID_ARGUMENT', 'error_msg': '参数错误'}
+
         file: Optional[File] = req.files.get('file', None)
         publish = req.form.get('publish', None)
         rights = req.form.get('rights', None)

@@ -41,7 +41,7 @@ app.ext.add_dependency(httpx.AsyncClient, get_http_client)
 app.ext.add_dependency(Optional[User], get_cur_user)
 
 @app.before_server_start
-async def setup_game_state(cur_app: Sanic, _loop: Any) -> None:
+async def setup_game_state(cur_app: Sanic[Any, Any], _loop: Any) -> None:
     logging.getLogger('sanic.root').setLevel(logging.INFO)
 
     worker = Worker(cur_app.config.get('GS_WORKER_NAME', f'worker-{os.getpid()}'), receiving_messages=True)
