@@ -5,7 +5,7 @@ from sanic import Blueprint, Request, HTTPResponse, response
 from sanic_ext import validate
 from typing import Optional
 
-from ..auth import auth_response, AuthResponse, AuthError, oauth2_redirect, oauth2_check_state
+from ..auth import auth_response, AuthResponse, AuthError, oauth2_redirect, oauth2_check_state, del_cookie
 from ...state import User
 from ...logic import Worker
 from ... import secret
@@ -24,8 +24,8 @@ bp = Blueprint('auth', url_prefix='/auth')
 @bp.route('/logout')
 async def auth_logout(_req: Request) -> HTTPResponse:
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
-    del res.cookies['auth_token'] # type: ignore
-    del res.cookies['admin_2fa'] # type: ignore
+    del_cookie(res, 'auth_token')
+    del_cookie(res, 'admin_2fa', secret.ADMIN_URL)
     return res
 
 if secret.MANUAL_AUTH_ENABLED:
@@ -259,6 +259,7 @@ if secret.CARSI_APP_ID:
 
     @bp.route('/carsi/logout')
     async def auth_carsi_logout(_req: Request) -> HTTPResponse:
-        del res.cookies['auth_token']  # type: ignore
-        del res.cookies['admin_2fa']  # type: ignore
-        return response.json({"status": 1, "msg": ""})
+        res = response.json({"status": 1, "msg": ""})
+        del_cookie(res, 'auth_token')
+        del_cookie(res, 'admin_2fa', secret.ADMIN_URL)
+        return res

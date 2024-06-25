@@ -18,6 +18,12 @@ LOGIN_MAX_AGE_S = 86400*30
 AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]]
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
+def add_cookie(res: HTTPResponse, name: str, value: str, path: str = '/', max_age: int = LOGIN_MAX_AGE_S) -> None:
+    res.cookies.add_cookie(name, value, path=path, httponly=True, samesite='Lax', max_age=max_age)
+
+def del_cookie(res: HTTPResponse, name: str, path: str = '/') -> None:
+    res.cookies.delete_cookie(name, path=path)
+
 def _login(req: Request, worker: Worker, user: User) -> HTTPResponse:
     chk = user.check_login()
     if chk is not None:
@@ -26,19 +32,13 @@ def _login(req: Request, worker: Worker, user: User) -> HTTPResponse:
     store_anticheat_log(req, ['login'])
 
     res = response.redirect(secret.FRONTEND_PORTAL_URL)
-    def add_cookie(res: HTTPResponse, name: str, value: str, path: str = '/') -> None:
-        res.cookies[name] = value
-        res.cookies[name]['samesite'] = 'Lax'
-        res.cookies[name]['httponly'] = True
-        res.cookies[name]['path'] = path
-        res.cookies[name]['max-age'] = LOGIN_MAX_AGE_S
 
     add_cookie(res, 'auth_token', user._store.auth_token)
     if secret.IS_ADMIN(user._store):
         worker.log('warning', 'auth.login', f'sending admin 2fa cookie to U#{user._store.id}')
         add_cookie(res, 'admin_2fa', secret.ADMIN_2FA_COOKIE, secret.ADMIN_URL)
 
-    del res.cookies['oauth_state'] # type: ignore
+    del_cookie(res, 'oauth_state')
     return res
 
 class AuthError(Exception):
@@ -115,10 +115,7 @@ def oauth2_redirect(url: str, params: Dict[str, str], redirect_url: str) -> HTTP
         'state': state,
     }))
 
-    res.cookies['oauth_state'] = state
-    res.cookies['oauth_state']['samesite'] = 'Lax'
-    res.cookies['oauth_state']['httponly'] = True
-    res.cookies['oauth_state']['max-age'] = 600
+    add_cookie(res, 'oauth_state', state, max_age=600)
     return res
 
 def oauth2_check_state(req: Request) -> None:
