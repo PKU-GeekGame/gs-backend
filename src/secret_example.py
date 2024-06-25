@@ -1,7 +1,7 @@
 from __future__ import annotations
 import OpenSSL.crypto
 import pathlib
-from typing import TYPE_CHECKING, List, Optional, Tuple, Dict
+from typing import TYPE_CHECKING, List, Optional, Tuple, Dict, Literal, Union
 
 if TYPE_CHECKING:
     from .store import UserStore
@@ -90,7 +90,7 @@ ADMIN_URL = '/admin' # prefix of all admin urls
 ATTACHMENT_URL : Optional[str] = '/_internal_attachments' # None to opt-out X-Accel-Redirect
 
 BACKEND_HOSTNAME = 'your_contest.example.com' # used for oauth redirects
-BACKEND_SCHEME = 'https' # used for oauth redirects
+BACKEND_SCHEME: Union[Literal['http'], Literal['https']] = 'http' # used for oauth redirects and cookies
 
 OAUTH_HTTP_PROXIES: Optional[Dict[str, Optional[str]]] = {
     # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/#http-proxying

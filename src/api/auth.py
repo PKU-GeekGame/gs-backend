@@ -19,10 +19,12 @@ AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]]
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
 def add_cookie(res: HTTPResponse, name: str, value: str, path: str = '/', max_age: int = LOGIN_MAX_AGE_S) -> None:
-    res.cookies.add_cookie(name, value, path=path, httponly=True, samesite='Lax', max_age=max_age)
+    res.cookies.add_cookie(name, value, path=path, httponly=True, samesite='Lax', max_age=max_age, secure=secret.BACKEND_SCHEME=='https')
 
 def del_cookie(res: HTTPResponse, name: str, path: str = '/') -> None:
-    res.cookies.delete_cookie(name, path=path)
+    # xxx: cannot use `res.cookies.delete_cookie` here
+    # https://github.com/sanic-org/sanic/issues/2972
+    return add_cookie(res, name, '', path=path, max_age=0)
 
 def _login(req: Request, worker: Worker, user: User) -> HTTPResponse:
     chk = user.check_login()
