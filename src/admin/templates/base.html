@@ -12,7 +12,7 @@
 {% endmacro %}
 
 {% macro uid_link(model, column) %}
-    <a href="{{ url_for('user.details') }}?id={{ model[column] }}">{{ model[column] }}</a>
+    <a href="{{ url_for('user.details_view') }}?id={{ model[column] }}">{{ model[column] }}</a>
 {% endmacro %}
 
 {% macro submission_link(model, text) %}
