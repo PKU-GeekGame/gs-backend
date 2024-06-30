@@ -1,7 +1,9 @@
 {% extends 'admin/base.html' %}
 
 {% macro in_pre(model, column) %}
-    <samp style="white-space: pre-wrap">{{ model[column] }}</samp>
+    <div style="max-height: 25em; overflow-y: auto">
+        <samp style="white-space: pre-wrap">{{ model[column] }}</samp>
+    </div>
 {% endmacro %}
 
 {% macro status_label(model, column) %}
