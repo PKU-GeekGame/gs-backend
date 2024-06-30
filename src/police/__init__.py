@@ -102,7 +102,7 @@ async def run_forever() -> None:
                             await check_submission(sub, worker)
                     elif msg.get('type', None)=='push':
                         payload = msg['payload']
-                        await worker.push_message(f'[PUSH] {json.dumps(payload, indent=1, ensure_ascii=False)}', f'push')
+                        await worker.push_message(f'[PUSH] {json.dumps(payload, indent=1, ensure_ascii=False)}', None)
 
 def police_process() -> None:
     asyncio.run(run_forever())
