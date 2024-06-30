@@ -4,6 +4,7 @@ import httpx
 from sanic import Blueprint, Request, HTTPResponse, response
 from sanic_ext import validate
 import jwt
+import binascii
 import time
 import uuid
 from typing import Optional
@@ -148,17 +149,25 @@ if secret.MS_APP_ID:
         oauth2_check_state(req)
 
         ts = int(time.time())
+        x5t = base64.urlsafe_b64encode(binascii.unhexlify(secret.MS_PUB_KEY_THUMBPRINT)).decode()
 
         assert secret.MS_PRIV_KEY is not None
-        auth_jwt = jwt.encode({
-            'jti': str(uuid.uuid4()),
-            'aud': 'https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token',
-            'iss': secret.MS_APP_ID,
-            'sub': secret.MS_APP_ID,
-            'iat': ts,
-            'nbf': ts-120,
-            'exp': ts+480,
-        }, secret.MS_PRIV_KEY, algorithm='RS256')
+        auth_jwt = jwt.encode(
+            payload={
+                'jti': str(uuid.uuid4()),
+                'aud': 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
+                'iss': secret.MS_APP_ID,
+                'sub': secret.MS_APP_ID,
+                'iat': ts,
+                'nbf': ts-120,
+                'exp': ts+480,
+            },
+            key=secret.MS_PRIV_KEY,
+            algorithm='RS256',
+            headers={
+                'x5t': x5t,
+            },
+        )
 
         token_res = await http_client.post('https://login.microsoftonline.com/consumers/oauth2/v2.0/token', data={
             'client_id': secret.MS_APP_ID,

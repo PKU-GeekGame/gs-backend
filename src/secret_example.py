@@ -20,6 +20,7 @@ GITHUB_APP_SECRET = 'xxx'
 # https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM
 MS_APP_ID: Optional[str] = None # None to disable this endpoint
 MS_PRIV_KEY = '-----BEGIN PRIVATE KEY-----\n...'
+MS_THUMBPRINT = 'AA11BB22CC33DD44EE55FF66AA77BB88CC99DD00'
 # openssl req -x509 -newkey rsa:4096 -keyout ms.priv -out ms.pub -sha256 -days 3650 -nodes
 #with open('/path/to/ms.priv') as f:
 #    MS_PRIV_KEY = f.read() # '-----BEGIN PRIVATE KEY-----\n...'
