@@ -3,6 +3,9 @@ from dataclasses import dataclass
 import httpx
 from sanic import Blueprint, Request, HTTPResponse, response
 from sanic_ext import validate
+import jwt
+import time
+import uuid
 from typing import Optional
 
 from ..auth import auth_response, AuthResponse, AuthError, oauth2_redirect, oauth2_check_state, del_cookie
@@ -144,9 +147,23 @@ if secret.MS_APP_ID:
 
         oauth2_check_state(req)
 
+        ts = int(time.time())
+
+        assert secret.MS_PRIV_KEY is not None
+        auth_jwt = jwt.encode({
+            'jti': uuid.uuid4(),
+            'aud': 'https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token',
+            'iss': secret.MS_APP_ID,
+            'sub': secret.MS_APP_ID,
+            'iat': ts,
+            'nbf': ts-120,
+            'exp': ts+480,
+        }, secret.MS_PRIV_KEY, algorithm='RS256')
+
         token_res = await http_client.post('https://login.microsoftonline.com/consumers/oauth2/v2.0/token', data={
             'client_id': secret.MS_APP_ID,
-            'client_secret': secret.MS_APP_SECRET,
+            'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            'client_assertion': auth_jwt,
             'code': oauth_code,
             'grant_type': 'authorization_code',
             'scope': 'User.Read',
@@ -178,7 +195,7 @@ if secret.MS_APP_ID:
 
 if secret.IAAA_APP_ID:
     @bp.route('/pku/redirect')
-    async def auth_pku_req(req: Request) -> HTTPResponse:
+    async def auth_pku_req(_req: Request) -> HTTPResponse:
         return await iaaa_login()
 
     @bp.route('/pku/login')
@@ -194,8 +211,11 @@ if secret.CARSI_APP_ID:
         from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
         data = base64.b64decode(data_b64.encode())
+
+        assert secret.CARSI_PRIV_KEY is not None
         k = secret.CARSI_PRIV_KEY.to_cryptography_key()
         assert isinstance(k, RSAPrivateKey)
+
         return k.decrypt(data, padding.PKCS1v15()).decode()
 
     @bp.route('/carsi/login')

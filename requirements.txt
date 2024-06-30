@@ -18,6 +18,8 @@ pyopenssl>=24.1.0
 sanic~=23.12
 sanic-ext~=23.12
 httpx[http2]~=0.27.0
+pyjwt~=2.8.0
+cryptography>=42.0.8
 websockets>=11.0 # websockets.connections renamed to websockets.protocol since then
 
 # admin

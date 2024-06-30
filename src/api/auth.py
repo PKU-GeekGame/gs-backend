@@ -5,7 +5,7 @@ from html import escape
 from functools import wraps
 from inspect import isawaitable
 from urllib.parse import quote
-from typing import Dict, Any, Callable, Tuple, Union, Awaitable, Type, Optional
+from typing import Dict, Any, Callable, Tuple, Union, Awaitable
 
 from . import store_anticheat_log
 from ..logic import Worker, glitter

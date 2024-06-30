@@ -13,11 +13,16 @@ if TYPE_CHECKING:
 
 #### API KEYS
 
+# https://github.com/settings/applications/new
 GITHUB_APP_ID: Optional[str] = None # None to disable this endpoint
 GITHUB_APP_SECRET = 'xxx'
 
+# https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM
 MS_APP_ID: Optional[str] = None # None to disable this endpoint
-MS_APP_SECRET = 'xxx'
+MS_PRIV_KEY = '-----BEGIN PRIVATE KEY-----\n...'
+# openssl req -x509 -newkey rsa:4096 -keyout ms.priv -out ms.pub -sha256 -days 3650 -nodes
+#with open('/path/to/ms.priv') as f:
+#    MS_PRIV_KEY = f.read() # '-----BEGIN PRIVATE KEY-----\n...'
 
 IAAA_APP_ID: Optional[str] = None # None to disable this endpoint
 IAAA_KEY = 'xxx'
@@ -25,11 +30,12 @@ IAAA_KEY = 'xxx'
 CARSI_APP_ID: Optional[str] = None # None to disable this endpoint
 CARSI_DOMAIN = 'spoauth2pre.carsi.edu.cn'
 CARSI_APP_SECRET = 'xxx'
+CARSI_PRIV_KEY: Optional[OpenSSL.crypto.PKey] = None
 # https://carsi.atlassian.net/wiki/spaces/CAW/pages/27103892/3.+CARSI+SP+OAuth+Joining+CARSI+for+OAuth+SP
 #with open('/path/to/carsi.priv') as f:
 #    CARSI_PRIV_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read())
 
-FEISHU_WEBHOOK_ADDR = 'https://open.feishu.cn/open-apis/bot/v2/hook/...' # None to disable feishu push
+FEISHU_WEBHOOK_ADDR: Optional[str] = 'https://open.feishu.cn/open-apis/bot/v2/hook/...' # None to disable feishu push
 
 #### RANDOM BULLSHITS
 
