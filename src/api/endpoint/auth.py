@@ -151,7 +151,7 @@ if secret.MS_APP_ID:
 
         assert secret.MS_PRIV_KEY is not None
         auth_jwt = jwt.encode({
-            'jti': uuid.uuid4(),
+            'jti': str(uuid.uuid4()),
             'aud': 'https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token',
             'iss': secret.MS_APP_ID,
             'sub': secret.MS_APP_ID,
