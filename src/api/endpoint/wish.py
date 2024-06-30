@@ -47,6 +47,7 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
         'feature': {
             'push': secret.WS_PUSH_ENABLED and user is not None and user.check_play_game() is None,
             'game': user is not None,
+            'submit_flag': worker.game.policy.cur_policy.can_submit_flag,
             'templates': [[key, title] for key, title, effective_after in TEMPLATE_LIST if cur_tick>=effective_after],
         },
     }
