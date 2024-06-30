@@ -1,6 +1,7 @@
 from sanic import Blueprint, HTTPResponse, Request, response
 
 from .. import store_anticheat_log
+from .. import secret
 
 bp = Blueprint('sybil', url_prefix='/anticheat')
 
@@ -15,7 +16,14 @@ def recv_sybil_report(req: Request) -> HTTPResponse:
     }
 
     store_anticheat_log(req, ['sybil_report', fp])
-    return response.text('OK')
+
+    res = response.text('OK')
+
+    ac_canary = req.cookies.get('anticheat_canary', None)
+    if ac_canary:
+        res.add_cookie('anticheat_canary', ac_canary, samesite='None', max_age=86400*30, domain=secret.BACKEND_HOSTNAME, secure=secret.BACKEND_SCHEME=='https')
+
+    return res
 
 @bp.route('/event', methods=['POST'])
 def recv_sybil_event(req: Request) -> HTTPResponse:
