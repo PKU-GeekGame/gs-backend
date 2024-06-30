@@ -79,8 +79,9 @@ admin = Admin(
 for model_name in dir(store):
     if model_name.endswith('Store'):
         print('- added model:', model_name)
+        name = remove_suffix(model_name, 'Store')
         admin.add_view(secured(VIEWS.get(model_name, ModelView))(
-            getattr(store, model_name), db.session, name=remove_suffix(model_name, 'Store'), category='Models',
+            getattr(store, model_name), db.session, name=name, endpoint=name.lower(), category='Models',
         ))
 
 admin.add_view(secured(TemplateView)(secret.TEMPLATE_PATH, name='Template', endpoint='template', category='Files'))

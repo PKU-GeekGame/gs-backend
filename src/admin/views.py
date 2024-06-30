@@ -399,6 +399,7 @@ class SubmissionView(ViewBase):
         'timestamp_ms': fields.timestamp_ms_formatter,
         'matched_flag': _flag_match_formatter,
         'override': _flag_override_formatter,
+        'user_id': macro('uid_link'),
     }
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
@@ -462,14 +463,18 @@ def _user_game_status_formatter(_view: Any, _context: Any, model: store.UserStor
     else:
         return res[1]
 
-def _user_board_info_formatter(_view: Any, _context: Any, model: store.UserStore, _name: str) -> str:
+def _user_board_info_formatter(_view: Any, context: Any, model: store.UserStore, _name: str) -> str:
     reducer: Reducer = current_app.config['reducer_obj']
     user = reducer._game.users.user_by_id.get(model.id, None)
+    link_macro = context.resolve('submission_link')
 
     if user is None:
         return '???'
 
-    return f'{user.tot_score} [{", ".join(user._store.badges())}]'
+    return link_macro(
+        model=model,
+        text=f'{user.tot_score} [{", ".join(user._store.badges())}]',
+    )
 
 class UserView(ViewBase):
     list_template = 'list_user.html'

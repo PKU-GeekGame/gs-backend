@@ -11,6 +11,14 @@
     ">{{ s }}</span>
 {% endmacro %}
 
+{% macro uid_link(model, column) %}
+    <a href="{{ url_for('user.details') }}?id={{ model[column] }}">{{ model[column] }}</a>
+{% endmacro %}
+
+{% macro submission_link(model, text) %}
+    <a href="{{ url_for('submission.index_view') }}?flt1_0={{ model['id'] }}">{{ text }}</a>
+{% endmacro %}
+
 {% block head_css %}
     {{ super() }}
     <style>
