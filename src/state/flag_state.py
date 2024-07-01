@@ -121,11 +121,27 @@ class Flag(WithGameLifecycle):
     def __repr__(self) -> str:
         return f'[{self.challenge._store.key}#{self.idx0+1}]'
 
+    def is_user_deducted(self, user: User) -> bool:
+        sub = user.passed_flags.get(self, None)
+        if sub and (
+            sub._store.precentage_override_or_null is not None
+            or sub._store.score_override_or_null is not None
+        ):
+            return True
+        else:
+            return False
+
+    def user_status(self, user: User) -> str:
+        if user in self.passed_users:
+            return 'passed' + ('-deducted' if self.is_user_deducted(user) else '')
+        else:
+            return 'untouched'
+
     def describe_json(self, user: User) -> Dict[str, Any]:
         return {
             'name': self.name,
             'base_score': self.base_score,
             'cur_score': self.cur_score,
             'passed_users_count': len(self.passed_users),
-            'status': 'passed' if user in self.passed_users else 'untouched',
+            'status': self.user_status(user),
         }

@@ -154,11 +154,7 @@ class Challenge(WithGameLifecycle):
 
     def is_user_deducted(self, user: User) -> bool:
         for f in self.flags:
-            sub = user.passed_flags.get(f, None)
-            if sub and (
-                sub._store.precentage_override_or_null is not None
-                or sub._store.score_override_or_null is not None
-            ):
+            if f.is_user_deducted(user):
                 return True
         return False
 
