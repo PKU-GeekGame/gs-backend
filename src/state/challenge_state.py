@@ -144,13 +144,23 @@ class Challenge(WithGameLifecycle):
             self.tot_base_score += flag.base_score
             self.tot_cur_score += flag.cur_score
 
-    def user_status(self, user: User) -> Union[Literal['passed'], Literal['partial'], Literal['untouched']]:
+    def user_status(self, user: User) -> str:
         if user in self.passed_users:
-            return 'passed'
+            return 'passed' + ('-deducted' if self.is_user_deducted(user) else '')
         elif user in self.touched_users:
-            return 'partial'
+            return 'partial' + ('-deducted' if self.is_user_deducted(user) else '')
         else:
             return 'untouched'
+
+    def is_user_deducted(self, user: User) -> bool:
+        for f in self.flags:
+            sub = user.passed_flags.get(f, None)
+            if sub and (
+                sub._store.precentage_override_or_null is not None
+                or sub._store.score_override_or_null is not None
+            ):
+                return True
+        return False
 
     def describe_metadata(self, board: Optional[Board]) -> Dict[str, Any]: # board=null if not in a board context (e.g., in game portal)
         m = {} if self._store.chall_metadata is None else self._store.chall_metadata
