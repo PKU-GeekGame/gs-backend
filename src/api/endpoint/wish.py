@@ -372,6 +372,17 @@ async def get_my_submissions(_req: Request, worker: Worker, user: Optional[User]
             'overrides': get_overrides(sub),
             'timestamp_s': int(sub._store.timestamp_ms/1000),
         } for idx, sub in enumerate(user.submissions[::-1])],
+
+        'topstars': [{
+            'uid': user._store.id,
+            'nickname': user._store.profile.nickname_or_null or '--',
+            'history': user.score_history_diff,
+        }],
+
+        'time_range': [
+            worker.game.trigger.board_begin_ts,
+            worker.game.trigger.board_end_ts,
+        ],
     }
 
 @wish_endpoint(bp, '/submissions/<uid_s:str>')
@@ -397,6 +408,17 @@ async def get_others_submissions(_req: Request, uid_s: str, worker: Worker) -> D
             'gained_score': sub.gained_score(),
             'timestamp_s': int(sub._store.timestamp_ms/1000),
         } for idx, sub in enumerate(user.succ_submissions[::-1])],
+
+        'topstars': [{
+            'uid': user._store.id,
+            'nickname': user._store.profile.nickname_or_null or '--',
+            'history': user.score_history_diff,
+        }],
+
+        'time_range': [
+            worker.game.trigger.board_begin_ts,
+            worker.game.trigger.board_end_ts,
+        ],
     }
 
 file_ext_re = re.compile(r'^.*?((?:\.[a-z0-9]+)+)$')
