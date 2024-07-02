@@ -28,7 +28,7 @@ def recv_sybil_report(req: Request) -> HTTPResponse:
 @bp.route('/event', methods=['POST'])
 def recv_sybil_event(req: Request) -> HTTPResponse:
     event = req.args.get('name')
-    if event not in ['focus', 'blur', 'paste']:
+    if event not in ['focus', 'blur', 'paste', 'visit_action']:
         return response.text('bad event', status=404)
 
     store_anticheat_log(req, ['event', event, req.json])
