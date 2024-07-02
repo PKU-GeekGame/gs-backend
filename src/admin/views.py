@@ -20,6 +20,7 @@ from . import fields
 from ..logic import glitter
 from ..logic.reducer import Reducer
 from .. import store
+from .. import secret
 from .. import utils
 
 class StatusView(AdminIndexView):  # type: ignore
@@ -55,6 +56,7 @@ class StatusView(AdminIndexView):  # type: ignore
             'ram': f'used={st["ram_used"]:.2f}G, free={st["ram_free"]:.2f}G',
             'swap': f'used={st["swap_used"]:.2f}G, free={st["swap_free"]:.2f}G',
             'disk': f'used={st["disk_used"]:.2f}G, free={st["disk_free"]:.2f}G',
+            'feature': f'WS = {secret.WS_PUSH_ENABLED}, Police = {secret.POLICE_ENABLED}, Sybil = {secret.ANTICHEAT_RECEIVER_ENABLED}'
         }
 
         users_cnt_by_group: Dict[str, Dict[str, int]] = {}
