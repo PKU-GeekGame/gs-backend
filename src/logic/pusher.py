@@ -14,10 +14,9 @@ class Pusher:
         self.chan_history: Dict[str, Deque[float]] = {}
 
     async def push_message(self, msg: str, chan: Optional[str]) -> None:
-        print('push message', chan, msg)
+        print('push message', chan)
+        print(msg)
         if not secret.FEISHU_WEBHOOK_ADDR:
-            print(f'mock push message ({chan})')
-            print(msg)
             return
 
         if chan:

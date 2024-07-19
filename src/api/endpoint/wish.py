@@ -573,7 +573,7 @@ async def submit_feedback(req: Request, body: SubmitFeedbackParam, worker: Worke
         f'[FEEDBACK] U#{user._store.id} {user._store.login_key}\n'
         f' nick: {user._store.profile.nickname_or_null}\n'
         f' grp: {user._store.group} {user.tot_score}pt\n'
-        f' challenge: ({ch._store.category}) {ch._store.key}\n\n'
+        f' chal: ({ch._store.category}) {ch._store.key}\n\n'
         f'{feedback_overview}'
     ), f'feedback:{user._store.id}')
 
