@@ -16,6 +16,8 @@ class Pusher:
     async def push_message(self, msg: str, chan: Optional[str]) -> None:
         print('push message', chan, msg)
         if not secret.FEISHU_WEBHOOK_ADDR:
+            print(f'mock push message ({chan})')
+            print(msg)
             return
 
         if chan:
@@ -26,7 +28,7 @@ class Pusher:
 
             if len(hist) >= self.THROTTLE_N:
                 if time.time() - hist[0] < self.THROTTLE_TIME_S:
-                    print(f'push throttled, time bound = {time.time()-hist[0]}')
+                    print(f'push throttled ({chan}), time bound = {time.time()-hist[0]}')
                     return
                 hist.popleft()
 
