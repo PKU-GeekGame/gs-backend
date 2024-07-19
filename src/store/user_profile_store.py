@@ -19,6 +19,7 @@ def unicode_chars(*cats: str) -> Set[str]:
 class UserProfileStore(Table):
     __tablename__ = 'user_profile'
 
+    UPDATE_COOLDOWN_S = 10
     MAX_INFO_LEN = 128
 
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)

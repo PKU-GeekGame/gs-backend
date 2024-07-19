@@ -18,3 +18,4 @@ from .submission_store import SubmissionStore
 from .trigger_store import TriggerStore
 from .user_profile_store import UserProfileStore
 from .user_store import UserStore
+from .feedback_store import FeedbackStore

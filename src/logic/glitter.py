@@ -64,6 +64,12 @@ class SubmitFlagReq(ActionReq):
     flag: str
 
 @dataclass
+class SubmitFeedbackReq(ActionReq):
+    uid: int
+    challenge_key: str
+    feedback: str
+
+@dataclass
 class ActionRep:
     error_msg: Optional[str]
     state_counter: int
@@ -109,7 +115,7 @@ class Action:
             return cls(data)
         except Exception as e:
             print(utils.get_traceback(e))
-            sock.send_multipart([json.dumps({ # type: ignore
+            await sock.send_multipart([json.dumps({ # type: ignore
                 'error_msg': 'malformed packet',
                 'state_counter': -1,
             }).encode('utf-8')])

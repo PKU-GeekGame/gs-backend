@@ -104,7 +104,7 @@ class Reducer(StateContainerBase):
             if user is None:
                 return 'user not found'
 
-            if 1000*time.time()-user.profile.timestamp_ms<9000:
+            if time.time() - user.profile.timestamp_ms/1000 < UserProfileStore.UPDATE_COOLDOWN_S - 1:
                 return '请求太频繁'
 
             allowed_profiles = UserProfileStore.PROFILE_FOR_GROUP.get(user.group, [])
@@ -185,6 +185,32 @@ class Reducer(StateContainerBase):
         if sub.matched_flag is None:
             return 'Flag错误'
 
+        return None
+
+    @on_action(glitter.SubmitFeedbackReq)
+    async def on_submit_feedback(self, req: glitter.SubmitFeedbackReq) -> Optional[str]:
+        uid = int(req.uid)
+        ts = int(1000*time.time())
+
+        with self.SqlSession() as session:
+            user: Optional[UserStore] = session.execute(select(UserStore).where(UserStore.id == req.uid)).scalar()
+            if user is None:
+                return 'user not found'
+
+            user.last_feedback_ms = ts
+
+            feedback = FeedbackStore(
+                user_id=uid,
+                timestamp_ms=ts,
+                challenge_key=req.challenge_key,
+                content=req.feedback,
+            )
+            session.add(feedback)
+
+            session.commit()
+            self.state_counter += 1
+
+        await self.emit_event(glitter.Event(glitter.EventType.UPDATE_USER, self.state_counter, uid))
         return None
 
     @on_action(glitter.WorkerHeartbeatReq)

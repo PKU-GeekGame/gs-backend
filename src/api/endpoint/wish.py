@@ -12,7 +12,7 @@ from .. import store_anticheat_log
 from ..wish import wish_endpoint
 from ...state import User, ScoreBoard, Submission
 from ...logic import Worker, glitter
-from ...store import UserProfileStore, ChallengeStore
+from ...store import UserProfileStore, UserStore, ChallengeStore, SubmissionStore, FeedbackStore
 from ... import utils
 from ... import secret
 
@@ -67,8 +67,8 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
         return {'error': err[0], 'error_msg': err[1]}
 
     delta = time.time() - user._store.profile.timestamp_ms/1000
-    if delta<10:
-        return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {10-delta:.1f} 秒'}
+    if delta<UserProfileStore.UPDATE_COOLDOWN_S:
+        return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {UserProfileStore.UPDATE_COOLDOWN_S-delta:.1f} 秒'}
 
     required_fields = user._store.profile.PROFILE_FOR_GROUP.get(user._store.group, [])
     fields = {}
@@ -247,8 +247,8 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
     last_sub = user.last_submission
     if last_sub is not None:
         delta = time.time()-last_sub._store.timestamp_ms/1000
-        if delta<10:
-            return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {10-delta:.1f} 秒'}
+        if delta<SubmissionStore.SUBMIT_COOLDOWN_S:
+            return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {SubmissionStore.SUBMIT_COOLDOWN_S-delta:.1f} 秒'}
 
     ch = worker.game.challenges.chall_by_key.get(body.challenge_key, None)
     if ch is None or not ch.cur_effective:
@@ -466,8 +466,8 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
             old_file = user_writeup_path/filename
             if old_file.is_file():
                 delta = time.time() - old_file.stat().st_mtime
-                if delta<60:
-                    return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {60-delta:.1f} 秒'}
+                if delta<UserStore.WRITEUP_COOLDOWN_S:
+                    return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {UserStore.WRITEUP_COOLDOWN_S-delta:.1f} 秒'}
 
         if req.files is None or req.form is None:
             return {'error': 'INVALID_ARGUMENT', 'error_msg': '参数错误'}
@@ -522,3 +522,59 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
 
     else:
         return {'error': 'HTTP_METHOD_ERROR', 'error_msg': '不支持的 HTTP 方法'}
+
+@dataclass
+class SubmitFeedbackParam:
+    challenge_key: str
+    feedback: str
+
+@wish_endpoint(bp, '/submit_feedback')
+@validate(json=SubmitFeedbackParam)
+async def submit_feedback(req: Request, body: SubmitFeedbackParam, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+    if user is None:
+        return {'error': 'NO_USER', 'error_msg': '未登录'}
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    err = user.check_play_game()
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+    if not worker.game.policy.cur_policy.can_submit_flag:
+        return {'error': 'POLICY_ERROR', 'error_msg': '现在不允许提交反馈'}
+
+    last_feedback_ms = user._store.last_feedback_ms
+    if last_feedback_ms:
+        delta = time.time()-last_feedback_ms/1000
+        if delta<FeedbackStore.SUBMIT_COOLDOWN_S:
+            return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {FeedbackStore.SUBMIT_COOLDOWN_S-delta:.0f} 秒'}
+
+    ch = worker.game.challenges.chall_by_key.get(body.challenge_key, None)
+    if ch is None or not ch.cur_effective:
+        return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+
+    if len(body.feedback)>FeedbackStore.MAX_CONTENT_LEN:
+        return {'error': 'CONTENT_LEN', 'error_msg': '反馈长度超过限制'}
+
+    rep = await worker.perform_action(glitter.SubmitFeedbackReq(
+        client=worker.process_name,
+        uid=user._store.id,
+        challenge_key=body.challenge_key,
+        feedback=body.feedback,
+    ))
+
+    store_anticheat_log(req, ['submit_feedback', ch._store.key, body.feedback, rep.error_msg])
+
+    if rep.error_msg is not None:
+        return {'error': 'REDUCER_ERROR', 'error_msg': rep.error_msg}
+
+    feedback_overview = (body.feedback[:200]+'…') if len(body.feedback)>200 else body.feedback
+    feedback_overview = feedback_overview.replace('\r', '').replace('\n', ' ')
+    await worker.push_message((
+        f'[FEEDBACK] U#{user._store.id} {user._store.login_key}\n'
+        f' nick: {user._store.profile.nickname_or_null}\n'
+        f' grp: {user._store.group} {user.tot_score}pt\n'
+        f' challenge: ({ch._store.category}) {ch._store.key}\n\n'
+        f'{feedback_overview}'
+    ), f'feedback:{user._store.id}')
+
+    return {}

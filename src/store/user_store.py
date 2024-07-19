@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 class UserStore(Table):
     __tablename__ = 'user'
 
+    WRITEUP_COOLDOWN_S = 60
     MAX_TOKEN_LEN = 512
 
     login_key: str = Column(String(192), nullable=False, unique=True)
@@ -28,7 +29,9 @@ class UserStore(Table):
 
     profile_id = Column(Integer, ForeignKey('user_profile.id'), nullable=True) # initialized in register logic
     profile: UserProfileStore = relationship('UserProfileStore', lazy='joined', foreign_keys=[profile_id])
+
     terms_agreed = Column(Boolean, nullable=False, default=False)
+    last_feedback_ms = Column(BigInteger, nullable=True)
 
     GROUPS = {
         'pku': '北京大学',

@@ -327,6 +327,24 @@ class ChallengeView(ViewBase):
     def after_model_touched(self, model: store.ChallengeStore) -> None:
         self.emit_event(glitter.EventType.UPDATE_CHALLENGE, model.id)
 
+class FeedbackView(ViewBase):
+    can_create = False
+    can_edit = True
+    can_delete = False
+    can_view_details = False
+
+    column_list = ['checked', 'timestamp_ms', 'user_id', 'user_.profile.nickname_or_null', 'user_.group', 'user_.login_key', 'challenge_key', 'content']
+
+    column_default_sort = ('id', True)
+    column_searchable_list = ['content']
+    column_filters = ['user_id', 'challenge_key', 'content']
+
+    column_formatters = {
+        'timestamp_ms': fields.timestamp_ms_formatter,
+        'user_id': macro('uid_link'),
+        'content': macro('in_pre'),
+    }
+
 class GamePolicyView(ViewBase):
     column_descriptions = {
         'effective_after': '策略从该 Tick 编号后生效',
@@ -608,6 +626,7 @@ class UserView(ViewBase):
 VIEWS = {
     'AnnouncementStore': AnnouncementView,
     'ChallengeStore': ChallengeView,
+    'FeedbackStore': FeedbackView,
     'GamePolicyStore': GamePolicyView,
     'LogStore': LogView,
     'SubmissionStore': SubmissionView,
