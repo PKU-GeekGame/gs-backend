@@ -337,8 +337,15 @@ class FeedbackView(ViewBase):
 
     column_default_sort = ('id', True)
     column_searchable_list = ['content']
+    column_editable_list = ['checked']
     column_filters = ['user_id', 'challenge_key', 'content']
 
+    column_labels = {
+        'checked': 'Chk',
+        'user_.profile.nickname_or_null': 'User Nickname',
+        'user_.group': 'User Group',
+        'user_.login_key': 'User Login Key',
+    }
     column_formatters = {
         'timestamp_ms': fields.timestamp_ms_formatter,
         'user_id': macro('uid_link'),
