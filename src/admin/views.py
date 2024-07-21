@@ -320,7 +320,6 @@ class ChallengeView(ViewBase):
             form.chall_metadata.data = json.loads(store.ChallengeStore.METADATA_SNIPPET)
         return form
 
-
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
         flash('警告：增删题目或者修改 flags、effective_after 字段会重算排行榜', 'warning')
 

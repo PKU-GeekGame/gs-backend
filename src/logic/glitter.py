@@ -115,7 +115,7 @@ class Action:
             return cls(data)
         except Exception as e:
             print(utils.get_traceback(e))
-            await sock.send_multipart([json.dumps({ # type: ignore
+            await sock.send_multipart([json.dumps({
                 'error_msg': 'malformed packet',
                 'state_counter': -1,
             }).encode('utf-8')])

@@ -254,7 +254,7 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
     if ch is None or not ch.cur_effective:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
-    err = ChallengeStore.check_submitted_flag(body.flag)
+    err = ChallengeStore.check_flag_format(body.flag)
     if err is not None:
         store_anticheat_log(req, ['submit_flag', ch._store.key, body.flag, err])
         return {'error': err[0], 'error_msg': err[1]}
