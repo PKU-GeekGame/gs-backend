@@ -44,12 +44,12 @@ class Board(WithGameLifecycle, ABC):
         self.clear_render_cache()
 
 class ScoreBoard(Board):
-    MAX_DISPLAY_USERS = 100
     MAX_TOPSTAR_USERS = 10
 
-    def __init__(self, name: str, desc: Optional[str], game: Game, group: Optional[List[str]], show_group: bool):
+    def __init__(self, name: str, desc: Optional[str], game: Game, group: Optional[List[str]], show_group: bool, max_display_users: int):
         super().__init__('score', name, desc, game)
 
+        self.max_display_users = max_display_users
         self.show_group: bool = show_group
         self.group: Optional[List[str]] = group
         self.board: List[ScoreBoardItemType] = []
@@ -104,7 +104,7 @@ class ScoreBoard(Board):
                         sub.gained_score(), # gained_score
                     ] for f, sub in u.passed_flags.items()
                 },
-            } for idx, (u, score) in enumerate(self.board[:self.MAX_DISPLAY_USERS])],
+            } for idx, (u, score) in enumerate(self.board[:self.max_display_users])],
 
             'topstars': [{
                 'uid': u._store.id,
