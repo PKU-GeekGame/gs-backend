@@ -646,7 +646,7 @@ class UserView(ViewBase):
             resp.mimetype = 'text/plain'
             return resp
 
-VIEWS = {
+VIEWS_MODEL = {
     'AnnouncementStore': AnnouncementView,
     'ChallengeStore': ChallengeView,
     'FeedbackStore': FeedbackView,
@@ -745,3 +745,10 @@ class FilesView(FileAdmin):
             content = fields.PythonField(lazy_gettext('Content'), (validators.InputRequired(),))
 
         return EditForm
+
+VIEWS_FILE = {
+    'Template': (TemplateView, secret.TEMPLATE_PATH),
+    'Writeup': (WriteupView, secret.WRITEUP_PATH),
+    'Media': (FilesView, secret.MEDIA_PATH),
+    'Attachment': (FilesView, secret.ATTACHMENT_PATH),
+}
