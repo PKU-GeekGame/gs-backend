@@ -24,6 +24,8 @@ from .. import secret
 from .. import utils
 
 class StatusView(AdminIndexView):  # type: ignore
+    IS_SAFE = True
+
     @expose('/')
     def index(self) -> ResponseReturnValue:
         reducer: Reducer = current_app.config['reducer_obj']
@@ -327,6 +329,8 @@ class ChallengeView(ViewBase):
         self.emit_event(glitter.EventType.UPDATE_CHALLENGE, model.id)
 
 class FeedbackView(ViewBase):
+    IS_SAFE = True
+
     can_create = False
     can_edit = True
     can_delete = False
@@ -363,6 +367,8 @@ class GamePolicyView(ViewBase):
         self.emit_event(glitter.EventType.RELOAD_GAME_POLICY)
 
 class LogView(ViewBase):
+    IS_SAFE = True
+
     can_create = False
     can_edit = False
     can_delete = False
@@ -402,6 +408,8 @@ def _flag_override_formatter(_view: Any, _context: Any, model: store.SubmissionS
     return ' '.join(ret)
 
 class SubmissionView(ViewBase):
+    IS_SAFE = True
+
     can_create = False
     can_delete = False
 
@@ -503,6 +511,8 @@ def _user_board_info_formatter(_view: Any, context: Any, model: store.UserStore,
     )
 
 class UserView(ViewBase):
+    IS_SAFE = True
+
     list_template = 'list_user.html'
 
     can_create = False
@@ -548,6 +558,7 @@ class UserView(ViewBase):
     form_overrides = {
         'login_properties': fields.JsonField,
         'timestamp_ms': fields.TimestampMsField,
+        'last_feedback_ms': fields.TimestampMsField,
     }
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
@@ -711,6 +722,8 @@ class TemplateView(FileAdmin):
         return EditForm
 
 class WriteupView(FileAdmin):
+    IS_SAFE = True
+
     can_upload = False
     can_mkdir = False
     can_delete = False

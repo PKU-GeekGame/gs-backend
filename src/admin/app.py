@@ -48,9 +48,15 @@ def secured(cls: Any) -> Any:
             if not auth_token:
                 return False
 
-            user: Optional[store.UserStore] = \
-                db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar()
-            if user is None or not secret.IS_ADMIN(user):
+            user: Optional[store.UserStore] = db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar()
+
+            if user is None:
+                return False
+
+            if not secret.IS_ADMIN(user):
+                return False
+
+            if not secret.IS_DESTRUCTIVE_ADMIN(user) and not getattr(self, 'IS_SAFE', False):
                 return False
 
             return True

@@ -121,3 +121,10 @@ def IS_ADMIN(user: UserStore) -> bool:
         user is not None
         and user.id in ADMIN_UIDS
     )
+
+def IS_DESTRUCTIVE_ADMIN(user: UserStore) -> bool:
+    WRITABLE_ADMIN_UIDS = [1]
+    return (
+        user is not None
+        and user.id in WRITABLE_ADMIN_UIDS
+    )
