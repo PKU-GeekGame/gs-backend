@@ -337,7 +337,7 @@ class FeedbackView(ViewBase):
     column_default_sort = ('id', True)
     column_searchable_list = ['content']
     column_editable_list = ['checked']
-    column_filters = ['user_id', 'challenge_key', 'content']
+    column_filters = ['checked', 'user_id', 'challenge_key', 'content']
 
     column_labels = {
         'checked': 'Chk',
@@ -628,6 +628,23 @@ class UserView(ViewBase):
         rows = [get_row(u, required, score) for ((required, score), u) in list_users]
 
         return self.render('user_writeup_stats.html', rows=rows)
+
+    @expose('/anticheat_logs', methods=['GET', 'POST'])
+    def anticheat_logs(self) -> ResponseReturnValue:
+        if request.method == 'GET':
+            return self.render('user_anticheat_log.html')
+        else:
+            uid = int(request.form['uid'])
+            p = secret.SYBIL_LOG_PATH / f'{uid}.log'
+            if p.is_file():
+                with p.open('r', encoding='utf-8') as f:
+                    content = f'uid={uid}\n\n' + f.read()
+            else:
+                content = f'log not found for uid={uid}'
+
+            resp = make_response(content, 200)
+            resp.mimetype = 'text/plain'
+            return resp
 
 VIEWS = {
     'AnnouncementStore': AnnouncementView,
