@@ -46,7 +46,7 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
         },
         'feature': {
             'push': secret.WS_PUSH_ENABLED and user is not None and user.check_play_game() is None,
-            'game': user is not None,
+            'game': user is not None or worker.game.policy.cur_policy.show_problems_to_guest,
             'submit_flag': worker.game.policy.cur_policy.can_submit_flag,
             'templates': [[key, title] for key, title, effective_after in TEMPLATE_LIST if cur_tick>=effective_after],
         },
@@ -143,24 +143,34 @@ def reorder_by_cat(values: Dict[str, Any]) -> Dict[str, Any]:
 
 @wish_endpoint(bp, '/game')
 async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
-    if user is None:
-        return {'error': 'NO_USER', 'error_msg': '未登录'}
     if worker.game is None:
         return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
 
-    err = user.check_play_game()
-    if err is not None:
-        return {'error': err[0], 'error_msg': err[1]}
-
-    store_anticheat_log(req, ['open_game'])
-
     policy = worker.game.policy.cur_policy
-    is_admin = secret.IS_ADMIN(user._store)
+    is_admin = user and secret.IS_ADMIN(user._store)
 
-    active_board_key = 'score_pku' if user._store.group in user._store.MAIN_BOARD_GROUPS else 'score_all'
-    active_board_name = '北京大学' if user._store.group in user._store.MAIN_BOARD_GROUPS else '总'
-    active_board = worker.game.boards[active_board_key]
-    assert isinstance(active_board, ScoreBoard)
+    user_info = None
+
+    if user:
+        err = user.check_play_game()
+        if err is not None:
+            return {'error': err[0], 'error_msg': err[1]}
+
+        store_anticheat_log(req, ['open_game'])
+
+        active_board_key = 'score_pku' if user._store.group in user._store.MAIN_BOARD_GROUPS else 'score_all'
+        active_board_name = '北京大学' if user._store.group in user._store.MAIN_BOARD_GROUPS else '总'
+        active_board = worker.game.boards[active_board_key]
+        assert isinstance(active_board, ScoreBoard)
+
+        user_info = {
+            'status_line': f'总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
+            'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
+            'active_board_key': active_board_key,
+        }
+    else:
+        if not policy.show_problems_to_guest:
+            return {'error': 'NO_USER', 'error_msg': '未登录'}
 
     cur_trigger_name, next_trigger_timestamp_s, next_trigger_name = worker.game.trigger.describe_cur_tick()
 
@@ -181,20 +191,20 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'touched_users_count': len(ch.touched_users),
         } for ch in worker.game.challenges.list if ch.cur_effective or is_admin],
 
-        'user_info': {
-            'status_line': f'总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
-            'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
-            'active_board_key': active_board_key,
-        },
+        'user_info': user_info,
 
         'trigger': {
             'current_name': cur_trigger_name,
             'next_timestamp_s': next_trigger_timestamp_s,
             'next_name': next_trigger_name,
-        },
+        } if user else None,
 
-        'show_writeup': policy.can_submit_writeup,
-        'last_announcement': worker.game.announcements.list[0].describe_json(user) if worker.game.announcements.list else None,
+        'show_writeup': policy.can_submit_writeup and user,
+        'last_announcement': (
+            worker.game.announcements.list[0].describe_json(user)
+            if worker.game.announcements.list and user
+            else None
+        ),
     }
 
 @wish_endpoint(bp, '/challenge/<challenge_key:str>')

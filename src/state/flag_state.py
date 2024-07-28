@@ -2,7 +2,7 @@ from __future__ import annotations
 import hashlib
 import string
 from functools import lru_cache
-from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable, Tuple
+from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable, Tuple, Optional
 
 if TYPE_CHECKING:
     from . import Game, Challenge, User, Submission
@@ -131,13 +131,13 @@ class Flag(WithGameLifecycle):
         else:
             return False
 
-    def user_status(self, user: User) -> str:
-        if user in self.passed_users:
+    def user_status(self, user: Optional[User]) -> str:
+        if user and user in self.passed_users:
             return 'passed' + ('-deducted' if self.is_user_deducted(user) else '')
         else:
             return 'untouched'
 
-    def describe_json(self, user: User) -> Dict[str, Any]:
+    def describe_json(self, user: Optional[User]) -> Dict[str, Any]:
         return {
             'name': self.name,
             'base_score': self.base_score,
