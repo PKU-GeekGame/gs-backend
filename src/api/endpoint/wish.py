@@ -50,6 +50,7 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
             'submit_flag': worker.game.policy.cur_policy.can_submit_flag,
             'templates': [[key, title] for key, title, effective_after in TEMPLATE_LIST if cur_tick>=effective_after],
         },
+        'diag_ts': int(time.time()),
     }
 
 @dataclass
