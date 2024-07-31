@@ -165,9 +165,11 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
         assert isinstance(active_board, ScoreBoard)
 
         user_info = {
-            'status_line': f'总分 {user.tot_score}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
+            'tot_score': user.tot_score,
             'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
-            'active_board_key': active_board_key,
+            'board_key': active_board_key,
+            'board_name': active_board_name,
+            'board_rank': active_board.uid_to_rank.get(user._store.id, None),
         }
     else:
         if not policy.show_problems_to_guest:
