@@ -12,7 +12,8 @@ def recv_sybil_report(req: Request) -> HTTPResponse:
         'http': {
             'language': req.headers.get('Accept-Language', None),
             'user_agent': req.headers.get('User-Agent', None),
-        }
+            'encoding': req.headers.get('Accept-Encoding', None),
+        },
     }
 
     store_anticheat_log(req, ['sybil_report', fp])
