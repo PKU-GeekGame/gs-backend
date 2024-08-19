@@ -57,7 +57,7 @@ with open('/path/to/token.priv') as f:
 
 #### DATABASE CONNECTORS
 
-DB_CONNECTOR = 'mysql+pymysql://username:password@host:port/database'
+DB_CONNECTOR = 'mysql+pymysql://username:password@host:port/database?charset=utf8mb4'
 
 #### FS PATHS
 

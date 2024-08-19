@@ -4,6 +4,7 @@ import time
 import re
 from typing import TYPE_CHECKING, Optional, Set
 from unicategories import categories
+import uniseg.graphemecluster
 
 if TYPE_CHECKING:
     # noinspection PyUnresolvedReferences
@@ -27,7 +28,8 @@ class UserProfileStore(Table):
     timestamp_ms: int = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
 
     nickname_or_null = Column('nickname', String(MAX_INFO_LEN), nullable=True)
-    VAL_NICKNAME = re.compile(r'^.{1,20}$')
+    VAL_NICKNAME = re.compile(r'^.{1,120}$')
+    MAX_NICKNAME_UNICODE_LEN = 40
 
     qq_or_null = Column('qq', String(MAX_INFO_LEN), nullable=True)
     VAL_QQ = re.compile(r'^.{5,50}$')
@@ -81,6 +83,12 @@ class UserProfileStore(Table):
         if all_whitespace:
             return f'昵称不能全为空格'
 
+        graphemes = list(uniseg.graphemecluster.grapheme_clusters(name))
+        unicode_len = sum(map((lambda g: 1 if (len(g)==1 and ord(g)<128) else 2), graphemes))
+
+        if unicode_len > cls.MAX_NICKNAME_UNICODE_LEN:
+            return f'昵称长度（{unicode_len}）太长'
+
         return None
 
     def check_profile(self, group: str) -> Optional[str]:
@@ -91,7 +99,7 @@ class UserProfileStore(Table):
                 return f'个人信息不完整（{field}）'
 
         if 'nickname' in required_profiles and not self.VAL_NICKNAME.match(self.nickname_or_null or ''):
-            return '昵称格式错误，应为1到20字符'
+            return '昵称格式错误'
         if (err := self._deep_val_nickname(self.nickname_or_null or '')) is not None:
             return err
         if 'qq' in required_profiles and not self.VAL_QQ.match(self.qq_or_null or ''):
