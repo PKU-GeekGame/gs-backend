@@ -183,8 +183,8 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'title': ch._store.title + (f' [>={ch._store.effective_after}]' if not ch.cur_effective else ''),
             'category': ch._store.category,
             'category_color': ch._store.category_color(),
-
             'metadata': ch.describe_metadata(None),
+
             'flags': [f.describe_json(user) for f in ch.flags],
             'status': ch.user_status(user),
 

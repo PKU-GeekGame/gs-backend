@@ -146,8 +146,10 @@ class FirstBloodBoard(Board):
 
         return {
             'list': [{
-                'title': ch._store.title,
                 'key': ch._store.key,
+                'title': ch._store.title,
+                'category': ch._store.category,
+                'category_color': ch._store.category_color(),
                 'metadata': ch.describe_metadata(self),
 
                 'flags': [{
