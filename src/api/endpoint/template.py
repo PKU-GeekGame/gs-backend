@@ -1,5 +1,7 @@
 from sanic import Blueprint, Request, HTTPResponse, response
 import re
+import hashlib
+import json
 from typing import Dict, Tuple, Optional
 
 from .. import store_anticheat_log
@@ -45,10 +47,11 @@ async def get_template(req: Request, filename: str, worker: Worker, user: Option
     group = None if user is None else user._store.group
     tick = worker.game.cur_tick
     cache_key = (filename, group, tick)
+    etag = hashlib.sha256(json.dumps([ts, *cache_key]).encode()).hexdigest()[:8]
 
     cache = _cache.get(cache_key, None)
     if cache is not None and cache[0]==ts:
-        return etagged_response(req, str(ts), cache[1])
+        return etagged_response(req, etag, cache[1])
     else:
         worker.log('debug', 'api.template.get_template', f'rendering and caching {cache_key}')
         with p.open('r', encoding='utf-8') as f:
@@ -61,4 +64,4 @@ async def get_template(req: Request, filename: str, worker: Worker, user: Option
             return response.text('<i>（模板渲染失败）</i>')
 
         _cache[cache_key] = (ts, html)
-        return etagged_response(req, str(ts), html)
+        return etagged_response(req, etag, html)
