@@ -128,7 +128,7 @@ class StatusView(AdminIndexView):  # type: ignore
             return redirect(url_for('.index'))
 
         p = subprocess.run(
-            ['git', 'pull', '--rebase', '--atomic'],
+            ['git', 'pull', '--rebase'],
             cwd=secret.ATTACHMENT_PATH,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             timeout=60,
