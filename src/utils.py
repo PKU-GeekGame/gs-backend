@@ -57,8 +57,11 @@ markdown_processor = markdown.Markdown(extensions=[
 
 MACRO_TEMPLATE = '''
 {% macro box(effective_after) %}
-{% if tick>=effective_after %}
+{% if group=='staff' or tick>=effective_after %}
 <div class="well" markdown>
+{% if tick<effective_after %}
+*(>={{ effective_after }})*
+{% endif %}
 {{ caller() }}
 </div>
 {% endif %}
