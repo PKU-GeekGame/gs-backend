@@ -68,11 +68,15 @@ class AceInput(wtforms.widgets.TextArea): # type: ignore
             <script>
                 (()=>{'{'}
                     let textarea = document.querySelector('[data-ace-id="{self.unique_id}"]');
-                    let editor = ace.edit('{self.unique_id}');
+                    let editor_div = document.getElementById('{self.unique_id}');
+                    let editor = ace.edit(editor_div);
                     window.editor_{self.unique_id} = editor;
                     editor.setTheme("ace/theme/sqlserver");
                     editor.session.setUseWrapMode(true);
                     editor.session.setUseSoftTabs(true);
+                    new ResizeObserver((_)=>{'{'}
+                        editor.resize(true);
+                    {'}'}).observe(editor_div);
                     {self.script_body()}
                 {'}'})();
             </script>
