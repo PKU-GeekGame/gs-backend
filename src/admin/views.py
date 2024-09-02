@@ -123,7 +123,7 @@ class StatusView(AdminIndexView):  # type: ignore
 
     @expose('/pull_attachment')
     def pull_attachment(self) -> ResponseReturnValue:
-        if not any((p/'.git').is_dir() for p in [secret.ATTACHMENT_PATH. *secret.ATTACHMENT_PATH.parents]):
+        if not any((p/'.git').is_dir() for p in [secret.ATTACHMENT_PATH, *secret.ATTACHMENT_PATH.parents]):
             flash('附件目录没有使用 Git', 'error')
             return redirect(url_for('.index'))
 
