@@ -10,6 +10,7 @@ from markupsafe import Markup
 from flask import current_app, flash, redirect, url_for, make_response, request
 import asyncio
 import json
+import subprocess
 import os
 import time
 from flask.typing import ResponseReturnValue
@@ -119,6 +120,25 @@ class StatusView(AdminIndexView):  # type: ignore
 
         flash('已发送测试消息', 'success')
         return redirect(url_for('.index'))
+
+    @expose('/pull_attachment')
+    def pull_attachment(self) -> ResponseReturnValue:
+        if not any((p/'.git').is_dir() for p in [secret.ATTACHMENT_PATH. *secret.ATTACHMENT_PATH.parents]):
+            flash('附件目录没有使用 Git', 'error')
+            return redirect(url_for('.index'))
+
+        p = subprocess.run(
+            ['git', 'pull', '--rebase', '--atomic'],
+            cwd=secret.ATTACHMENT_PATH,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            timeout=60,
+        )
+        content = p.stdout.decode('utf-8', 'ignore')
+
+        resp = make_response(content, 200)
+        resp.mimetype = 'text/plain'
+        return resp
+
 
     # DANGEROUS: regenerating token will corrupt dynamic flags in existing submissions!
 
