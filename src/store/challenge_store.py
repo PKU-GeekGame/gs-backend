@@ -1,9 +1,21 @@
 from sqlalchemy import Column, Integer, String, Text, JSON
 from sqlalchemy.orm import validates
 import re
+import string
 from typing import Any, Optional, Tuple, Dict, List
 
 from . import Table
+
+def check_leet_flag(flag: str) -> None:
+    assert flag.startswith('flag{') and flag.endswith('}'), 'wrong flag format'
+
+    rcont = flag[len('flag{'):-len('}')]
+    rdlis = []
+
+    for i in range(len(rcont)):
+        if rcont[i] in string.ascii_letters:
+            rdlis.append(i)
+    assert len(rdlis) >= 10, 'insufficient flag entropy'
 
 class ChallengeStore(Table):
     __tablename__ = 'challenge'
@@ -63,6 +75,8 @@ class ChallengeStore(Table):
                 assert isinstance(flag['val'], str), 'flag val should be str'
                 if flag['type'] in ['static', 'leet']:
                     assert self.check_flag_format(flag['val']) is None, f'{flag["name"]}不符合Flag格式'
+                if flag['type']=='leet':
+                    check_leet_flag(flag['val'])
 
         if len(flags)==1:
             assert flags[0]['name']=='', '单个Flag的name需要留空，因为不会显示'
