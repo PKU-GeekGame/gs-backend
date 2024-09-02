@@ -33,6 +33,7 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
     return {
         'user': None if user is None else {
             'id': user._store.id,
+            'login_key': user._store.login_key,
             'group': user._store.group,
             'group_disp': user._store.group_disp(),
             'badges': user._store.badges(),
