@@ -25,11 +25,13 @@ def get_cur_user(req: Request) -> Optional[User]:
 
 MAX_LINE_LEN = 32*1024
 
-def store_anticheat_log(req: Request, data: List[Any]) -> None:
+def store_anticheat_log(req: Request, data: List[Any], user: Optional[User] = None) -> None:
     if not secret.ANTICHEAT_RECEIVER_ENABLED:
         return
 
-    user = get_cur_user(req)
+    if user is None:
+        user = get_cur_user(req)
+
     if user is not None:
         try:
             addr = req.remote_addr

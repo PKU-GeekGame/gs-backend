@@ -18,6 +18,7 @@ class Users(WithGameLifecycle):
         self.user_by_id: Dict[int, User] = {}
         self.user_by_login_key: Dict[str, User] = {}
         self.user_by_auth_token: Dict[str, User] = {}
+        self.user_by_token: Dict[str, User] = {}
 
         self.on_store_reload(stores)
 
@@ -25,6 +26,7 @@ class Users(WithGameLifecycle):
         self.user_by_id = {u._store.id: u for u in self.list}
         self.user_by_login_key = {u._store.login_key: u for u in self.list}
         self.user_by_auth_token = {u._store.auth_token: u for u in self.list if u._store.auth_token is not None}
+        self.user_by_token = {u._store.token: u for u in self.list if u._store.token is not None}
 
     def on_store_reload(self, stores: List[UserStore]) -> None:
         self._stores = stores

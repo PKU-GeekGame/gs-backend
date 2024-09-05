@@ -1,8 +1,8 @@
 from sanic import Blueprint, Request, HTTPResponse, response
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Callable
 
-from .. import store_anticheat_log, get_cur_user
+from .. import store_anticheat_log
 from ...state import User, Challenge
 from ...logic import Worker
 from ... import utils
@@ -29,12 +29,13 @@ async def download_attachment(p: str) -> HTTPResponse:
 @bp.route('/<ch_key:str>/<fn:str>', unquote=True)
 async def get_attachment(req: Request, ch_key: str, fn: str) -> HTTPResponse:
     worker: Worker = req.app.ctx.worker
-    user: Optional[User] = get_cur_user(req)
-
-    if user is None:
-        return response.text('未登录', status=403)
     if worker.game is None:
         return response.text('服务暂时不可用', status=403)
+
+    usertoken = req.args.get('token', None)
+    user = worker.game.users.user_by_token.get(usertoken, None) if usertoken else None
+    if user is None:
+        return response.text('Token无效', status=403)
 
     err = user.check_play_game()
     if err is not None:
@@ -50,7 +51,7 @@ async def get_attachment(req: Request, ch_key: str, fn: str) -> HTTPResponse:
     if att is None or (att['effective_after']>worker.game.cur_tick and not is_admin):
         return response.text('附件不存在', status=404)
 
-    store_anticheat_log(req, ['download_attachment', chall._store.key, fn])
+    store_anticheat_log(req, ['download_attachment', chall._store.key, fn], user)
 
     if att['type']=='attachment':
         return await download_attachment(att["file_path"])
@@ -78,7 +79,10 @@ async def get_attachment(req: Request, ch_key: str, fn: str) -> HTTPResponse:
                 out_path = out_path.resolve()
 
             out_path.chmod(0o644)
-            cache_path.symlink_to(out_path)
+            if cache_path.exists():
+                worker.log('warning', 'api.attachment.get_attachment', f'cache path already exists (race condition?) at {cache_path}')
+            else:
+                cache_path.symlink_to(out_path)
         except Exception as e:
             worker.log('error', 'api.attachment.get_attachment', f'error generating attachment: {utils.get_traceback(e)}')
             return response.text('附件暂时不可用', status=500)
