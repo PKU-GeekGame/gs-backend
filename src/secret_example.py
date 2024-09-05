@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List, Optional, Tuple, Dict, Literal, Union
 
 if TYPE_CHECKING:
     from .store import UserStore
+    from .state import User
     from . import utils
 
 ##
@@ -92,7 +93,6 @@ PUSH_LOG_LEVEL: List[utils.LogLevel] = ['error', 'critical']
 
 #### URLS
 
-FRONTEND_PORTAL_URL = '/' # redirected to this after (successful or failed) login
 ADMIN_URL = '/admin' # prefix of all admin urls
 ATTACHMENT_URL : Optional[str] = '/_internal_attachments' # None to opt-out X-Accel-Redirect
 
@@ -103,6 +103,13 @@ OAUTH_HTTP_PROXIES: Optional[Dict[str, Optional[str]]] = {
     # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/#http-proxying
     'all://*github.com': None, #'http://127.0.0.1:xxxx',
 }
+
+def BUILD_LOGIN_FINISH_URL(user: Optional[User], is_register: bool) -> str: # redirected to this after (successful or failed) login
+    base = '/'
+    if user and is_register:
+        return base + '#/user/terms'
+    else:
+        return base
 
 def BUILD_OAUTH_CALLBACK_URL(url: str) -> str:
     return url # change this if you want to rewrite the oauth callback url

@@ -27,7 +27,7 @@ bp = Blueprint('auth', url_prefix='/auth')
 
 @bp.route('/logout')
 async def auth_logout(_req: Request, user: Optional[User]) -> HTTPResponse:
-    res = response.redirect(secret.FRONTEND_PORTAL_URL)
+    res = response.redirect(secret.BUILD_LOGIN_FINISH_URL(None, False))
     del_cookie(res, 'auth_token')
     if user and secret.IS_ADMIN(user._store):
         del_cookie(res, 'admin_2fa', secret.ADMIN_URL)

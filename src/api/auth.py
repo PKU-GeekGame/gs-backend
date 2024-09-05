@@ -26,14 +26,14 @@ def del_cookie(res: HTTPResponse, name: str, path: str = '/') -> None:
     # https://github.com/sanic-org/sanic/issues/2972
     return add_cookie(res, name, '', path=path, max_age=0)
 
-def _login(req: Request, worker: Worker, user: User) -> HTTPResponse:
+def _login(req: Request, worker: Worker, user: User, is_register: bool = False) -> HTTPResponse:
     chk = user.check_login()
     if chk is not None:
         raise AuthError(chk[1])
 
     store_anticheat_log(req, ['login'])
 
-    res = response.redirect(secret.FRONTEND_PORTAL_URL)
+    res = response.redirect(secret.BUILD_LOGIN_FINISH_URL(user, is_register))
 
     add_cookie(res, 'auth_token', user._store.auth_token)
     if secret.IS_ADMIN(user._store):
@@ -56,7 +56,9 @@ async def _register_or_login(req: Request, worker: Worker, login_key: str, prope
         raise AuthError('服务暂时不可用')
     user = worker.game.users.user_by_login_key.get(login_key)
 
+    is_register = False
     if user is None:  # reg new user
+        is_register = True
         if not secret.REGISTRATION_ENABLED:
             raise AuthError('目前不允许注册新账户')
 
@@ -73,7 +75,7 @@ async def _register_or_login(req: Request, worker: Worker, login_key: str, prope
         else:
             raise AuthError(f'注册账户失败：{rep.error_msg}')
 
-    return _login(req, worker, user)
+    return _login(req, worker, user, is_register)
 
 def auth_response(fn: AuthHandler) -> RouteHandler:
     @wraps(fn)
@@ -97,7 +99,7 @@ def auth_response(fn: AuthHandler) -> RouteHandler:
                 '<h1>登录失败</h1>'
                 f'<p>{escape(e.message)}</p>'
                 '<br>'
-                f'<p><a href="{secret.FRONTEND_PORTAL_URL}">返回比赛平台</a></p>'
+                f'<p><a href="{secret.BUILD_LOGIN_FINISH_URL(None, False)}">返回比赛平台</a></p>'
             )
 
     return wrapped
