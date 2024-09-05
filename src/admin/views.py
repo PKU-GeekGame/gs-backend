@@ -1,18 +1,20 @@
 from flask_admin.contrib import sqla, fileadmin
-from flask_admin.form import SecureForm
+from flask_admin.form import BaseForm
 from flask_admin.babel import lazy_gettext
 from flask_admin.actions import action
 from flask_admin.model.template import macro
 from flask_admin import AdminIndexView, expose
 from wtforms import validators, Form
+from wtforms.csrf.session import SessionCSRF
 from sqlalchemy import select
 from markupsafe import Markup
-from flask import current_app, flash, redirect, url_for, make_response, request
+from flask import current_app, flash, redirect, url_for, make_response, request, session
 import asyncio
 import json
 import subprocess
 import os
 import time
+from datetime import timedelta
 from flask.typing import ResponseReturnValue
 from typing import Any, Optional, Type, Dict, List
 
@@ -139,9 +141,6 @@ class StatusView(AdminIndexView):  # type: ignore
         resp.mimetype = 'text/plain'
         return resp
 
-
-    # DANGEROUS: regenerating token will corrupt dynamic flags in existing submissions!
-
     # @expose('/regenerate_token')
     # def regenerate_token(self) -> ResponseReturnValue:
     #     reducer: Reducer = current_app.config['reducer_obj']
@@ -154,6 +153,16 @@ class StatusView(AdminIndexView):  # type: ignore
     #         flash(f'已重新生成 {len(users)} 个 token，请手动重启 reducer 和所有 worker', 'success')
     #
     #     return redirect(url_for('.index'))
+
+# increased timeout from 30min to 24h
+class SecureForm(BaseForm): # type: ignore
+    class Meta:
+        csrf = True
+        csrf_class = SessionCSRF
+        csrf_secret = str(current_app.secret_key).encode('utf-8')
+        csrf_context = session
+        csrf_time_limit = timedelta(hours=24)
+
 
 class ViewBase(sqla.ModelView): # type: ignore
     form_base_class = SecureForm
