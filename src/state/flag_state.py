@@ -11,8 +11,8 @@ from ..store import UserStore
 from .. import utils
 from .. import secret
 
-def leet_flag(flag: str, token: str, salt: str) -> str:
-    uid = int(hashlib.sha256((token+salt).encode()).hexdigest(), 16)
+def leet_flag(flag: str, uid: int, salt: str) -> str:
+    uid = int(hashlib.sha256(f'{uid}-{salt}'.encode()).hexdigest(), 16)
     rcont = flag[len('flag{'):-len('}')]
     rdlis = []
 
@@ -83,7 +83,7 @@ class Flag(WithGameLifecycle):
                 return self.val
             elif self.type=='leet':
                 assert isinstance(self.val, str)
-                return leet_flag(self.val, user._store.token, self.salt)
+                return leet_flag(self.val, user._store.id, self.salt)
             elif self.type=='partitioned':
                 assert isinstance(self.val, list)
                 return self.val[user.get_partition(self.challenge, len(self.val))]
