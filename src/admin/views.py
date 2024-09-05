@@ -159,9 +159,15 @@ class SecureForm(BaseForm): # type: ignore
     class Meta:
         csrf = True
         csrf_class = SessionCSRF
-        csrf_secret = str(current_app.secret_key).encode('utf-8')
-        csrf_context = session
         csrf_time_limit = timedelta(hours=24)
+
+        @property
+        def csrf_secret(self):
+            return str(current_app.secret_key).encode('utf-8')
+
+        @property
+        def csrf_context(self):
+            return session
 
 
 class ViewBase(sqla.ModelView): # type: ignore
