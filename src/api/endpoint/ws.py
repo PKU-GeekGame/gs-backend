@@ -62,10 +62,16 @@ async def push(req: Request, ws: WebsocketImplProtocol, worker: Worker, user: Op
                     if msg is not None:
                         if msg.get('type', None)=='push':
                             payload = msg['payload']
-                            groups: Optional[List[str]] = msg['togroups']
+                            groups: Optional[List[str]] = msg.get('togroups', None)
+                            uids: Optional[List[int]] = msg.get('touids', None)
 
-                            if groups is None or user._store.group in groups:
-                                await ws.send(json.dumps(payload))
+                            if groups is not None and user._store.group not in groups:
+                                continue
+
+                            if uids is not None and user._store.id not in uids:
+                                continue
+
+                            await ws.send(json.dumps(payload))
 
     finally:
         worker.log('debug', 'api.ws.push', f'disconnected from {user}')

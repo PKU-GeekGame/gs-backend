@@ -33,7 +33,6 @@ class Announcements:
                         'type': 'new_announcement',
                         'title': new_store.title,
                     },
-                    'togroups': None,
                 })
             self.list = other_anns+[Announcement(self._game, new_store)]
 

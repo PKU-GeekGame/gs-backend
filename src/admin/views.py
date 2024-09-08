@@ -162,11 +162,11 @@ class SecureForm(BaseForm): # type: ignore
         csrf_time_limit = timedelta(hours=24)
 
         @property
-        def csrf_secret(self):
+        def csrf_secret(self) -> bytes:
             return str(current_app.secret_key).encode('utf-8')
 
         @property
-        def csrf_context(self):
+        def csrf_context(self) -> object:
             return session
 
 

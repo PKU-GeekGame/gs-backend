@@ -34,7 +34,9 @@ class Users(WithGameLifecycle):
         self._update_aux_dicts()
         self._game.need_reloading_scoreboard = True
 
-    def on_store_update(self, id: int, new_store: Optional[UserStore]) -> None:
+    def on_store_update(self, id: int, new_store: Optional[UserStore]) -> bool:
+        reload_frontend = False
+
         # noinspection PyTypeChecker
         old_user: Optional[User] = ([x for x in self.list if x._store.id==id]+[None])[0]
         other_users = [x for x in self.list if x._store.id!=id]
@@ -46,12 +48,14 @@ class Users(WithGameLifecycle):
             self.list = other_users+[User(self._game, new_store)]
             # no need to reload scoreboard, because newly added user does not have any submissions yet
         else: # modify
-            old_user.on_store_reload(new_store)
+            reload_frontend = old_user.on_store_reload(new_store)
 
         self._update_aux_dicts()
 
         if old_user is not None and old_user.tot_score>0:  # maybe on the board but profile changed
             self._game.clear_boards_render_cache()
+
+        return reload_frontend
 
     def on_scoreboard_reset(self) -> None:
         for user in self.list:
@@ -104,11 +108,14 @@ class User(WithGameLifecycle):
 
         self.on_store_reload(self._store)
 
-    def on_store_reload(self, store: UserStore) -> None:
+    def on_store_reload(self, store: UserStore) -> bool:
+        reload_frontend = False
         if self._store.group!=store.group:
             self._game.need_reloading_scoreboard = True
+            reload_frontend = True
 
         self._store = store
+        return reload_frontend
 
     def on_scoreboard_reset(self) -> None:
         self.passed_flags = {}
