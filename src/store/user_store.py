@@ -91,7 +91,7 @@ class UserStore(Table):
         ret = []
 
         if in_main_board and self.login_properties['type']=='iaaa' and (
-            self.login_properties['info'].get('identityId', '').startswith('23000')
+            self.login_properties['info'].get('identityId', '').startswith('24000')
         ):
             ret.append('rookie')
 
