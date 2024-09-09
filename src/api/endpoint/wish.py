@@ -203,7 +203,7 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'next_name': next_trigger_name,
         } if user else None,
 
-        'show_writeup': policy.can_submit_writeup and user,
+        'show_writeup': bool(policy.can_submit_writeup and user),
         'last_announcement': (
             worker.game.announcements.list[0].describe_json(user)
             if worker.game.announcements.list and user
