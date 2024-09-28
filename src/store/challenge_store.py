@@ -15,7 +15,7 @@ def check_leet_flag(flag: str) -> None:
     for i in range(len(rcont)):
         if rcont[i] in string.ascii_letters:
             rdlis.append(i)
-    assert len(rdlis) >= 10, 'insufficient flag entropy'
+    assert len(rdlis) >= 12, f'insufficient flag entropy ({len(rdlis)}, should be at least 12)'
 
 class ChallengeStore(Table):
     __tablename__ = 'challenge'

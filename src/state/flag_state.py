@@ -21,7 +21,7 @@ def leet_flag(flag: str, uid: int, salt: str) -> str:
             rdlis.append(i)
 
     rdseed = (uid+233)*114547%123457
-    for it in range(5):
+    for it in range(6):
         if not rdlis:  # no any leetable chars
             return flag
 
