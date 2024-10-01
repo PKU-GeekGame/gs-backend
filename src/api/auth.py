@@ -18,10 +18,18 @@ LOGIN_MAX_AGE_S = 86400*30
 AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]]
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
-def add_cookie(res: HTTPResponse, name: str, value: str, path: str = '/', max_age: int = LOGIN_MAX_AGE_S) -> None:
-    res.cookies.add_cookie(name, value, path=path, httponly=True, samesite='Lax', max_age=max_age, secure=secret.BACKEND_SCHEME=='https')
+def add_cookie(res: HTTPResponse, name: str, value: str, *, path: str = '/', max_age: int = LOGIN_MAX_AGE_S, subdomain: bool = False) -> None:
+    res.cookies.add_cookie(
+        name, value,
+        path=path,
+        httponly=True,
+        samesite='Lax',
+        max_age=max_age,
+        domain=secret.BACKEND_HOSTNAME.partition(':')[0] if subdomain else None,
+        secure=secret.BACKEND_SCHEME=='https',
+    )
 
-def del_cookie(res: HTTPResponse, name: str, path: str = '/') -> None:
+def del_cookie(res: HTTPResponse, name: str, *, path: str = '/') -> None:
     # xxx: cannot use `res.cookies.delete_cookie` here
     # https://github.com/sanic-org/sanic/issues/2972
     return add_cookie(res, name, '', path=path, max_age=0)
@@ -38,7 +46,7 @@ def _login(req: Request, worker: Worker, user: User, is_register: bool = False) 
     add_cookie(res, 'auth_token', user._store.auth_token)
     if secret.IS_ADMIN(user._store):
         worker.log('warning', 'auth.login', f'sending admin 2fa cookie to U#{user._store.id}')
-        add_cookie(res, 'admin_2fa', secret.ADMIN_2FA_COOKIE, secret.ADMIN_URL)
+        add_cookie(res, 'admin_2fa', secret.ADMIN_2FA_COOKIE, path=secret.ADMIN_URL)
 
     del_cookie(res, 'oauth_state')
     return res

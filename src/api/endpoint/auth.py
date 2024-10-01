@@ -30,7 +30,7 @@ async def auth_logout(_req: Request, user: Optional[User]) -> HTTPResponse:
     res = response.redirect(secret.BUILD_LOGIN_FINISH_URL(None, False))
     del_cookie(res, 'auth_token')
     if user and secret.IS_ADMIN(user._store):
-        del_cookie(res, 'admin_2fa', secret.ADMIN_URL)
+        del_cookie(res, 'admin_2fa', path=secret.ADMIN_URL)
     return res
 
 if secret.MANUAL_AUTH_ENABLED:
@@ -292,5 +292,5 @@ if secret.CARSI_APP_ID:
         res = response.json({"status": 1, "msg": ""})
         del_cookie(res, 'auth_token')
         if user and secret.IS_ADMIN(user._store):
-            del_cookie(res, 'admin_2fa', secret.ADMIN_URL)
+            del_cookie(res, 'admin_2fa', path=secret.ADMIN_URL)
         return res
