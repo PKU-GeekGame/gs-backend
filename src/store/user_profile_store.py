@@ -5,6 +5,7 @@ import re
 from typing import TYPE_CHECKING, Optional, Set
 from unicategories import categories
 import uniseg.graphemecluster
+import emoji
 
 if TYPE_CHECKING:
     # noinspection PyUnresolvedReferences
@@ -89,8 +90,8 @@ class UserProfileStore(Table):
         if all_whitespace:
             return f'昵称不能全为空格'
 
-        graphemes = list(uniseg.graphemecluster.grapheme_clusters(name))
-        unicode_len = sum(map((lambda g: 1 if (len(g)==1 and ord(g)<128 and g not in cls.WIDE_CHARS) else max(2, len(g)//2)), graphemes))
+        graphemes = list(uniseg.graphemecluster.grapheme_clusters(emoji.replace_emoji(name, '典')))
+        unicode_len = sum(map((lambda g: 1 if (len(g)==1 and ord(g)<128 and g not in cls.WIDE_CHARS) else 2), graphemes))
 
         if unicode_len > cls.MAX_NICKNAME_UNICODE_LEN:
             return f'昵称长度（{unicode_len}）太长'

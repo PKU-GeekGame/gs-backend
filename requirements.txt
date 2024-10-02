@@ -10,6 +10,7 @@ jinja2~=3.1.4
 psutil~=6.0.0
 unicategories~=0.1.2
 uniseg~=0.8.1
+emoji~=2.13.2
 
 # logic
 pyzmq>=26.0.3
