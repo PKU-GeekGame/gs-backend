@@ -1,7 +1,7 @@
 {% extends 'admin/base.html' %}
 
 {% macro in_pre(model, column) %}
-    <div style="max-height: 25em; overflow-y: auto">
+    <div style="max-height: 25em; overflow-y: auto; line-break: anywhere">
         <samp style="white-space: pre-wrap">{{ model[column] }}</samp>
     </div>
 {% endmacro %}

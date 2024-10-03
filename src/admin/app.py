@@ -111,7 +111,7 @@ def handle_error(exc: Exception) -> ResponseReturnValue:
     return (
         '<!doctype html>'
         '<h1>🤡 500 — Internal Server Error</h1>'
-        f'<p>{escape(utils.get_traceback(exc))}</p>'
+        f'<p style="white-space: pre-wrap">{escape(utils.get_traceback(exc))}</p>'
         '<br>'
         '<p>😭 <i>Project Guiding Star</i></p>'
     ), 500
