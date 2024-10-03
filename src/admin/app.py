@@ -1,12 +1,16 @@
-from flask import Flask, redirect, request
+from flask import Flask, redirect, request, current_app
+from markupsafe import escape
 from sqlalchemy import select
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_admin import Admin
 from typing import Any, Optional
+from flask.typing import ResponseReturnValue
+from werkzeug.exceptions import HTTPException
 from functools import wraps
 
 from .views import StatusView, VIEWS_MODEL, VIEWS_FILE
+from ..logic.reducer import Reducer
 from .. import secret
 from .. import store
 from .. import utils
@@ -95,3 +99,19 @@ for friendly_name, (view, path) in VIEWS_FILE.items():
 @app.route(f'{secret.ADMIN_URL}/')
 def index() -> Any:
     return redirect(f'{secret.ADMIN_URL}/admin')
+
+@app.errorhandler(Exception)
+def handle_error(exc: Exception) -> ResponseReturnValue:
+    if isinstance(exc, HTTPException):
+        return exc
+
+    reducer: Reducer = current_app.config['reducer_obj']
+    reducer.log('warning', 'admin.handle_error', f'exception in request ({request.url}): {utils.get_traceback(exc)}')
+
+    return (
+        '<!doctype html>'
+        '<h1>🤡 500 — Internal Server Error</h1>'
+        f'<p>{escape(utils.get_traceback(exc))}</p>'
+        '<br>'
+        '<p>😭 <i>Project Guiding Star</i></p>'
+    ), 500
