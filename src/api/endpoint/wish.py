@@ -37,7 +37,7 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
             'group': user._store.group,
             'group_disp': user._store.group_disp(),
             'badges': user._store.badges(),
-            'token': user._store.token,
+            'token': user._store.token if worker.game.policy.cur_policy.can_view_problem else '',
             'profile': {
                 field: (
                     getattr(user._store.profile, f'{field}_or_null') or ''
@@ -51,6 +51,7 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
             'submit_flag': worker.game.policy.cur_policy.can_submit_flag,
             'templates': [[key, title] for key, title, effective_after in TEMPLATE_LIST if cur_tick>=effective_after],
         },
+        'cur_tick': cur_tick,
         'diag_ts': int(time.time()),
     }
 
@@ -195,6 +196,7 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
         } for ch in worker.game.challenges.list if ch.cur_effective or is_admin],
 
         'user_info': user_info,
+        'cur_tick': worker.game.cur_tick,
 
         'trigger': {
             'current_name': cur_trigger_name,
