@@ -19,7 +19,7 @@ def wish_endpoint(bp: Blueprint, uri: str, *, methods: Optional[List[str]] = Non
             if v not in ACCEPTED_WISH_VERS:
                 return response.json({
                     'error': 'WISH_VERSION_MISMATCH',
-                    'error_msg': f'比赛平台前端版本（{v}）需要更新',
+                    'error_msg': f'比赛平台前端（{v}）有更新，请刷新页面',
                 })
 
             retval_ = fn(req, *args, **kwargs)
