@@ -24,7 +24,7 @@ class Worker(StateContainerBase):
 
         self.action_socket.setsockopt(zmq.RCVTIMEO, glitter.CALL_TIMEOUT_MS)
         self.action_socket.setsockopt(zmq.SNDTIMEO, glitter.CALL_TIMEOUT_MS)
-        self.action_socket.setsockopt(zmq.REQ_RELAXED, 1)
+        self.action_socket.setsockopt(zmq.REQ_CORRELATE, 1)
         self.event_socket.setsockopt(zmq.RCVTIMEO, glitter.SYNC_TIMEOUT_MS)
 
         self.action_socket.connect(secret.GLITTER_ACTION_SOCKET_ADDR)
