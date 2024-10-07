@@ -27,9 +27,8 @@ class Reducer(StateContainerBase):
         self.action_socket: Socket = self.glitter_ctx.socket(zmq.REP)
         self.event_socket: Socket = self.glitter_ctx.socket(zmq.PUB)
 
-        self.action_socket.setsockopt(zmq.RCVTIMEO, glitter.CALL_TIMEOUT_MS)
+        self.action_socket.setsockopt(zmq.RCVTIMEO, self.SYNC_INTERVAL_S*1000)
         self.action_socket.setsockopt(zmq.SNDTIMEO, glitter.CALL_TIMEOUT_MS)
-        self.event_socket.setsockopt(zmq.RCVTIMEO, glitter.SYNC_TIMEOUT_MS)
         self.event_socket.setsockopt(zmq.SNDTIMEO, glitter.SYNC_TIMEOUT_MS)
 
         self.action_socket.bind(secret.GLITTER_ACTION_SOCKET_ADDR)
@@ -323,9 +322,8 @@ class Reducer(StateContainerBase):
 
         while True:
             try:
-                future = glitter.Action.listen(self.action_socket)
-                action: Optional[glitter.Action] = await asyncio.wait_for(future, self.SYNC_INTERVAL_S)
-            except asyncio.TimeoutError:
+                action: Optional[glitter.Action] = await glitter.Action.listen(self.action_socket)
+            except zmq.error.Again: # timeout, means no action in this interval
                 await self.emit_sync()
                 continue
             except Exception as e:
@@ -362,9 +360,14 @@ class Reducer(StateContainerBase):
                 self.log('debug', 'reducer.mainloop', f'state counter {old_counter} -> {self.state_counter}')
             assert self.state_counter-old_counter in [0, 1], f'action handler incremented state counter {self.state_counter-old_counter} times'
 
-            if action is not None:
-                with utils.log_slow(self.log, 'reducer.mainloop', f'reply to action {action.req.type}'):
-                    await action.reply(glitter.ActionRep(error_msg=err, state_counter=self.state_counter),self.action_socket)
+            try:
+                if action is not None:
+                    with utils.log_slow(self.log, 'reducer.mainloop', f'reply to action {action.req.type}'):
+                        await action.reply(glitter.ActionRep(error_msg=err, state_counter=self.state_counter),self.action_socket)
 
-            if not isinstance(action.req, glitter.WorkerHeartbeatReq):
-                await self.emit_sync()
+                if not isinstance(action.req, glitter.WorkerHeartbeatReq):
+                    await self.emit_sync()
+            except Exception as e:
+                self.log('critical', 'reducer.mainloop', f'exception during action reply, will recover: {e}')
+                self.state_counter = 1 # then workers will re-sync themselves
+                continue
