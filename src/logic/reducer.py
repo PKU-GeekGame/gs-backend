@@ -274,6 +274,10 @@ class Reducer(StateContainerBase):
 
             if has_worker and not has_living:
                 self.log('critical', 'reducer.health_check_daemon', 'all workers failed, will panic')
+                print('=== begin stack dump ===')
+                for t in asyncio.all_tasks():
+                    t.print_stack()
+                print('=== end stack dump ===')
                 sys.exit(1) # hopefully restarted by systemd
 
             st = utils.sys_status()
