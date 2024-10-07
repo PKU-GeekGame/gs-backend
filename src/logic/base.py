@@ -4,6 +4,7 @@ from zmq.asyncio import Context
 # noinspection PyUnresolvedReferences
 from abc import ABC, abstractmethod
 import asyncio
+import datetime
 from typing import Type, TypeVar, List, Optional, Dict, Callable, Any, Tuple
 
 from . import glitter, pusher
@@ -211,7 +212,7 @@ class StateContainerBase(ABC):
 
     def log(self, level: utils.LogLevel, module: str, message: str) -> None:
         if level in secret.STDOUT_LOG_LEVEL:
-            print(f'{self.process_name} [{level}] {module}: {message}')
+            print(f'{datetime.datetime.now().strftime("%m%d-%H%M%S")} {self.process_name} [{level}] {module}: {message}')
 
         if level in secret.DB_LOG_LEVEL:
             with self.SqlSession() as session:

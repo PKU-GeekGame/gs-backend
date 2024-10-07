@@ -360,7 +360,7 @@ class Reducer(StateContainerBase):
 
             if self.state_counter!=old_counter:
                 self.log('debug', 'reducer.mainloop', f'state counter {old_counter} -> {self.state_counter}')
-            assert self.state_counter-old_counter in [0, 1], 'action handler incremented state counter more than once'
+            assert self.state_counter-old_counter in [0, 1], f'action handler incremented state counter {self.state_counter-old_counter} times'
 
             if action is not None:
                 with utils.log_slow(self.log, 'reducer.mainloop', f'reply to action {action.req.type}'):
