@@ -251,10 +251,15 @@ class Reducer(StateContainerBase):
 
             ts = time.time()
 
-            all_fail = True
+            has_worker = False
+            has_living = False
             for client, (last_ts, tel_data) in self.received_telemetries.items():
+                if client==self.process_name:
+                    continue
+                has_worker = True
+
                 fail = False
-                if client!=self.process_name and ts-last_ts>60:
+                if ts-last_ts>60:
                     fail = True
                     self.log('error', 'reducer.health_check_daemon', f'client {client} not responding in {ts-last_ts:.1f}s')
                 if not tel_data.get('game_available', True):
@@ -262,12 +267,12 @@ class Reducer(StateContainerBase):
                     self.log('error', 'reducer.health_check_daemon', f'client {client} game not available')
 
                 if not fail:
-                    all_fail = False
+                    has_living = True
 
                 ws_online_uids += tel_data.get('ws_online_uids', 0)
                 ws_online_clients += tel_data.get('ws_online_clients', 0)
 
-            if self.received_telemetries and all_fail:
+            if has_worker and not has_living:
                 self.log('critical', 'reducer.health_check_daemon', 'all workers failed, will panic')
                 sys.exit(1) # hopefully restarted by systemd
 
