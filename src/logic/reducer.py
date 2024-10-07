@@ -6,6 +6,7 @@ from sqlalchemy import select
 import asyncio
 import time
 import json
+import sys
 from typing import Callable, Any, Awaitable, Dict, Tuple
 
 from . import glitter
@@ -249,14 +250,26 @@ class Reducer(StateContainerBase):
             ws_online_clients = 0
 
             ts = time.time()
+
+            all_fail = True
             for client, (last_ts, tel_data) in self.received_telemetries.items():
+                fail = False
                 if client!=self.process_name and ts-last_ts>60:
+                    fail = True
                     self.log('error', 'reducer.health_check_daemon', f'client {client} not responding in {ts-last_ts:.1f}s')
                 if not tel_data.get('game_available', True):
+                    fail = True
                     self.log('error', 'reducer.health_check_daemon', f'client {client} game not available')
+
+                if not fail:
+                    all_fail = False
 
                 ws_online_uids += tel_data.get('ws_online_uids', 0)
                 ws_online_clients += tel_data.get('ws_online_clients', 0)
+
+            if self.received_telemetries and all_fail:
+                self.log('critical', 'reducer.health_check_daemon', 'all workers failed, will panic')
+                sys.exit(1) # hopefully restarted by systemd
 
             st = utils.sys_status()
             if st['load_5']>st['n_cpu']*2/3:
