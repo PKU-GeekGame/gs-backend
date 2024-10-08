@@ -25,7 +25,7 @@ async def download_attachment(p: str) -> HTTPResponse:
             mime_type='application/octet-stream',
         )
 
-async def gen_attachment(chall: Challenge, att: Dict[str, Any], user: User, log: Callable[[utils.LogLevel, str, str], None], force_regen: bool = False) -> Optional[str]:
+def gen_attachment(chall: Challenge, att: Dict[str, Any], user: User, log: Callable[[utils.LogLevel, str, str], None], force_regen: bool = False) -> Optional[str]:
     assert att['type']=='dyn_attachment'
 
     mod_path = secret.ATTACHMENT_PATH / att['module_path']
@@ -95,7 +95,7 @@ async def get_attachment(req: Request, ch_key: str, fn: str) -> HTTPResponse:
         return await download_attachment(att["file_path"])
 
     elif att['type']=='dyn_attachment':
-        att_url = await gen_attachment(chall, att, user, worker.log)
+        att_url = gen_attachment(chall, att, user, worker.log)
         if att_url is None:
             return response.text('附件暂时不可用', status=500)
         else:
