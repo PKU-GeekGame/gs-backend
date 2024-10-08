@@ -32,6 +32,7 @@ IAAA_KEY = 'xxx'
 CARSI_APP_ID: Optional[str] = None # None to disable this endpoint
 CARSI_DOMAIN = 'spoauth2pre.carsi.edu.cn'
 CARSI_APP_SECRET = 'xxx'
+CARSI_DEFAULT_IDP: Optional[str] = None
 CARSI_PRIV_KEY: Optional[OpenSSL.crypto.PKey] = None
 # https://carsi.atlassian.net/wiki/spaces/CAW/pages/27103892/3.+CARSI+SP+OAuth+Joining+CARSI+for+OAuth+SP
 #with open('/path/to/carsi.priv') as f:

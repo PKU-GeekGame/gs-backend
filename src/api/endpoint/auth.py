@@ -236,6 +236,7 @@ if secret.CARSI_APP_ID:
             {
                 'response_type': 'code',
                 'client_id': secret.CARSI_APP_ID,
+                **({'idp': secret.CARSI_DEFAULT_IDP} if secret.CARSI_DEFAULT_IDP else {}),
             },
             None,
         )
