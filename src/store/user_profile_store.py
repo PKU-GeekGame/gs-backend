@@ -39,10 +39,11 @@ class UserProfileStore(Table):
     VAL_TEL = re.compile(r'^.{5,20}$')
 
     email_or_null = Column('email', String(MAX_INFO_LEN), nullable=True)
-    VAL_EMAIL = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
+    #VAL_EMAIL = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
+    VAL_EMAIL = re.compile(r'^[a-z-]+[0-9]+@(mails?.)?tsinghua.edu.cn$')
 
-    gender_or_null = Column('gender', String(MAX_INFO_LEN), nullable=True)
-    VAL_GENDER = re.compile(r'^(female|male|other)$')
+    stuid_or_null = Column('stuid', String(MAX_INFO_LEN), nullable=True)
+    VAL_STUID = re.compile(r'^\d{10}$')
 
     comment_or_null = Column('comment', String(MAX_INFO_LEN), nullable=True)
     VAL_COMMENT = re.compile(r'^.{0,100}$')
@@ -50,7 +51,7 @@ class UserProfileStore(Table):
     PROFILE_FOR_GROUP = {
         'staff': ['nickname', 'tel', 'qq', 'comment'],
         'pku': ['nickname', 'tel', 'qq', 'comment'],
-        'thu': ['nickname', 'tel', 'qq', 'comment'],
+        'thu': ['nickname', 'email', 'qq', 'stuid', 'comment'],
         'other': ['nickname', 'qq', 'comment'],
         'banned': ['nickname', 'qq', 'comment'],
     }
@@ -114,9 +115,9 @@ class UserProfileStore(Table):
         if 'tel' in required_profiles and not self.VAL_TEL.match(self.tel_or_null or ''):
             return '电话号码格式错误'
         if 'email' in required_profiles and not self.VAL_EMAIL.match(self.email_or_null or ''):
-            return '邮箱格式错误'
-        if 'gender' in required_profiles and not self.VAL_GENDER.match(self.gender_or_null or ''):
-            return '选择的性别无效'
+            return '邮箱格式错误，请填写清华邮箱地址'
+        if 'stuid' in required_profiles and not self.VAL_STUID.match(self.stuid_or_null or ''):
+            return '学号格式错误'
         if 'comment' in required_profiles and not self.VAL_COMMENT.match(self.comment_or_null or ''):
             return '了解比赛的渠道格式错误'
 
