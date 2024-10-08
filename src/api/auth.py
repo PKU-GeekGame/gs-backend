@@ -5,7 +5,7 @@ from html import escape
 from functools import wraps
 from inspect import isawaitable
 from urllib.parse import quote
-from typing import Dict, Any, Callable, Tuple, Union, Awaitable
+from typing import Dict, Any, Callable, Tuple, Union, Awaitable, Optional
 
 from . import store_anticheat_log
 from ..logic import Worker, glitter
@@ -117,13 +117,14 @@ def build_url(url: str, query: Dict[str, str]) -> str:
     query_str = '&'.join(f'{quote(k)}={quote(v)}' for k, v in query.items())
     return f'{url}?{query_str}'
 
-def oauth2_redirect(url: str, params: Dict[str, str], redirect_url: str) -> HTTPResponse:
-    assert '://' in redirect_url, 'redirect url should be absolute'
+def oauth2_redirect(url: str, params: Dict[str, str], redirect_url: Optional[str]) -> HTTPResponse:
+    if redirect_url:
+        assert '://' in redirect_url, 'redirect url should be absolute'
 
     state = utils.gen_random_str(32)
     res = response.redirect(build_url(url, {
         **params,
-        'redirect_uri': redirect_url,
+        **({'redirect_uri': redirect_url} if redirect_url else {}),
         'state': state,
     }))
 

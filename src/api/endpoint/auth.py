@@ -232,14 +232,12 @@ if secret.CARSI_APP_ID:
         assert secret.CARSI_APP_ID
 
         return oauth2_redirect(
-            'https://spoauth2pre.carsi.edu.cn/api/authorize',
+            f'https://{secret.CARSI_DOMAIN}/api/authorize',
             {
                 'response_type': 'code',
                 'client_id': secret.CARSI_APP_ID,
             },
-            secret.BUILD_OAUTH_CALLBACK_URL(
-                req.app.url_for('auth.auth_carsi_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
-            ),
+            None,
         )
 
     @bp.route('/carsi/login/callback')
