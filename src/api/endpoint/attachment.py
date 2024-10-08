@@ -1,6 +1,6 @@
 from sanic import Blueprint, Request, HTTPResponse, response
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Dict, Any, Optional
 
 from .. import store_anticheat_log
 from ...state import User, Challenge
@@ -24,6 +24,44 @@ async def download_attachment(p: str) -> HTTPResponse:
             },
             mime_type='application/octet-stream',
         )
+
+async def gen_attachment(chall: Challenge, att: Dict[str, Any], user: User, log: Callable[[utils.LogLevel, str, str], None], force_regen: bool = False) -> Optional[str]:
+    assert att['type']=='dyn_attachment'
+
+    mod_path = secret.ATTACHMENT_PATH / att['module_path']
+    cache_path = mod_path / '_cache' / f'{user._store.id}.bin'
+    cache_url = f'{att["module_path"]}/_cache/{user._store.id}.bin'
+
+    cache_path.parent.mkdir(exist_ok=True)
+    if cache_path.is_file():
+        if force_regen:
+            cache_path.unlink()
+        else:
+            return cache_url
+    if not mod_path.is_dir():
+        log('error', 'api.attachment.gen_attachment', f'module path is not dir: {mod_path}')
+        return None
+
+    log('info', 'api.attachment.gen_attachment', f'generating attachment {chall._store.key}::{att["filename"]} for {user._store.id}')
+
+    try:
+        with utils.chdir(mod_path):
+            gen_mod = utils.load_module(mod_path / 'gen.py')
+            gen_fn: Callable[[User, Challenge], Path] = gen_mod.gen
+            out_path = gen_fn(user, chall)
+            assert isinstance(out_path, Path), f'gen_fn must return a Path, got {type(out_path)}'
+            out_path = out_path.resolve()
+
+        out_path.chmod(0o644)
+        if cache_path.exists():
+            log('warning', 'api.attachment.gen_attachment', f'cache path already exists (race condition?) at {cache_path}')
+        else:
+            cache_path.symlink_to(out_path)
+    except Exception as e:
+        log('error', 'api.attachment.get_attachment', f'error generating attachment: {utils.get_traceback(e)}')
+        return None
+    else:
+        return cache_url
 
 
 @bp.route('/<ch_key:str>/<fn:str>', unquote=True)
@@ -57,37 +95,12 @@ async def get_attachment(req: Request, ch_key: str, fn: str) -> HTTPResponse:
         return await download_attachment(att["file_path"])
 
     elif att['type']=='dyn_attachment':
-        mod_path = secret.ATTACHMENT_PATH / att['module_path']
-        cache_path = mod_path / '_cache' / f'{user._store.id}.bin'
-        cache_url = f'{att["module_path"]}/_cache/{user._store.id}.bin'
-
-        cache_path.parent.mkdir(exist_ok=True)
-        if cache_path.is_file():
-            return await download_attachment(cache_url)
-        if not mod_path.is_dir():
-            worker.log('error', 'api.attachment.get_attachment', f'module path is not dir: {mod_path}')
-            return response.text('附件暂时不可用', status=500)
-
-        worker.log('info', 'api.attachment.get_attachment', f'generating attachment {chall._store.key}::{att["filename"]} for {user._store.id}')
-
-        try:
-            with utils.chdir(mod_path):
-                gen_mod = utils.load_module(mod_path / 'gen.py')
-                gen_fn: Callable[[User, Challenge], Path] = gen_mod.gen
-                out_path = gen_fn(user, chall)
-                assert isinstance(out_path, Path), f'gen_fn must return a Path, got {type(out_path)}'
-                out_path = out_path.resolve()
-
-            out_path.chmod(0o644)
-            if cache_path.exists():
-                worker.log('warning', 'api.attachment.get_attachment', f'cache path already exists (race condition?) at {cache_path}')
-            else:
-                cache_path.symlink_to(out_path)
-        except Exception as e:
-            worker.log('error', 'api.attachment.get_attachment', f'error generating attachment: {utils.get_traceback(e)}')
+        att_url = await gen_attachment(chall, att, user, worker.log)
+        if att_url is None:
             return response.text('附件暂时不可用', status=500)
         else:
-            return await download_attachment(cache_url)
+            return await download_attachment(att_url)
+
 
     else:
         worker.log('error', 'api.attachment.get_attachment', f'unknown attachment type: {att["type"]}')
