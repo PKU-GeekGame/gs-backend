@@ -100,8 +100,8 @@ class UserProfileStore(Table):
 
         return None
 
-    def _deep_val_stuid(self, stuid: str) -> Optional[str]:
-        protocol , colon, idhash = self.user_.login_key.partition(':')
+    def _deep_val_stuid(self, user: UserStore, stuid: str) -> Optional[str]:
+        protocol , colon, idhash = user.login_key.partition(':')
         if colon!=':' or len(idhash)!=32 or protocol!='carsi':
             return '无法验证学号正确性'
 
@@ -110,7 +110,8 @@ class UserProfileStore(Table):
 
         return None
 
-    def check_profile(self, group: str) -> Optional[str]:
+    def check_profile(self, user: UserStore) -> Optional[str]:
+        group = user.group
         required_profiles = self.PROFILE_FOR_GROUP.get(group, [])
 
         for field in required_profiles:
@@ -131,7 +132,7 @@ class UserProfileStore(Table):
         if 'stuid' in required_profiles:
             if not self.VAL_STUID.match(self.stuid_or_null or ''):
                 return '学号格式错误'
-            if (err := self._deep_val_stuid(self.stuid_or_null or '')) is not None:
+            if (err := self._deep_val_stuid(user, self.stuid_or_null or '')) is not None:
                 return err
         if 'comment' in required_profiles and not self.VAL_COMMENT.match(self.comment_or_null or ''):
             return '了解比赛的渠道格式错误'

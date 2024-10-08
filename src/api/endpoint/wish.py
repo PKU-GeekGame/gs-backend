@@ -82,7 +82,7 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
         setattr(profile, f'{field}_or_null', str(body.profile[field]))
         fields[field] = str(body.profile[field])
 
-    chk = profile.check_profile(user._store.group)
+    chk = profile.check_profile(user._store)
     if chk is not None:
         return {'error': 'INVALID_PARAM', 'error_msg': chk}
 
