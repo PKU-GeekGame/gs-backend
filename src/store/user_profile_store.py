@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, ForeignKey, BigInteger, String
 from sqlalchemy.orm import relationship
 import time
 import re
+import hashlib
 from typing import TYPE_CHECKING, Optional, Set
 from unicategories import categories
 import uniseg.graphemecluster
@@ -99,6 +100,16 @@ class UserProfileStore(Table):
 
         return None
 
+    def _deep_val_stuid(self, stuid: str) -> Optional[str]:
+        protocol , colon, idhash = self.user_.login_key.partition(':')
+        if colon!=':' or len(idhash)!=32 or protocol!='carsi':
+            return '无法验证学号正确性'
+
+        if hashlib.md5(stuid.encode()).hexdigest()!=idhash:
+            return '学号与登录方式不符'
+
+        return None
+
     def check_profile(self, group: str) -> Optional[str]:
         required_profiles = self.PROFILE_FOR_GROUP.get(group, [])
 
@@ -106,18 +117,22 @@ class UserProfileStore(Table):
             if getattr(self, f'{field}_or_null') is None:
                 return f'个人信息不完整（{field}）'
 
-        if 'nickname' in required_profiles and not self.VAL_NICKNAME.match(self.nickname_or_null or ''):
-            return '昵称格式错误'
-        if (err := self._deep_val_nickname(self.nickname_or_null or '')) is not None:
-            return err
+        if 'nickname' in required_profiles:
+            if not self.VAL_NICKNAME.match(self.nickname_or_null or ''):
+                return '昵称格式错误'
+            if (err := self._deep_val_nickname(self.nickname_or_null or '')) is not None:
+                return err
         if 'qq' in required_profiles and not self.VAL_QQ.match(self.qq_or_null or ''):
             return 'QQ号格式错误'
         if 'tel' in required_profiles and not self.VAL_TEL.match(self.tel_or_null or ''):
             return '电话号码格式错误'
         if 'email' in required_profiles and not self.VAL_EMAIL.match(self.email_or_null or ''):
             return '邮箱格式错误，请填写清华邮箱地址'
-        if 'stuid' in required_profiles and not self.VAL_STUID.match(self.stuid_or_null or ''):
-            return '学号格式错误'
+        if 'stuid' in required_profiles:
+            if not self.VAL_STUID.match(self.stuid_or_null or ''):
+                return '学号格式错误'
+            if (err := self._deep_val_stuid(self.stuid_or_null or '')) is not None:
+                return err
         if 'comment' in required_profiles and not self.VAL_COMMENT.match(self.comment_or_null or ''):
             return '了解比赛的渠道格式错误'
 

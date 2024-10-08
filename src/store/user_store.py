@@ -93,6 +93,11 @@ class UserStore(Table):
         ):
             ret.append('rookie')
 
+        if self.group=='thu' and self.login_properties['type']=='carsi' and (
+            (self.profile.stuid_or_null or '').startswith('202401')
+        ):
+            ret.append('rookie')
+
         extra = self.login_properties.get('badges', None)
         if isinstance(extra, list):
             ret.extend(extra)
