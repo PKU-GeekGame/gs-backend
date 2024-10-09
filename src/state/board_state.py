@@ -200,7 +200,7 @@ class FirstBloodBoard(Board):
                                 'challenge': submission.challenge._store.title,
                                 'flag': submission.matched_flag.name,
                             },
-                            'togroups': self.group,
+                            #'togroups': self.group,
                         })
 
                 if passed_all_flags and submission.challenge not in self.chall_board:
@@ -215,7 +215,7 @@ class FirstBloodBoard(Board):
                                 'nickname': submission.user._store.profile.nickname_or_null,
                                 'challenge': submission.challenge._store.title,
                             },
-                            'togroups': self.group,
+                            #'togroups': self.group,
                         })
 
                 self.clear_render_cache()
