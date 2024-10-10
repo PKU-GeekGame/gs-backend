@@ -90,6 +90,7 @@ class UserStore(Table):
 
         if self.group=='pku' and self.login_properties['type']=='iaaa' and (
             self.login_properties['info'].get('identityId', '').startswith('24000')
+            or self.login_properties['info'].get('identityId', '').startswith('24103') # 医学部 本博连读
         ):
             ret.append('rookie')
 
