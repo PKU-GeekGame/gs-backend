@@ -29,6 +29,7 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
         return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
 
     cur_tick = worker.game.cur_tick
+    is_admin = user and secret.IS_ADMIN(user._store)
 
     return {
         'user': None if user is None else {
@@ -37,7 +38,7 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
             'group': user._store.group,
             'group_disp': user._store.group_disp(),
             'badges': user._store.badges(),
-            'token': user._store.token if worker.game.policy.cur_policy.can_view_problem else '',
+            'token': user._store.token if (worker.game.policy.cur_policy.can_view_problem or is_admin) else '',
             'profile': {
                 field: (
                     getattr(user._store.profile, f'{field}_or_null') or ''
