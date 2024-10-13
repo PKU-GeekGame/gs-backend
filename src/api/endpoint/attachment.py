@@ -65,13 +65,15 @@ def gen_attachment(chall: Challenge, att: Dict[str, Any], user: User, log: Calla
 
 
 @bp.route('/<ch_key:str>/<fn:str>', unquote=True)
-async def get_attachment(req: Request, ch_key: str, fn: str) -> HTTPResponse:
+async def get_attachment(req: Request, ch_key: str, user_in_cookie: Optional[User], fn: str) -> HTTPResponse:
     worker: Worker = req.app.ctx.worker
     if worker.game is None:
         return response.text('服务暂时不可用', status=403)
 
     usertoken = req.args.get('token', None)
     user = worker.game.users.user_by_token.get(usertoken, None) if usertoken else None
+    if user is None:
+        user = user_in_cookie
     if user is None:
         return response.text('Token无效', status=403)
 
