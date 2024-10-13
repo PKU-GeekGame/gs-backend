@@ -497,6 +497,8 @@ class TriggerView(ViewBase):
         self.emit_event(glitter.EventType.RELOAD_TRIGGER)
 
 class UserProfileView(ViewBase):
+    IS_SAFE = True
+
     can_create = False
     can_delete = False
 
