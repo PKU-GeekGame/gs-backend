@@ -156,9 +156,19 @@ class Reducer(StateContainerBase):
         if not ch:
             return 'challenge not found'
 
+        user = self._game.users.user_by_id.get(int(req.uid), None)
+        if user is None:
+            return 'user not found'
+
+        last_sub = user.last_submission
+        if last_sub is not None:
+            delta = time.time() - last_sub._store.timestamp_ms / 1000
+            if delta < SubmissionStore.SUBMIT_COOLDOWN_S - 1:
+                return '请求太频繁'
+
         with self.SqlSession() as session:
             submission = SubmissionStore(
-                user_id=int(req.uid),
+                user_id=user._store.id,
                 challenge_key=ch._store.key,
                 flag=str(req.flag),
                 precentage_override_or_null=(
