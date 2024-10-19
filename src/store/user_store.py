@@ -74,7 +74,11 @@ class UserStore(Table):
             elif props['type']=='github':
                 return f'[GitHub] {props["info"]["name"]} ({props["info"]["login"]})'
             elif props['type']=='carsi':
-                return f'[Carsi] {props["info"]["usertype"]} @ {props["info"]["domain"]}'
+                #return f'[Carsi] {props["info"]["usertype"]} @ {props["info"]["domain"]}'
+                stu_id = None
+                if self.profile:
+                    stu_id = self.profile.stuid_or_null
+                return f'[Carsi] {stu_id} ({props["info"]["usertype"]})'
             else:
                 return f'[{props["type"]}]'
 
