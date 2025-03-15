@@ -2,6 +2,7 @@ from __future__ import annotations
 import OpenSSL.crypto
 import pathlib
 from typing import TYPE_CHECKING, List, Optional, Tuple, Dict, Literal, Union
+from cryptography.hazmat.primitives import serialization
 
 if TYPE_CHECKING:
     from .store import UserStore
@@ -50,8 +51,11 @@ ADMIN_2FA_COOKIE = 'some_long_random_string'
 
 # openssl ecparam -name secp256k1 -genkey -noout -out token.priv
 # openssl req -x509 -key token.priv -out token.pub -days 365
-with open('/path/to/token.priv') as f:
-    TOKEN_SIGNING_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read())
+with open('/path/to/token.priv', 'rb') as f:
+    TOKEN_SIGNING_KEY = serialization.load_pem_private_key(
+        f.read(),
+        password=None,
+    )
 
 ##
 ## DEPLOYMENT CONFIG
