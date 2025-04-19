@@ -32,10 +32,8 @@ class Game(WithGameLifecycle):
         self.boards: Dict[str, Board] = {
             'score_pku': ScoreBoard('北京大学排名', None, self, ['pku'], False, 100),
             'score_thu': ScoreBoard('清华大学排名', None, self, ['thu'], False, 100),
-            'score_other': ScoreBoard('其他选手排名', '其他选手不参与评奖，但符合要求的可申请领取成绩证明和纪念品', self, ['other'], False, 100),
             'first_pku': FirstBloodBoard('北京大学一血榜', None, self, ['pku'], False),
-            'first_thu': FirstBloodBoard('清华大学一血榜', '题目一血与奖项无关，仅供参考', self, ['thu'], False),
-            'first_other': FirstBloodBoard('其他选手一血榜', '题目一血与奖项无关，仅供参考', self, ['other'], False),
+            'first_thu': FirstBloodBoard('清华大学一血榜', None, self, ['thu'], False),
             'score_all': ScoreBoard('总排名', '总排名与校内奖项无关，仅供参考', self, UserStore.TOT_BOARD_GROUPS, True, 200),
             'first_all': FirstBloodBoard('总一血榜', None, self, UserStore.TOT_BOARD_GROUPS, True),
             'banned': ScoreBoard('封神榜', 'R.I.P.', self, ['banned'], True, 200),

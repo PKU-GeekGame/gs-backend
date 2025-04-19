@@ -180,7 +180,9 @@ class FirstBloodBoard(Board):
         if submission.matched_flag is not None:
             assert submission.challenge is not None, 'submission matched flag to no challenge'
 
-            should_skip_push = in_batch or self.group==UserStore.TOT_BOARD_GROUPS # will push in the corresponding special board
+            should_skip_push = in_batch or (
+                submission.user._store.group in ['pku', 'thu'] and self.group!=['pku'] and self.group!=['thu'] # will push in the main board
+            )
 
             if self.group is None or submission.user._store.group in self.group:
                 passed_all_flags = submission.challenge in submission.user.passed_challs
