@@ -42,7 +42,7 @@ def rm_common_header(rows: List[List[str]], n: int) -> None:
         last_r = new_r
 
 def export_problemset(game: Game) -> None:
-    HEADERS = ['分类', '官方题解和源码', '题目标题', 'Flag', '分值', '北大通过', '清华通过', '总通过']
+    HEADERS = ['分类', '官方题解和源码', '题目标题', 'Flag', '分值', '校内通过', '总通过']
 
     d = []
 
@@ -52,8 +52,6 @@ def export_problemset(game: Game) -> None:
             n_passed = {
                 'pku_1': 0,
                 'pku_2': 0,
-                'thu_1': 0,
-                'thu_2': 0,
                 'other_1': 0,
                 'other_2': 0,
             }
@@ -61,7 +59,7 @@ def export_problemset(game: Game) -> None:
             for u in flag.passed_users:
                 sub = u.passed_flags[flag]
                 cat = '2' if sub._store.precentage_override_or_null is not None else '1'
-                grp = 'pku' if u._store.group == 'pku' else 'thu' if u._store.group=='thu' else 'other'
+                grp = 'pku' if u._store.group == 'pku' else 'other'
                 n_passed[f'{grp}_{cat}'] += 1
 
             rows.append([
@@ -71,19 +69,18 @@ def export_problemset(game: Game) -> None:
                 flag.name or '/',
                 flag.base_score,
                 f'{n_passed["pku_1"]}+{n_passed["pku_2"]}',
-                f'{n_passed["thu_1"]}+{n_passed["thu_2"]}',
-                f'{n_passed["pku_1"]+n_passed["thu_1"]+n_passed["other_1"]}+{n_passed["pku_2"]+n_passed["thu_2"]+n_passed["other_2"]}',
+                f'{n_passed["pku_1"]+n_passed["other_1"]}+{n_passed["pku_2"]+n_passed["other_2"]}',
             ])
 
     rm_common_header(rows, 4)
 
     d.append('# 题目列表')
     d.append(gen_md_table(HEADERS, rows))
-    d.append('“分值” 表示题目原始分值，实际分值取决于两校第一阶段通过人数。')
-    d.append('通过人数用加号分隔的两个数字分别表示第一阶段和第二阶段的通过人数。')
+    d.append('“分值” 表示题目原始分值，实际分值取决于校内第一阶段通过人数。')
+    d.append('“校内通过” 和 “总通过” 人数的两个部分分别表示第一阶段和第二阶段的通过人数。')
 
     for ch in game.challenges.list:
-        d.append(f'## [{ch._store.key}] {ch._store.title}')
+        d.append(f'## [{ch._store.category}] {ch._store.title}')
         d.append(f'**[【→ 官方题解和源码】](../official_writeup/{ch._store.key}/)**')
         d.append(ch.render_desc(game.users.user_by_id[UID_FOR_PREVIEW]))
 
@@ -157,7 +154,7 @@ def export_ranking_list(game: Game):
         for key, b in game.boards.items()
     ))
 
-    d.append('只有“北京大学”和“清华大学”赛道的校内选手参与评奖。')
+    d.append('分数排名截止到前100名。只有“北京大学”组别的校内选手参与评奖。')
     d.append(f'排行榜存档时间为 {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}，选手昵称可能有变化。')
 
     with (EXPORT_PATH / 'ranking' / 'README.md').open('w', encoding='utf-8') as f:
@@ -202,7 +199,7 @@ def export_ranking_firstblood(b: FirstBloodBoard, p: Path) -> None:
         for row_c in li:
             for row_f in row_c['flags']:
                 w.writerow([
-                    f"[{row_c['key']}] {row_c['title']}",
+                    row_c['title'],
                     row_f['flag_name'] or '/',
                     row_f['nickname'] or '',
                     (row_f['group_disp'] or '') + format_badge(row_f['badges'] or []),
@@ -217,7 +214,7 @@ def export_announcements(game: Game):
     for a in game.announcements.list:
         d.append(f'## {a.title}')
         d.append(f'（发布时间：{format_ts(a.timestamp_s)}）' )
-        d.append(a._render_template(game.cur_tick, game.users.user_by_id[UID_FOR_PREVIEW]._store.group))
+        d.append(a._render_template(game.cur_tick, None))
 
     (EXPORT_PATH / 'announcements').mkdir()
     with (EXPORT_PATH / 'announcements' / 'README.md').open('w', encoding='utf-8') as f:
@@ -249,5 +246,9 @@ if __name__=='__main__':
 
     worker = Worker('worker-test')
     asyncio.run(worker._before_run())
+
+    worker.game.boards['banned'] = ScoreBoard('身怀绝技的大哥们', None, worker.game, ['banned'], True)
+    worker.game.need_reloading_scoreboard = True
+    worker.reload_scoreboard_if_needed()
 
     export_game(worker.game)
