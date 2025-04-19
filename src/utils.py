@@ -13,7 +13,8 @@ from markdown.extensions.sane_lists import SaneListExtension
 import datetime
 import pytz
 import base64
-import OpenSSL.crypto
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
 import traceback
 import asyncio
 import secrets
@@ -29,8 +30,6 @@ from typing import Union, Callable, Dict, Any, Iterator, Literal
 LogLevel = Literal['debug', 'info', 'warning', 'error', 'critical', 'success']
 
 from . import secret
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes
 
 def gen_random_str(length: int = 32, *, crypto: bool = False) -> str:
     choice: Callable[[str], str] = secrets.choice if crypto else random.choice  # type: ignore
