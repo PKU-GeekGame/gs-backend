@@ -241,7 +241,7 @@ if __name__=='__main__':
     worker = Worker('worker-test')
     asyncio.run(worker._before_run())
 
-    worker.game.boards['banned'] = ScoreBoard('身怀绝技的大哥们', None, worker.game, ['banned'], True)
+    worker.game.boards['banned'] = ScoreBoard('身怀绝技的大哥们', None, worker.game, ['banned'], True, 1000)
     worker.game.need_reloading_scoreboard = True
     worker.reload_scoreboard_if_needed()
 

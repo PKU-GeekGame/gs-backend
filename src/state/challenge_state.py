@@ -158,7 +158,7 @@ class Challenge(WithGameLifecycle):
                 return True
         return False
 
-    def describe_metadata(self) -> Dict[str, Any]:
+    def describe_metadata(self, board: Optional[Board]) -> Dict[str, Any]:
         #m = {} if self._store.chall_metadata is None else self._store.chall_metadata
         #return {'author': None if self._game.cur_tick<Trigger.TRIGGER_BOARD_END else m.get('author', None),}
 

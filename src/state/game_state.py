@@ -35,7 +35,7 @@ class Game(WithGameLifecycle):
                 f'score_{g}': ScoreBoard(f'{UserStore.GROUPS[g]}排名', None, self, [g], False, 1000)
                 for g in UserStore.TOT_BOARD_GROUPS
             },
-            'banned': ScoreBoard('已封禁用户', None, self, ['banned'], True),
+            'banned': ScoreBoard('已封禁用户', None, self, ['banned'], True, 1000),
             #**{
             #    f'first_{g}': FirstBloodBoard(f'{UserStore.GROUPS[g]}一血榜', None, self, [g], False)
             #    for g in UserStore.TOT_BOARD_GROUPS
