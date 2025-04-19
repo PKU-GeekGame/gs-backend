@@ -1,9 +1,21 @@
 from sqlalchemy import Column, Integer, String, Text, JSON
 from sqlalchemy.orm import validates
 import re
+import string
 from typing import Any, Optional, Tuple, Dict, List
 
 from . import Table
+
+def check_leet_flag(flag: str) -> None:
+    assert flag.startswith('flag{') and flag.endswith('}'), 'wrong flag format'
+
+    rcont = flag[len('flag{'):-len('}')]
+    rdlis = []
+
+    for i in range(len(rcont)):
+        if rcont[i] in string.ascii_letters:
+            rdlis.append(i)
+    assert len(rdlis) >= 12, f'insufficient flag entropy ({len(rdlis)}, should be at least 12)'
 
 class ChallengeStore(Table):
     __tablename__ = 'challenge'
@@ -44,6 +56,7 @@ class ChallengeStore(Table):
     def validate_flags(self, _key: str, flags: Any) -> Any:
         assert isinstance(flags, list), 'flags should be list'
         assert len(flags)>0, 'flags should not be empty'
+        assert len(flags)<=3, '最多只支持3个flag'
 
         for flag in flags:
             assert isinstance(flag, dict), 'flag should be dict'
@@ -58,8 +71,18 @@ class ChallengeStore(Table):
             assert isinstance(flag['base_score'], int), 'flag base_score should be int'
             if flag['type']=='partitioned':
                 assert isinstance(flag['val'], list) and all(isinstance(f, str) for f in flag['val']), 'flag val should be list of str'
+                assert all((self.check_flag_format(f) is None) for f in flag['val']), f'{flag["name"]}不符合Flag格式'
             else:
                 assert isinstance(flag['val'], str), 'flag val should be str'
+                if flag['type'] in ['static', 'leet']:
+                    assert self.check_flag_format(flag['val']) is None, f'{flag["name"]}不符合Flag格式'
+                if flag['type']=='leet':
+                    check_leet_flag(flag['val'])
+
+        if len(flags)==1:
+            assert flags[0]['name']=='', '单个Flag的name需要留空，因为不会显示'
+        else:
+            assert all(f['name']!='' for f in flags), '有多个Flag时需要填写name字段'
 
         return flags
 
@@ -152,7 +175,7 @@ class ChallengeStore(Table):
     }
 
     @classmethod
-    def check_submitted_flag(cls, flag: str) -> Optional[Tuple[str, str]]:
+    def check_flag_format(cls, flag: str) -> Optional[Tuple[str, str]]:
         if len(flag)>cls.MAX_FLAG_LEN:
             return 'FLAG_LEN', 'Flag过长'
         elif cls.VAL_FLAG.match(flag) is None:

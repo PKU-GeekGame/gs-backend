@@ -5,7 +5,7 @@ from html import escape
 from functools import wraps
 from inspect import isawaitable
 from urllib.parse import quote
-from typing import Dict, Any, Callable, Tuple, Union, Awaitable, Type, Optional
+from typing import Dict, Any, Callable, Tuple, Union, Awaitable, Optional
 
 from . import store_anticheat_log
 from ..logic import Worker, glitter
@@ -18,27 +18,37 @@ LOGIN_MAX_AGE_S = 86400*30
 AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]]
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
-def _login(req: Request, worker: Worker, user: User) -> HTTPResponse:
+def add_cookie(res: HTTPResponse, name: str, value: str, *, path: str = '/', max_age: int = LOGIN_MAX_AGE_S, subdomain: bool = False) -> None:
+    res.cookies.add_cookie(
+        name, value,
+        path=path,
+        httponly=True,
+        samesite='Lax',
+        max_age=max_age,
+        domain=secret.BACKEND_HOSTNAME.partition(':')[0] if subdomain else None,
+        secure=secret.BACKEND_SCHEME=='https',
+    )
+
+def del_cookie(res: HTTPResponse, name: str, *, path: str = '/') -> None:
+    # xxx: cannot use `res.cookies.delete_cookie` here
+    # https://github.com/sanic-org/sanic/issues/2972
+    return add_cookie(res, name, '', path=path, max_age=0)
+
+def _login(req: Request, worker: Worker, user: User, is_register: bool = False) -> HTTPResponse:
     chk = user.check_login()
     if chk is not None:
         raise AuthError(chk[1])
 
     store_anticheat_log(req, ['login'])
 
-    res = response.redirect(secret.FRONTEND_PORTAL_URL)
-    def add_cookie(res: HTTPResponse, name: str, value: str, path: str = '/') -> None:
-        res.cookies[name] = value
-        res.cookies[name]['samesite'] = 'Lax'
-        res.cookies[name]['httponly'] = True
-        res.cookies[name]['path'] = path
-        res.cookies[name]['max-age'] = LOGIN_MAX_AGE_S
+    res = response.redirect(secret.BUILD_LOGIN_FINISH_URL(user, is_register))
 
     add_cookie(res, 'auth_token', user._store.auth_token)
     if secret.IS_ADMIN(user._store):
         worker.log('warning', 'auth.login', f'sending admin 2fa cookie to U#{user._store.id}')
-        add_cookie(res, 'admin_2fa', secret.ADMIN_2FA_COOKIE, secret.ADMIN_URL)
+        add_cookie(res, 'admin_2fa', secret.ADMIN_2FA_COOKIE, path=secret.ADMIN_URL)
 
-    del res.cookies['oauth_state'] # type: ignore
+    del_cookie(res, 'oauth_state')
     return res
 
 class AuthError(Exception):
@@ -54,7 +64,9 @@ async def _register_or_login(req: Request, worker: Worker, login_key: str, prope
         raise AuthError('服务暂时不可用')
     user = worker.game.users.user_by_login_key.get(login_key)
 
+    is_register = False
     if user is None:  # reg new user
+        is_register = True
         if not secret.REGISTRATION_ENABLED:
             raise AuthError('目前不允许注册新账户')
 
@@ -71,7 +83,7 @@ async def _register_or_login(req: Request, worker: Worker, login_key: str, prope
         else:
             raise AuthError(f'注册账户失败：{rep.error_msg}')
 
-    return _login(req, worker, user)
+    return _login(req, worker, user, is_register)
 
 def auth_response(fn: AuthHandler) -> RouteHandler:
     @wraps(fn)
@@ -95,7 +107,7 @@ def auth_response(fn: AuthHandler) -> RouteHandler:
                 '<h1>登录失败</h1>'
                 f'<p>{escape(e.message)}</p>'
                 '<br>'
-                f'<p><a href="{secret.FRONTEND_PORTAL_URL}">返回比赛平台</a></p>'
+                f'<p><a href="{secret.BUILD_LOGIN_FINISH_URL(None, False)}">返回比赛平台</a></p>'
             )
 
     return wrapped
@@ -105,20 +117,18 @@ def build_url(url: str, query: Dict[str, str]) -> str:
     query_str = '&'.join(f'{quote(k)}={quote(v)}' for k, v in query.items())
     return f'{url}?{query_str}'
 
-def oauth2_redirect(url: str, params: Dict[str, str], redirect_url: str) -> HTTPResponse:
-    assert '://' in redirect_url, 'redirect url should be absolute'
+def oauth2_redirect(url: str, params: Dict[str, str], redirect_url: Optional[str]) -> HTTPResponse:
+    if redirect_url:
+        assert '://' in redirect_url, 'redirect url should be absolute'
 
     state = utils.gen_random_str(32)
     res = response.redirect(build_url(url, {
         **params,
-        'redirect_uri': redirect_url,
+        **({'redirect_uri': redirect_url} if redirect_url else {}),
         'state': state,
     }))
 
-    res.cookies['oauth_state'] = state
-    res.cookies['oauth_state']['samesite'] = 'Lax'
-    res.cookies['oauth_state']['httponly'] = True
-    res.cookies['oauth_state']['max-age'] = 600
+    add_cookie(res, 'oauth_state', state, max_age=600)
     return res
 
 def oauth2_check_state(req: Request) -> None:

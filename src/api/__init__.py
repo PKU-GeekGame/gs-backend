@@ -23,13 +23,15 @@ def get_cur_user(req: Request) -> Optional[User]:
 
     return user
 
-MAX_LINE_LEN = 128*1024
+MAX_LINE_LEN = 32*1024
 
-def store_anticheat_log(req: Request, data: List[Any]) -> None:
+def store_anticheat_log(req: Request, data: List[Any], user: Optional[User] = None) -> None:
     if not secret.ANTICHEAT_RECEIVER_ENABLED:
         return
 
-    user = get_cur_user(req)
+    if user is None:
+        user = get_cur_user(req)
+
     if user is not None:
         try:
             addr = req.remote_addr
@@ -37,7 +39,8 @@ def store_anticheat_log(req: Request, data: List[Any]) -> None:
             tab_id = req.args.get('tabid', None)
 
             encoded = json.dumps(
-                [time.time(), addr, ac_canary, tab_id, *data]
+                [time.time(), addr, ac_canary, tab_id, *data],
+                ensure_ascii=False,
             ).encode('utf-8')
             if len(encoded)>MAX_LINE_LEN:
                 encoded = encoded[:MAX_LINE_LEN]

@@ -29,6 +29,7 @@ class Users(WithGameLifecycle):
         self.user_by_id: Dict[int, User] = {}
         self.user_by_login_key: Dict[str, User] = {}
         self.user_by_auth_token: Dict[str, User] = {}
+        self.user_by_token: Dict[str, User] = {}
 
         self.on_store_reload(stores)
 
@@ -36,6 +37,7 @@ class Users(WithGameLifecycle):
         self.user_by_id = {u._store.id: u for u in self.list}
         self.user_by_login_key = {u._store.login_key: u for u in self.list}
         self.user_by_auth_token = {u._store.auth_token: u for u in self.list if u._store.auth_token is not None}
+        self.user_by_token = {u._store.token: u for u in self.list if u._store.token is not None}
 
     def on_store_reload(self, stores: List[UserStore]) -> None:
         self._stores = stores
@@ -43,7 +45,9 @@ class Users(WithGameLifecycle):
         self._update_aux_dicts()
         self._game.need_reloading_scoreboard = True
 
-    def on_store_update(self, id: int, new_store: Optional[UserStore]) -> None:
+    def on_store_update(self, id: int, new_store: Optional[UserStore]) -> bool:
+        reload_frontend = False
+
         # noinspection PyTypeChecker
         old_user: Optional[User] = ([x for x in self.list if x._store.id==id]+[None])[0]
         other_users = [x for x in self.list if x._store.id!=id]
@@ -55,12 +59,14 @@ class Users(WithGameLifecycle):
             self.list = other_users+[User(self._game, new_store)]
             # no need to reload scoreboard, because newly added user does not have any submissions yet
         else: # modify
-            old_user.on_store_reload(new_store)
+            reload_frontend = old_user.on_store_reload(new_store)
 
         self._update_aux_dicts()
 
         if old_user is not None and old_user.tot_score>0:  # maybe on the board but profile changed
             self._game.clear_boards_render_cache()
+
+        return reload_frontend
 
     def on_scoreboard_reset(self) -> None:
         for user in self.list:
@@ -120,12 +126,15 @@ class User(WithGameLifecycle):
 
         self.on_store_reload(self._store)
 
-    def on_store_reload(self, store: UserStore) -> None:
+    def on_store_reload(self, store: UserStore) -> bool:
+        reload_frontend = False
         if self._store.group!=store.group:
             self._game.need_reloading_scoreboard = True
+            reload_frontend = True
 
         self._store = store
         self.score_offset = SCORE_OFFSET.get(self._store.id, 0)
+        return reload_frontend
 
     def on_scoreboard_reset(self) -> None:
         self.passed_flags = {}
@@ -251,9 +260,9 @@ class User(WithGameLifecycle):
         #if self.check_update_profile() is not None:
         #    return self.check_update_profile()
         if not self._store.terms_agreed:
-           return 'SHOULD_AGREE_TERMS', '请阅读参赛须知'
+            return 'SHOULD_AGREE_TERMS', '请阅读参赛须知'
         if self._store.group=='banned':
-           return 'USER_BANNED', '此用户组被禁止参赛'
+            return 'USER_BANNED', '此用户组被禁止参赛'
 
         if self._store.profile.check_profile(self._store.group) is not None:
             return 'SHOULD_UPDATE_PROFILE', '请完善队伍资料'
@@ -277,7 +286,7 @@ class User(WithGameLifecycle):
         return self.tot_score >= margin_score
 
     def get_partition(self, ch: Challenge, n_part: int) -> int: # for partitioned dynamic flag
-        h = hashlib.sha256(f'{self._store.token}-{ch._store.key}'.encode()).hexdigest()
+        h = hashlib.sha256(f'{self._store.id}-{ch._store.key}'.encode()).hexdigest()
         return int(h, 16) % n_part
 
     def admin_badges(self) -> List[str]:

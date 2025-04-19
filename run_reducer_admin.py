@@ -20,15 +20,17 @@ def reducer_thread(loop: asyncio.AbstractEventLoop, reducer: Reducer) -> None:
     loop.create_task(t)
     loop.run_forever()
 
+def admin_thread(loop: asyncio.AbstractEventLoop, reducer: Reducer) -> None:
+    app.config['reducer_loop'] = loop
+    app.config['reducer_obj'] = reducer
+    reducer_started_event.wait()
+    WSGIServer(secret.REDUCER_ADMIN_SERVER_ADDR, app, log=None).serve_forever()
+
 if __name__=='__main__':
     utils.fix_zmq_asyncio_windows()
 
     l = asyncio.new_event_loop()
     r = Reducer('reducer')
-    threading.Thread(target=reducer_thread, args=(l, r), daemon=True).start()
 
-    reducer_started_event.wait()
-
-    app.config['reducer_loop'] = l
-    app.config['reducer_obj'] = r
-    WSGIServer(secret.REDUCER_ADMIN_SERVER_ADDR, app, log=None).serve_forever()
+    threading.Thread(target=admin_thread, args=(l, r), daemon=True).start()
+    reducer_thread(l, r)

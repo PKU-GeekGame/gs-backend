@@ -41,15 +41,13 @@ app.ext.add_dependency(httpx.AsyncClient, get_http_client)
 app.ext.add_dependency(Optional[User], get_cur_user)
 
 @app.before_server_start
-async def setup_game_state(cur_app: Sanic, _loop: Any) -> None:
+async def setup_game_state(cur_app: Sanic[Any, Any], _loop: Any) -> None:
     logging.getLogger('sanic.root').setLevel(logging.INFO)
 
     worker = Worker(cur_app.config.get('GS_WORKER_NAME', f'worker-{os.getpid()}'), receiving_messages=True)
     cur_app.ctx.worker = worker
     await worker._before_run()
     cur_app.ctx._worker_task = asyncio.create_task(worker._mainloop())
-
-    cur_app.ctx.startup_finished = time.time()
 
 async def handle_error(req: Request, exc: Exception) -> HTTPResponse:
     if isinstance(exc, SanicException):
@@ -61,22 +59,16 @@ async def handle_error(req: Request, exc: Exception) -> HTTPResponse:
     except Exception as e:
         debug_info = f'no debug info, {repr(e)}'
 
-    # xxx: dependency injection is broken during startup
-    # https://github.com/sanic-org/sanic-ext/issues/218
-    if isinstance(exc, TypeError) and time.time() - getattr(req.app.ctx, 'startup_finished', 1e50) < 3:
-        req.app.ctx.worker.log('warning', 'app.handle_error', f'exception in request during startup ({debug_info}): {utils.get_traceback(exc)}')
-        return response.text('服务正在启动', status=502)
-    else:
-        req.app.ctx.worker.log('error', 'app.handle_error', f'exception in request ({debug_info}): {utils.get_traceback(exc)}')
-        return response.html(
-            '<!doctype html>'
-            '<h1>🤡 500 — Internal Server Error</h1>'
-            '<p>This accident is recorded.</p>'
-            f'<p>If you believe there is a bug, tell admin about this request ID: {req.id}</p>'
-            '<br>'
-            '<p>😭 <i>Project Guiding Star</i></p>',
-            status=500
-        )
+    req.app.ctx.worker.log('error', 'app.handle_error', f'exception in request ({debug_info}): {utils.get_traceback(exc)}')
+    return response.html(
+        '<!doctype html>'
+        '<h1>🤡 500 — Internal Server Error</h1>'
+        '<p>This accident is recorded.</p>'
+        f'<p>If you believe there is a bug, tell admin about this request ID: {req.id}</p>'
+        '<br>'
+        '<p>😭 <i>Project Guiding Star</i></p>',
+        status=500
+    )
 
 app.error_handler.add(Exception, handle_error)
 

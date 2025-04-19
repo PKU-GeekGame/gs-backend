@@ -6,6 +6,7 @@ from sqlalchemy import select
 import asyncio
 import time
 import json
+import sys
 from typing import Callable, Any, Awaitable, Dict, Tuple
 
 from . import glitter
@@ -27,9 +28,8 @@ class Reducer(StateContainerBase):
         self.action_socket: Socket = self.glitter_ctx.socket(zmq.REP)
         self.event_socket: Socket = self.glitter_ctx.socket(zmq.PUB)
 
-        self.action_socket.setsockopt(zmq.RCVTIMEO, glitter.CALL_TIMEOUT_MS)
+        self.action_socket.setsockopt(zmq.RCVTIMEO, self.SYNC_INTERVAL_S*1000)
         self.action_socket.setsockopt(zmq.SNDTIMEO, glitter.CALL_TIMEOUT_MS)
-        self.event_socket.setsockopt(zmq.RCVTIMEO, glitter.SYNC_TIMEOUT_MS)
         self.event_socket.setsockopt(zmq.SNDTIMEO, glitter.SYNC_TIMEOUT_MS)
 
         self.action_socket.bind(secret.GLITTER_ACTION_SOCKET_ADDR)
@@ -107,7 +107,7 @@ class Reducer(StateContainerBase):
             if user is None:
                 return 'user not found'
 
-            if 1000*time.time()-user.profile.timestamp_ms<4500:
+            if time.time() - user.profile.timestamp_ms/1000 < UserProfileStore.UPDATE_COOLDOWN_S - 1:
                 return '请求太频繁'
 
             allowed_profiles = UserProfileStore.PROFILE_FOR_GROUP.get(user.group, [])
@@ -159,9 +159,19 @@ class Reducer(StateContainerBase):
         if not ch:
             return 'challenge not found'
 
+        user = self._game.users.user_by_id.get(int(req.uid), None)
+        if user is None:
+            return 'user not found'
+
+        last_sub = user.last_submission
+        if last_sub is not None:
+            delta = time.time() - last_sub._store.timestamp_ms / 1000
+            if delta < SubmissionStore.SUBMIT_COOLDOWN_S - 1:
+                return '请求太频繁'
+
         with self.SqlSession() as session:
             submission = SubmissionStore(
-                user_id=int(req.uid),
+                user_id=user._store.id,
                 challenge_key=ch._store.key,
                 flag=str(req.flag),
                 precentage_override_or_null=(
@@ -188,6 +198,32 @@ class Reducer(StateContainerBase):
         if sub.matched_flag is None:
             return 'Flag错误'
 
+        return None
+
+    @on_action(glitter.SubmitFeedbackReq)
+    async def on_submit_feedback(self, req: glitter.SubmitFeedbackReq) -> Optional[str]:
+        uid = int(req.uid)
+        ts = int(1000*time.time())
+
+        with self.SqlSession() as session:
+            user: Optional[UserStore] = session.execute(select(UserStore).where(UserStore.id == req.uid)).scalar()
+            if user is None:
+                return 'user not found'
+
+            user.last_feedback_ms = ts
+
+            feedback = FeedbackStore(
+                user_id=uid,
+                timestamp_ms=ts,
+                challenge_key=req.challenge_key,
+                content=req.feedback,
+            )
+            session.add(feedback)
+
+            session.commit()
+            self.state_counter += 1
+
+        await self.emit_event(glitter.Event(glitter.EventType.UPDATE_USER, self.state_counter, uid))
         return None
 
     @on_action(glitter.WorkerHeartbeatReq)
@@ -227,14 +263,35 @@ class Reducer(StateContainerBase):
             ws_online_clients = 0
 
             ts = time.time()
+
+            has_worker = False
+            has_living = False
             for client, (last_ts, tel_data) in self.received_telemetries.items():
-                if client!=self.process_name and ts-last_ts>60:
+                if client==self.process_name:
+                    continue
+                has_worker = True
+
+                fail = False
+                if ts-last_ts>60:
+                    fail = True
                     self.log('error', 'reducer.health_check_daemon', f'client {client} not responding in {ts-last_ts:.1f}s')
                 if not tel_data.get('game_available', True):
+                    fail = True
                     self.log('error', 'reducer.health_check_daemon', f'client {client} game not available')
+
+                if not fail:
+                    has_living = True
 
                 ws_online_uids += tel_data.get('ws_online_uids', 0)
                 ws_online_clients += tel_data.get('ws_online_clients', 0)
+
+            if has_worker and not has_living:
+                self.log('critical', 'reducer.health_check_daemon', 'all workers failed, will panic')
+                print('=== begin stack dump ===')
+                for t in asyncio.all_tasks():
+                    t.print_stack()
+                print('=== end stack dump ===')
+                sys.exit(1) # hopefully restarted by systemd
 
             st = utils.sys_status()
             if st['load_5']>st['n_cpu']*2/3:
@@ -300,9 +357,8 @@ class Reducer(StateContainerBase):
 
         while True:
             try:
-                future = glitter.Action.listen(self.action_socket)
-                action: Optional[glitter.Action] = await asyncio.wait_for(future, self.SYNC_INTERVAL_S)
-            except asyncio.TimeoutError:
+                action: Optional[glitter.Action] = await glitter.Action.listen(self.action_socket)
+            except zmq.error.Again: # timeout, means no action in this interval
                 await self.emit_sync()
                 continue
             except Exception as e:
@@ -337,11 +393,16 @@ class Reducer(StateContainerBase):
 
             if self.state_counter!=old_counter:
                 self.log('debug', 'reducer.mainloop', f'state counter {old_counter} -> {self.state_counter}')
-            assert self.state_counter-old_counter in [0, 1], 'action handler incremented state counter more than once'
+            assert self.state_counter-old_counter in [0, 1], f'action handler incremented state counter {self.state_counter-old_counter} times'
 
-            if action is not None:
-                with utils.log_slow(self.log, 'reducer.mainloop', f'reply to action {action.req.type}'):
-                    await action.reply(glitter.ActionRep(error_msg=err, state_counter=self.state_counter),self.action_socket)
+            try:
+                if action is not None:
+                    with utils.log_slow(self.log, 'reducer.mainloop', f'reply to action {action.req.type}'):
+                        await action.reply(glitter.ActionRep(error_msg=err, state_counter=self.state_counter),self.action_socket)
 
-            if not isinstance(action.req, glitter.WorkerHeartbeatReq):
-                await self.emit_sync()
+                if not isinstance(action.req, glitter.WorkerHeartbeatReq):
+                    await self.emit_sync()
+            except Exception as e:
+                self.log('critical', 'reducer.mainloop', f'exception during action reply, will recover: {e}')
+                self.state_counter = 1 # then workers will re-sync themselves
+                continue

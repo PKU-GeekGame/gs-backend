@@ -4,11 +4,11 @@
     <form action="#" method="post">
         <p>
             <label for="uids">UIDs:</label>
-            <input name="uids" id="uids" placeholder="e.g., 1 2 3" style="width: 300px">
+            <input name="uids" id="uids" required placeholder="e.g., 1 2 3" style="width: 300px">
         </p>
         <p>
             <label for="group">To Group:</label>
-            <select name="group" id="group">
+            <select name="group" id="group" required>
                 <option value=""></option>
                 {% for group in groups %}
                     <option value="{{ group }}">{{ group }}</option>

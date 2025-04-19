@@ -11,6 +11,7 @@ from . import Table
 class SubmissionStore(Table):
     __tablename__ = 'submission'
 
+    SUBMIT_COOLDOWN_S = 10
     MAX_FLAG_LEN = 128
 
     user_id: int = Column(Integer, ForeignKey('user.id'), nullable=False)

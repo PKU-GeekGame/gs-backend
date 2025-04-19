@@ -3,7 +3,7 @@ from sanic import Blueprint, Request, HTTPResponse, response
 from sanic_ext import validate
 from typing import Optional
 
-from ..auth import auth_response, AuthResponse, AuthError
+from ..auth import auth_response, AuthResponse, AuthError, oauth2_redirect, oauth2_check_state, del_cookie
 from ...state import User
 from ...store import UserStore
 from ...logic import Worker
@@ -12,10 +12,11 @@ from ... import secret
 bp = Blueprint('auth', url_prefix='/auth')
 
 @bp.route('/logout')
-async def auth_logout(_req: Request) -> HTTPResponse:
-    res = response.redirect(secret.FRONTEND_PORTAL_URL)
-    del res.cookies['auth_token'] # type: ignore
-    del res.cookies['admin_2fa'] # type: ignore
+async def auth_logout(_req: Request, user: Optional[User]) -> HTTPResponse:
+    res = response.redirect(secret.BUILD_LOGIN_FINISH_URL(None, False))
+    del_cookie(res, 'auth_token')
+    if user and secret.IS_ADMIN(user._store):
+        del_cookie(res, 'admin_2fa', path=secret.ADMIN_URL)
     return res
 
 if secret.MANUAL_AUTH_ENABLED:
@@ -27,7 +28,7 @@ if secret.MANUAL_AUTH_ENABLED:
     @validate(query=AuthManualParam)
     @auth_response
     async def auth_manual(_req: Request, query: AuthManualParam, _worker: Worker) -> AuthResponse:
-        if not secret.MANUAL_AUTH_ENABLED:
+        if not secret.MANUAL_AUTH_ENABLED: # impossible, but add a fail safe here
             raise AuthError('手动登录已禁用')
 
         return f'manual:{query.identity}', {'type': 'manual'}, 'staff'

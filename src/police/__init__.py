@@ -101,8 +101,9 @@ async def run_forever() -> None:
                         with utils.log_slow(worker.log, 'police.police_process', f'check submission {sub._store.id}', 1):
                             await check_submission(sub, worker)
                     elif msg.get('type', None)=='push':
-                        payload = msg['payload']
-                        await worker.push_message(f'[PUSH] {json.dumps(payload, indent=1, ensure_ascii=False)}', f'push')
+                        if msg.get('touids', None) is None:
+                            payload = msg['payload']
+                            await worker.push_message(f'[PUSH] {json.dumps(payload, indent=1, ensure_ascii=False)}', None)
 
 def police_process() -> None:
     asyncio.run(run_forever())

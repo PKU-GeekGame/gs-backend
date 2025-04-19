@@ -4,6 +4,7 @@ from zmq.asyncio import Context
 # noinspection PyUnresolvedReferences
 from abc import ABC, abstractmethod
 import asyncio
+import datetime
 from typing import Type, TypeVar, List, Optional, Dict, Callable, Any, Tuple
 
 from . import glitter, pusher
@@ -35,7 +36,7 @@ on_event, event_listeners = make_callback_decorator()
 class StateContainerBase(ABC):
     RECOVER_THROTTLE_S = 3
     RELOAD_SCOREBOARD_DEBOUNCE_S = 1
-    MAX_KEEPING_MESSAGES = 32
+    MAX_KEEPING_MESSAGES = 50
 
     def __init__(self, process_name: str, receiving_messages: bool = False, use_boards: bool = True):
         self.process_name: str = process_name
@@ -136,7 +137,16 @@ class StateContainerBase(ABC):
 
     @on_event(glitter.EventType.UPDATE_USER)
     def on_update_user(self, event: glitter.Event) -> None:
-        self._game.users.on_store_update(event.data, self.load_one_data(UserStore, event.data))
+        uid = event.data
+        reload_frontend = self._game.users.on_store_update(uid, self.load_one_data(UserStore, event.data))
+        if reload_frontend:
+            self.emit_local_message({
+                'type': 'push',
+                'payload': {
+                    'type': 'reload_user',
+                },
+                'touids': [uid],
+            })
 
     @on_event(glitter.EventType.NEW_SUBMISSION)
     def on_new_submission(self, event: glitter.Event) -> None:
@@ -173,7 +183,6 @@ class StateContainerBase(ABC):
                         'type': 'tick_update',
                         'new_tick_name': self._game.trigger.trigger_by_tick[event.data].name,
                     },
-                    'togroups': None,
                 })
 
     def reload_scoreboard_if_needed(self) -> None:
@@ -203,7 +212,7 @@ class StateContainerBase(ABC):
 
     def log(self, level: utils.LogLevel, module: str, message: str) -> None:
         if level in secret.STDOUT_LOG_LEVEL:
-            print(f'{self.process_name} [{level}] {module}: {message}')
+            print(f'{datetime.datetime.now().strftime("%m%d-%H%M%S")} {self.process_name} [{level}] {module}: {message}')
 
         if level in secret.DB_LOG_LEVEL:
             with self.SqlSession() as session:

@@ -3,7 +3,7 @@ import hashlib
 import string
 import math
 from functools import lru_cache
-from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable, Tuple
+from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable, Tuple, Optional
 
 if TYPE_CHECKING:
     from . import Game, Challenge, User, Submission
@@ -12,17 +12,17 @@ from ..store import UserStore
 from .. import utils
 from .. import secret
 
-def leet_flag(flag: str, token: str, salt: str) -> str:
-    uid = int(hashlib.sha256((token+salt).encode()).hexdigest(), 16)
+def leet_flag(flag: str, uid: int, salt: str) -> str:
+    uid = int(hashlib.sha256(f'{uid}-{salt}'.encode()).hexdigest(), 16)
     rcont = flag[len('flag{'):-len('}')]
-    rdlis=[]
+    rdlis = []
 
     for i in range(len(rcont)):
         if rcont[i] in string.ascii_letters:
             rdlis.append(i)
 
-    rdseed=(uid+233)*114547%123457
-    for it in range(4):
+    rdseed = (uid+233)*114547%123457
+    for it in range(6):
         if not rdlis:  # no any leetable chars
             return flag
 
@@ -84,7 +84,7 @@ class Flag(WithGameLifecycle):
                 return self.val
             elif self.type=='leet':
                 assert isinstance(self.val, str)
-                return leet_flag(self.val, user._store.token, self.salt)
+                return leet_flag(self.val, user._store.id, self.salt)
             elif self.type=='partitioned':
                 assert isinstance(self.val, list)
                 return self.val[user.get_partition(self.challenge, len(self.val))]
@@ -122,11 +122,27 @@ class Flag(WithGameLifecycle):
     def __repr__(self) -> str:
         return f'[{self.challenge._store.key}#{self.idx0+1}]'
 
-    def describe_json(self, user: User) -> Dict[str, Any]:
+    def is_user_deducted(self, user: User) -> bool:
+        sub = user.passed_flags.get(self, None)
+        if sub and (
+            sub._store.precentage_override_or_null is not None
+            or sub._store.score_override_or_null is not None
+        ):
+            return True
+        else:
+            return False
+
+    def user_status(self, user: Optional[User]) -> str:
+        if user and user in self.passed_users:
+            return 'passed' + ('-deducted' if self.is_user_deducted(user) else '')
+        else:
+            return 'untouched'
+
+    def describe_json(self, user: Optional[User]) -> Dict[str, Any]:
         return {
             'name': self.name,
             'base_score': self.base_score,
             'cur_score': self.cur_score,
             'passed_users_count': len(self.passed_users),
-            'status': 'passed' if user in self.passed_users else 'untouched',
+            'status': self.user_status(user),
         }

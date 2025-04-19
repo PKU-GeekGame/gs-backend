@@ -55,13 +55,28 @@ markdown_processor = markdown.Markdown(extensions=[
     LinkTargetExtension(),
 ], output_format='html')
 
+MACRO_TEMPLATE = '''
+{% macro box(effective_after) %}
+{% if group=='staff' or tick>=effective_after %}
+<div class="well" markdown>
+{% if tick<effective_after %}
+*(>={{ effective_after }})*
+{% endif %}
+{{ caller() }}
+</div>
+{% endif %}
+{% endmacro %}
+'''.strip()
+
 def render_template(template_str: str, args: Dict[str, Any]) -> str:
     # jinja2 to md
     env = jinja2.Environment(
-        loader=jinja2.DictLoader({'index.md': template_str}),
+        loader=jinja2.DictLoader({'index.md': MACRO_TEMPLATE+'\n'+template_str,}), # add \n for line stmts in the first line
         autoescape=True,
         auto_reload=False,
+        line_statement_prefix='% ',
     )
+
     md_str = env.get_template('index.md').render(**args)
 
     # md to str

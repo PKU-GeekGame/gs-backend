@@ -1,10 +1,11 @@
 from __future__ import annotations
 import OpenSSL.crypto
 import pathlib
-from typing import TYPE_CHECKING, List, Optional, Tuple, Dict
+from typing import TYPE_CHECKING, List, Optional, Tuple, Dict, Literal, Union
 
 if TYPE_CHECKING:
     from .store import UserStore
+    from .state import User
     from . import utils
 
 ##
@@ -13,11 +14,17 @@ if TYPE_CHECKING:
 
 #### API KEYS
 
+# https://github.com/settings/applications/new
 GITHUB_APP_ID: Optional[str] = None # None to disable this endpoint
 GITHUB_APP_SECRET = 'xxx'
 
+# https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM
 MS_APP_ID: Optional[str] = None # None to disable this endpoint
-MS_APP_SECRET = 'xxx'
+MS_PRIV_KEY = '-----BEGIN PRIVATE KEY-----\n...'
+MS_THUMBPRINT = 'AA11BB22CC33DD44EE55FF66AA77BB88CC99DD00'
+# openssl req -x509 -newkey rsa:4096 -keyout ms.priv -out ms.pub -sha256 -days 3650 -nodes
+#with open('/path/to/ms.priv') as f:
+#    MS_PRIV_KEY = f.read() # '-----BEGIN PRIVATE KEY-----\n...'
 
 IAAA_APP_ID: Optional[str] = None # None to disable this endpoint
 IAAA_KEY = 'xxx'
@@ -25,11 +32,13 @@ IAAA_KEY = 'xxx'
 CARSI_APP_ID: Optional[str] = None # None to disable this endpoint
 CARSI_DOMAIN = 'spoauth2pre.carsi.edu.cn'
 CARSI_APP_SECRET = 'xxx'
+CARSI_DEFAULT_IDP: Optional[str] = None
+CARSI_PRIV_KEY: Optional[OpenSSL.crypto.PKey] = None
 # https://carsi.atlassian.net/wiki/spaces/CAW/pages/27103892/3.+CARSI+SP+OAuth+Joining+CARSI+for+OAuth+SP
 #with open('/path/to/carsi.priv') as f:
 #    CARSI_PRIV_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read())
 
-FEISHU_WEBHOOK_ADDR = 'https://open.feishu.cn/open-apis/bot/v2/hook/...' # None to disable feishu push
+FEISHU_WEBHOOK_ADDR: Optional[str] = 'https://open.feishu.cn/open-apis/bot/v2/hook/...' # None to disable feishu push
 
 #### RANDOM BULLSHITS
 
@@ -50,7 +59,7 @@ with open('/path/to/token.priv') as f:
 
 #### DATABASE CONNECTORS
 
-DB_CONNECTOR = 'mysql+pymysql://username:password@host:port/database'
+DB_CONNECTOR = 'mysql+pymysql://username:password@host:port/database?charset=utf8mb4'
 
 #### FS PATHS
 
@@ -86,17 +95,23 @@ PUSH_LOG_LEVEL: List[utils.LogLevel] = ['error', 'critical']
 
 #### URLS
 
-FRONTEND_PORTAL_URL = '/' # redirected to this after (successful or failed) login
 ADMIN_URL = '/admin' # prefix of all admin urls
 ATTACHMENT_URL : Optional[str] = '/_internal_attachments' # None to opt-out X-Accel-Redirect
 
 BACKEND_HOSTNAME = 'your_contest.example.com' # used for oauth redirects
-BACKEND_SCHEME = 'https' # used for oauth redirects
+BACKEND_SCHEME: Union[Literal['http'], Literal['https']] = 'http' # used for oauth redirects and cookies
 
 OAUTH_HTTP_PROXIES: Optional[Dict[str, Optional[str]]] = {
     # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/#http-proxying
     'all://*github.com': None, #'http://127.0.0.1:xxxx',
 }
+
+def BUILD_LOGIN_FINISH_URL(user: Optional[User], is_register: bool) -> str: # redirected to this after (successful or failed) login
+    base = '/'
+    if user and is_register:
+        return base + '#/user/terms'
+    else:
+        return base
 
 def BUILD_OAUTH_CALLBACK_URL(url: str) -> str:
     return url # change this if you want to rewrite the oauth callback url
@@ -114,4 +129,11 @@ def IS_ADMIN(user: UserStore) -> bool:
     return (
         user is not None
         and user.id in ADMIN_UIDS
+    )
+
+def IS_DESTRUCTIVE_ADMIN(user: UserStore) -> bool:
+    WRITABLE_ADMIN_UIDS = [1]
+    return (
+        user is not None
+        and user.id in WRITABLE_ADMIN_UIDS
     )

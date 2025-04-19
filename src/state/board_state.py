@@ -44,12 +44,12 @@ class Board(WithGameLifecycle, ABC):
         self.clear_render_cache()
 
 class ScoreBoard(Board):
-    MAX_DISPLAY_USERS = 600
     MAX_TOPSTAR_USERS = 10
 
-    def __init__(self, name: str, desc: Optional[str], game: Game, group: Optional[List[str]], show_group: bool):
+    def __init__(self, name: str, desc: Optional[str], game: Game, group: Optional[List[str]], show_group: bool, max_display_users: int):
         super().__init__('score', name, desc, game)
 
+        self.max_display_users = max_display_users
         self.show_group: bool = show_group
         self.group: Optional[List[str]] = group
         self.board: List[ScoreBoardItemType] = []
@@ -113,7 +113,7 @@ class ScoreBoard(Board):
                         sub.gained_score(), # gained_score
                     ] for f, sub in u.passed_flags.items()
                 },
-            } for idx, (u, score) in enumerate(self.board[:self.MAX_DISPLAY_USERS])],
+            } for idx, (u, score) in enumerate(self.board[:self.max_display_users])],
 
             'topstars': [{
                 'uid': u._store.id,
@@ -155,9 +155,11 @@ class FirstBloodBoard(Board):
 
         return {
             'list': [{
-                'title': ch._store.title,
                 'key': ch._store.key,
-                'metadata': ch.describe_metadata(),
+                'title': ch._store.title,
+                'category': ch._store.category,
+                'category_color': ch._store.category_color(),
+                'metadata': ch.describe_metadata(self),
 
                 'flags': [{
                     'flag_name': None,
@@ -205,7 +207,7 @@ class FirstBloodBoard(Board):
                                 'challenge': submission.challenge._store.title,
                                 'flag': submission.matched_flag.name,
                             },
-                            'togroups': self.group,
+                            #'togroups': self.group,
                         })
 
                 if passed_all_flags and submission.challenge not in self.chall_board:
@@ -220,7 +222,7 @@ class FirstBloodBoard(Board):
                                 'nickname': submission.user._store.profile.nickname_or_null,
                                 'challenge': submission.challenge._store.title,
                             },
-                            'togroups': self.group,
+                            #'togroups': self.group,
                         })
 
                 self.clear_render_cache()

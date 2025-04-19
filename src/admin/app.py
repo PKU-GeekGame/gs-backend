@@ -1,13 +1,16 @@
-from flask import Flask, redirect, request
+from flask import Flask, redirect, request, current_app
+from markupsafe import escape
 from sqlalchemy import select
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
 from typing import Any, Optional
+from flask.typing import ResponseReturnValue
+from werkzeug.exceptions import HTTPException
 from functools import wraps
 
-from .views import StatusView, VIEWS, TemplateView, WriteupView, FilesView
+from .views import StatusView, VIEWS_MODEL, VIEWS_FILE
+from ..logic.reducer import Reducer
 from .. import secret
 from .. import store
 from .. import utils
@@ -49,9 +52,15 @@ def secured(cls: Any) -> Any:
             if not auth_token:
                 return False
 
-            user: Optional[store.UserStore] = \
-                db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar()
-            if user is None or not secret.IS_ADMIN(user):
+            user: Optional[store.UserStore] = db.session.execute(select(store.UserStore).where(store.UserStore.auth_token==auth_token)).scalar()
+
+            if user is None:
+                return False
+
+            if not secret.IS_ADMIN(user):
+                return False
+
+            if not secret.IS_DESTRUCTIVE_ADMIN(user) and not getattr(self, 'IS_SAFE', False):
                 return False
 
             return True
@@ -76,18 +85,33 @@ admin = Admin(
     base_template='base.html',
 )
 
-for model_name in dir(store):
-    if model_name.endswith('Store'):
-        print('- added model:', model_name)
-        admin.add_view(secured(VIEWS.get(model_name, ModelView))(
-            getattr(store, model_name), db.session, name=remove_suffix(model_name, 'Store'), category='Models',
-        ))
+for model_name, view in VIEWS_MODEL.items():
+    friendly_name = remove_suffix(model_name, 'Store')
+    admin.add_view(secured(view)(
+        getattr(store, model_name), db.session, name=friendly_name, endpoint=friendly_name.lower(), category='Models',
+    ))
 
-admin.add_view(secured(TemplateView)(secret.TEMPLATE_PATH, name='Template', endpoint='template', category='Files'))
-admin.add_view(secured(WriteupView)(secret.WRITEUP_PATH, name='Writeup', endpoint='writeup', category='Files'))
-admin.add_view(secured(FilesView)(secret.MEDIA_PATH, name='Media', endpoint='media', category='Files'))
-admin.add_view(secured(FilesView)(secret.ATTACHMENT_PATH, name='Attachment', endpoint='attachment', category='Files'))
+for friendly_name, (view, path) in VIEWS_FILE.items():
+    admin.add_view(secured(view)(
+        path, name=friendly_name, endpoint=friendly_name.lower(), category='Files',
+    ))
 
 @app.route(f'{secret.ADMIN_URL}/')
 def index() -> Any:
     return redirect(f'{secret.ADMIN_URL}/admin')
+
+@app.errorhandler(Exception)
+def handle_error(exc: Exception) -> ResponseReturnValue:
+    if isinstance(exc, HTTPException):
+        return exc
+
+    reducer: Reducer = current_app.config['reducer_obj']
+    reducer.log('warning', 'admin.handle_error', f'exception in request ({request.url}): {utils.get_traceback(exc)}')
+
+    return (
+        '<!doctype html>'
+        '<h1>🤡 500 — Internal Server Error</h1>'
+        f'<p style="white-space: pre-wrap">{escape(utils.get_traceback(exc))}</p>'
+        '<br>'
+        '<p>😭 <i>Project Guiding Star</i></p>'
+    ), 500

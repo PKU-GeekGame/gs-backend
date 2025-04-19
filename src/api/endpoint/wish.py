@@ -12,7 +12,7 @@ from .. import store_anticheat_log
 from ..wish import wish_endpoint
 from ...state import User, ScoreBoard, Submission
 from ...logic import Worker, glitter
-from ...store import UserProfileStore, ChallengeStore, UserStore
+from ...store import UserProfileStore, ChallengeStore, UserStore, SubmissionStore, FeedbackStore
 from ... import utils
 from ... import secret
 
@@ -30,14 +30,16 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
         return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
 
     cur_tick = worker.game.cur_tick
+    is_admin = user and secret.IS_ADMIN(user._store)
 
     return {
         'user': None if user is None else {
             'id': user._store.id,
+            'login_key': user._store.login_key,
             'group': user._store.group,
             'group_disp': user._store.group_disp(),
             'badges': user._store.badges(),
-            'token': user._store.token,
+            'token': user._store.token if (worker.game.policy.cur_policy.can_view_problem or is_admin) else '',
             'profile': {
                 field: (
                     getattr(user._store.profile, f'{field}_or_null') or ''
@@ -47,10 +49,13 @@ async def game_info(_req: Request, worker: Worker, user: Optional[User]) -> Dict
         },
         'feature': {
             'push': secret.WS_PUSH_ENABLED and user is not None and user.check_play_game() is None,
-            'game': user is not None,
+            'game': user is not None or worker.game.policy.cur_policy.show_problems_to_guest,
+            'submit_flag': worker.game.policy.cur_policy.can_submit_flag,
             'templates': [[key, title] for key, title, effective_after in TEMPLATE_LIST if cur_tick>=effective_after],
             'tot_board_groups': [[g, UserStore.GROUPS[g]] for g in UserStore.TOT_BOARD_GROUPS],
         },
+        'cur_tick': cur_tick,
+        'diag_ts': int(time.time()),
     }
 
 @dataclass
@@ -68,8 +73,8 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
         return {'error': err[0], 'error_msg': err[1]}
 
     delta = time.time() - user._store.profile.timestamp_ms/1000
-    if delta<5:
-        return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {5-delta:.1f} 秒'}
+    if delta<UserProfileStore.UPDATE_COOLDOWN_S:
+        return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {UserProfileStore.UPDATE_COOLDOWN_S-delta:.1f} 秒'}
 
     required_fields = user._store.profile.PROFILE_FOR_GROUP.get(user._store.group, [])
     fields = {}
@@ -144,29 +149,37 @@ def reorder_by_cat(values: Dict[str, Any]) -> Dict[str, Any]:
 
 @wish_endpoint(bp, '/game')
 async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
-    if user is None:
-        return {'error': 'NO_USER', 'error_msg': '未登录'}
     if worker.game is None:
         return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
 
-    err = user.check_play_game()
-    if err is not None:
-        return {'error': err[0], 'error_msg': err[1]}
-
-    store_anticheat_log(req, ['open_game'])
-
     policy = worker.game.policy.cur_policy
-    is_admin = secret.IS_ADMIN(user._store)
+    is_admin = user and secret.IS_ADMIN(user._store)
 
-    # figure out active board
-    if (active_board_key := f'score_{user._store.group}') in worker.game.boards:
+    user_info = None
+
+    if user:
+        err = user.check_play_game()
+        if err is not None:
+            return {'error': err[0], 'error_msg': err[1]}
+
+        store_anticheat_log(req, ['open_game'])
+
+        active_board_key = f'score_{user._store.group}'
         active_board_name = UserStore.GROUPS[user._store.group]
-    else:
-        active_board_key = 'score_all'
-        active_board_name = '总'
+        active_board = worker.game.boards[active_board_key]
+        assert isinstance(active_board, ScoreBoard)
 
-    active_board = worker.game.boards[active_board_key]
-    assert isinstance(active_board, ScoreBoard)
+        user_info = {
+            #'tot_score': user.tot_score, # todo: show both scores in frontend
+            'tot_score': user.normalized_tot_score,
+            'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
+            'board_key': active_board_key,
+            'board_name': active_board_name,
+            'board_rank': active_board.uid_to_rank.get(user._store.id, None),
+        }
+    else:
+        if not policy.show_problems_to_guest:
+            return {'error': 'NO_USER', 'error_msg': '未登录'}
 
     cur_trigger_name, next_trigger_timestamp_s, next_trigger_name = worker.game.trigger.describe_cur_tick()
 
@@ -176,8 +189,8 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'title': ch._store.title + (f' [>={ch._store.effective_after}]' if not ch.cur_effective else ''),
             'category': ch._store.category,
             'category_color': ch._store.category_color(),
+            'metadata': ch.describe_metadata(None),
 
-            'metadata': ch.describe_metadata(),
             'flags': [f.describe_json(user) for f in ch.flags],
             'status': ch.user_status(user),
 
@@ -187,20 +200,21 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'touched_users_count': len(ch.touched_users),
         } for ch in worker.game.challenges.list if ch.cur_effective or is_admin],
 
-        'user_info': {
-            'status_line': f'最终成绩 {user.normalized_tot_score:.2f}，{active_board_name}排名 {active_board.uid_to_rank.get(user._store.id, "--")}',
-            'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
-            'active_board_key': active_board_key,
-        },
+        'user_info': user_info,
+        'cur_tick': worker.game.cur_tick,
 
         'trigger': {
             'current_name': cur_trigger_name,
             'next_timestamp_s': next_trigger_timestamp_s,
             'next_name': next_trigger_name,
-        },
+        } if user else None,
 
-        'show_writeup': policy.can_submit_writeup,
-        'last_announcement': worker.game.announcements.list[0].describe_json(user) if worker.game.announcements.list else None,
+        'show_writeup': bool(policy.can_submit_writeup and user),
+        'last_announcement': (
+            worker.game.announcements.list[0].describe_json(user)
+            if worker.game.announcements.list and user
+            else None
+        ),
     }
 
 @wish_endpoint(bp, '/challenge/<challenge_key:str>')
@@ -251,8 +265,8 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
     last_sub = user.last_submission
     if last_sub is not None:
         delta = time.time()-last_sub._store.timestamp_ms/1000
-        if delta<10:
-            return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {10-delta:.1f} 秒'}
+        if delta<SubmissionStore.SUBMIT_COOLDOWN_S:
+            return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {SubmissionStore.SUBMIT_COOLDOWN_S-delta:.1f} 秒'}
 
     ch = worker.game.challenges.chall_by_key.get(body.challenge_key, None)
     if ch is None:
@@ -261,7 +275,7 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
         if secret.IS_ADMIN(user._store):
             for f in ch.flags:
                 if f.validate_flag(user, body.flag):
-                    return {'error': 'NOT_FOUND', 'error_msg': f'题目未启用，Flag 匹配 {f.name or ""}'}
+                    return {'error': 'NOT_FOUND', 'error_msg': f'题目未启用，Flag 正确（{f.name or "flag"}）'}
             else:
                 return {'error': 'NOT_FOUND', 'error_msg': f'题目未启用，Flag 错误'}
         else:
@@ -270,7 +284,7 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
     if not worker.game.policy.cur_policy.can_submit_flag:
         return {'error': 'POLICY_ERROR', 'error_msg': '现在不允许提交Flag'}
 
-    err = ChallengeStore.check_submitted_flag(body.flag)
+    err = ChallengeStore.check_flag_format(body.flag)
     if err is not None:
         store_anticheat_log(req, ['submit_flag', ch._store.key, body.flag, err])
         return {'error': err[0], 'error_msg': err[1]}
@@ -389,16 +403,23 @@ async def get_my_submissions(_req: Request, worker: Worker, user: Optional[User]
             'overrides': get_overrides(sub),
             'timestamp_s': int(sub._store.timestamp_ms/1000),
         } for idx, sub in enumerate(user.submissions[::-1])],
+
+        'topstars': [{
+            'uid': user._store.id,
+            'nickname': user._store.profile.nickname_or_null or '--',
+            'history': user.score_history_diff,
+        }],
+
+        'time_range': [
+            worker.game.trigger.board_begin_ts,
+            worker.game.trigger.board_end_ts,
+        ],
     }
 
-@wish_endpoint(bp, '/submissions/<uid_s:str>')
-async def get_others_submissions(_req: Request, uid_s: str, worker: Worker) -> Dict[str, Any]:
+@wish_endpoint(bp, '/submissions/<uid:int>')
+async def get_others_submissions(_req: Request, uid: int, worker: Worker) -> Dict[str, Any]:
     if worker.game is None:
         return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
-
-    # xxx: sanic fails with <uid:int> due to this issue
-    # https://github.com/sanic-org/sanic/issues/2791
-    uid = int(uid_s)
 
     user = worker.game.users.user_by_id.get(uid, None)
     if user is None or not user.succ_submissions:
@@ -414,6 +435,17 @@ async def get_others_submissions(_req: Request, uid_s: str, worker: Worker) -> D
             'gained_score': sub.gained_score(),
             'timestamp_s': int(sub._store.timestamp_ms/1000),
         } for idx, sub in enumerate(user.succ_submissions[::-1])],
+
+        'topstars': [{
+            'uid': user._store.id,
+            'nickname': user._store.profile.nickname_or_null or '--',
+            'history': user.score_history_diff,
+        }],
+
+        'time_range': [
+            worker.game.trigger.board_begin_ts,
+            worker.game.trigger.board_end_ts,
+        ],
     }
 
 file_ext_re = re.compile(r'^.*?((?:\.[a-z0-9]+)+)$')
@@ -461,8 +493,11 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
             old_file = user_writeup_path/filename
             if old_file.is_file():
                 delta = time.time() - old_file.stat().st_mtime
-                if delta<60:
-                    return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {60-delta:.1f} 秒'}
+                if delta<UserStore.WRITEUP_COOLDOWN_S:
+                    return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {UserStore.WRITEUP_COOLDOWN_S-delta:.1f} 秒'}
+
+        if req.files is None or req.form is None:
+            return {'error': 'INVALID_ARGUMENT', 'error_msg': '参数错误'}
 
         file: Optional[File] = req.files.get('file', None)
 
@@ -506,3 +541,59 @@ async def writeup(req: Request, worker: Worker, user: Optional[User]) -> Dict[st
 
     else:
         return {'error': 'HTTP_METHOD_ERROR', 'error_msg': '不支持的 HTTP 方法'}
+
+@dataclass
+class SubmitFeedbackParam:
+    challenge_key: str
+    feedback: str
+
+@wish_endpoint(bp, '/submit_feedback')
+@validate(json=SubmitFeedbackParam)
+async def submit_feedback(req: Request, body: SubmitFeedbackParam, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+    if user is None:
+        return {'error': 'NO_USER', 'error_msg': '未登录'}
+    if worker.game is None:
+        return {'error': 'NO_GAME', 'error_msg': '服务暂时不可用'}
+
+    err = user.check_play_game()
+    if err is not None:
+        return {'error': err[0], 'error_msg': err[1]}
+    if not worker.game.policy.cur_policy.can_submit_flag:
+        return {'error': 'POLICY_ERROR', 'error_msg': '现在不允许提交反馈'}
+
+    last_feedback_ms = user._store.last_feedback_ms
+    if last_feedback_ms:
+        delta = time.time()-last_feedback_ms/1000
+        if delta<FeedbackStore.SUBMIT_COOLDOWN_S:
+            return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {FeedbackStore.SUBMIT_COOLDOWN_S-delta:.0f} 秒'}
+
+    ch = worker.game.challenges.chall_by_key.get(body.challenge_key, None)
+    if ch is None or not ch.cur_effective:
+        return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+
+    if len(body.feedback)>FeedbackStore.MAX_CONTENT_LEN:
+        return {'error': 'CONTENT_LEN', 'error_msg': '反馈长度超过限制'}
+
+    rep = await worker.perform_action(glitter.SubmitFeedbackReq(
+        client=worker.process_name,
+        uid=user._store.id,
+        challenge_key=body.challenge_key,
+        feedback=body.feedback,
+    ))
+
+    store_anticheat_log(req, ['submit_feedback', ch._store.key, body.feedback, rep.error_msg])
+
+    if rep.error_msg is not None:
+        return {'error': 'REDUCER_ERROR', 'error_msg': rep.error_msg}
+
+    feedback_overview = (body.feedback[:200]+'…') if len(body.feedback)>200 else body.feedback
+    feedback_overview = feedback_overview.replace('\r', '').replace('\n', ' ')
+    await worker.push_message((
+        f'[FEEDBACK] U#{user._store.id} {user._store.login_key}\n'
+        f' nick: {user._store.profile.nickname_or_null}\n'
+        f' grp: {user._store.group} {user.tot_score}pt\n'
+        f' chal: ({ch._store.category}) {ch._store.key}\n\n'
+        f'{feedback_overview}'
+    ), f'feedback:{user._store.id}')
+
+    return {}

@@ -8,6 +8,6 @@ class LogStore(Table):
 
     timestamp_ms = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
     level = Column(String(32), nullable=False)
-    process = Column(String(32), nullable=False)
-    module = Column(String(32), nullable=False)
+    process = Column(String(64), nullable=False)
+    module = Column(String(96), nullable=False)
     message = Column(Text, nullable=False)

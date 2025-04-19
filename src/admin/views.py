@@ -1,17 +1,20 @@
 from flask_admin.contrib import sqla, fileadmin
-from flask_admin.form import SecureForm
+from flask_admin.form import BaseForm
 from flask_admin.babel import lazy_gettext
 from flask_admin.actions import action
 from flask_admin.model.template import macro
 from flask_admin import AdminIndexView, expose
 from wtforms import validators, Form
+from wtforms.csrf.session import SessionCSRF
 from sqlalchemy import select
 from markupsafe import Markup
-from flask import current_app, flash, redirect, url_for, make_response, request
+from flask import current_app, flash, redirect, url_for, make_response, request, session
 import asyncio
 import json
+import subprocess
 import os
 import time
+from datetime import timedelta
 from flask.typing import ResponseReturnValue
 from typing import Any, Optional, Type, Dict, List
 
@@ -20,9 +23,12 @@ from . import fields
 from ..logic import glitter
 from ..logic.reducer import Reducer
 from .. import store
+from .. import secret
 from .. import utils
 
 class StatusView(AdminIndexView):  # type: ignore
+    IS_SAFE = True
+
     @expose('/')
     def index(self) -> ResponseReturnValue:
         reducer: Reducer = current_app.config['reducer_obj']
@@ -55,6 +61,7 @@ class StatusView(AdminIndexView):  # type: ignore
             'ram': f'used={st["ram_used"]:.2f}G, free={st["ram_free"]:.2f}G',
             'swap': f'used={st["swap_used"]:.2f}G, free={st["swap_free"]:.2f}G',
             'disk': f'used={st["disk_used"]:.2f}G, free={st["disk_free"]:.2f}G',
+            'feature': f'WS = {secret.WS_PUSH_ENABLED}, Police = {secret.POLICE_ENABLED}, Sybil = {secret.ANTICHEAT_RECEIVER_ENABLED}'
         }
 
         users_cnt_by_group: Dict[str, Dict[str, int]] = {}
@@ -152,7 +159,23 @@ class StatusView(AdminIndexView):  # type: ignore
         flash('已发送测试消息', 'success')
         return redirect(url_for('.index'))
 
-    # DANGEROUS: regenerating token will corrupt dynamic flags in existing submissions!
+    @expose('/pull_attachment')
+    def pull_attachment(self) -> ResponseReturnValue:
+        if not any((p/'.git').is_dir() for p in [secret.ATTACHMENT_PATH, *secret.ATTACHMENT_PATH.parents]):
+            flash('附件目录没有使用 Git', 'error')
+            return redirect(url_for('.index'))
+
+        p = subprocess.run(
+            ['git', 'pull', '--rebase'],
+            cwd=secret.ATTACHMENT_PATH,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            timeout=60,
+        )
+        content = p.stdout.decode('utf-8', 'ignore')
+
+        resp = make_response(content, 200)
+        resp.mimetype = 'text/plain'
+        return resp
 
     # @expose('/regenerate_token')
     # def regenerate_token(self) -> ResponseReturnValue:
@@ -166,6 +189,22 @@ class StatusView(AdminIndexView):  # type: ignore
     #         flash(f'已重新生成 {len(users)} 个 token，请手动重启 reducer 和所有 worker', 'success')
     #
     #     return redirect(url_for('.index'))
+
+# increased timeout from 30min to 24h
+class SecureForm(BaseForm): # type: ignore
+    class Meta:
+        csrf = True
+        csrf_class = SessionCSRF
+        csrf_time_limit = timedelta(hours=24)
+
+        @property
+        def csrf_secret(self) -> bytes:
+            return str(current_app.secret_key).encode('utf-8')
+
+        @property
+        def csrf_context(self) -> object:
+            return session
+
 
 class ViewBase(sqla.ModelView): # type: ignore
     form_base_class = SecureForm
@@ -355,12 +394,38 @@ class ChallengeView(ViewBase):
             form.chall_metadata.data = json.loads(store.ChallengeStore.METADATA_SNIPPET)
         return form
 
-
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
         flash('警告：增删题目或者修改 flags、effective_after 字段会重算排行榜', 'warning')
 
     def after_model_touched(self, model: store.ChallengeStore) -> None:
         self.emit_event(glitter.EventType.UPDATE_CHALLENGE, model.id)
+
+class FeedbackView(ViewBase):
+    IS_SAFE = True
+
+    can_create = False
+    can_edit = True
+    can_delete = False
+    can_view_details = False
+
+    column_list = ['checked', 'timestamp_ms', 'user_id', 'user_.profile.nickname_or_null', 'user_.group', 'user_.login_key', 'challenge_key', 'content']
+
+    column_default_sort = ('id', True)
+    column_searchable_list = ['content']
+    column_editable_list = ['checked']
+    column_filters = ['checked', 'user_id', 'challenge_key', 'content']
+
+    column_labels = {
+        'checked': 'Chk',
+        'user_.profile.nickname_or_null': 'User Nickname',
+        'user_.group': 'User Group',
+        'user_.login_key': 'User Login Key',
+    }
+    column_formatters = {
+        'timestamp_ms': fields.timestamp_ms_formatter,
+        'user_id': macro('uid_link'),
+        'content': macro('in_pre'),
+    }
 
 class GamePolicyView(ViewBase):
     column_descriptions = {
@@ -375,6 +440,8 @@ class GamePolicyView(ViewBase):
         self.emit_event(glitter.EventType.RELOAD_GAME_POLICY)
 
 class LogView(ViewBase):
+    IS_SAFE = True
+
     can_create = False
     can_edit = False
     can_delete = False
@@ -414,6 +481,8 @@ def _flag_override_formatter(_view: Any, _context: Any, model: store.SubmissionS
     return ' '.join(ret)
 
 class SubmissionView(ViewBase):
+    IS_SAFE = True
+
     can_create = False
     can_delete = False
 
@@ -437,6 +506,7 @@ class SubmissionView(ViewBase):
         'timestamp_ms': fields.timestamp_ms_formatter,
         'matched_flag': _flag_match_formatter,
         'override': _flag_override_formatter,
+        'user_id': macro('uid_link'),
     }
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
@@ -465,6 +535,8 @@ class TriggerView(ViewBase):
         self.emit_event(glitter.EventType.RELOAD_TRIGGER)
 
 class UserProfileView(ViewBase):
+    IS_SAFE = True
+
     can_create = False
     can_delete = False
 
@@ -500,16 +572,22 @@ def _user_game_status_formatter(_view: Any, _context: Any, model: store.UserStor
     else:
         return res[1]
 
-def _user_board_info_formatter(_view: Any, _context: Any, model: store.UserStore, _name: str) -> str:
+def _user_board_info_formatter(_view: Any, context: Any, model: store.UserStore, _name: str) -> str:
     reducer: Reducer = current_app.config['reducer_obj']
     user = reducer._game.users.user_by_id.get(model.id, None)
+    link_macro = context.resolve('submission_link')
 
     if user is None:
         return '???'
 
-    return f'{user.tot_score} [{", ".join(user._store.badges())}]'
+    return link_macro(
+        model=model,
+        text=f'{user.tot_score} [{", ".join(user._store.badges())}]',
+    )
 
 class UserView(ViewBase):
+    IS_SAFE = True
+
     list_template = 'list_user.html'
 
     can_create = False
@@ -554,6 +632,7 @@ class UserView(ViewBase):
     form_overrides = {
         'login_properties': fields.JsonField,
         'timestamp_ms': fields.TimestampMsField,
+        'last_feedback_ms': fields.TimestampMsField,
     }
 
     def on_form_prefill(self, *args: Any, **kwargs: Any) -> None:
@@ -635,9 +714,27 @@ class UserView(ViewBase):
 
         return self.render('user_writeup_stats.html', rows=rows)
 
-VIEWS = {
+    @expose('/anticheat_logs', methods=['GET', 'POST'])
+    def anticheat_logs(self) -> ResponseReturnValue:
+        if request.method == 'GET':
+            return self.render('user_anticheat_log.html')
+        else:
+            uid = int(request.form['uid'])
+            p = secret.SYBIL_LOG_PATH / f'{uid}.log'
+            if p.is_file():
+                with p.open('r', encoding='utf-8') as f:
+                    content = f'uid={uid}\n\n' + f.read()
+            else:
+                content = f'log not found for uid={uid}'
+
+            resp = make_response(content, 200)
+            resp.mimetype = 'text/plain'
+            return resp
+
+VIEWS_MODEL = {
     'AnnouncementStore': AnnouncementView,
     'ChallengeStore': ChallengeView,
+    'FeedbackStore': FeedbackView,
     'GamePolicyStore': GamePolicyView,
     'LogStore': LogView,
     'SubmissionStore': SubmissionView,
@@ -699,6 +796,8 @@ class TemplateView(FileAdmin):
         return EditForm
 
 class WriteupView(FileAdmin):
+    IS_SAFE = True
+
     can_upload = False
     can_mkdir = False
     can_delete = False
@@ -733,3 +832,10 @@ class FilesView(FileAdmin):
             content = fields.PythonField(lazy_gettext('Content'), (validators.InputRequired(),))
 
         return EditForm
+
+VIEWS_FILE = {
+    'Template': (TemplateView, secret.TEMPLATE_PATH),
+    'Writeup': (WriteupView, secret.WRITEUP_PATH),
+    'Media': (FilesView, secret.MEDIA_PATH),
+    'Attachment': (FilesView, secret.ATTACHMENT_PATH),
+}

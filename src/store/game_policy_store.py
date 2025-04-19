@@ -8,12 +8,12 @@ class GamePolicyStore(Table):
 
     effective_after: int = Column(Integer, unique=True, nullable=False)
 
-    can_view_problem = Column(Boolean, nullable=False)
-    can_submit_flag = Column(Boolean, nullable=False)
-    can_submit_writeup = Column(Boolean, nullable=False)
-    is_submission_deducted = Column(Boolean, nullable=False)
+    can_view_problem: bool = Column(Boolean, nullable=False)
+    can_submit_flag: bool = Column(Boolean, nullable=False)
+    can_submit_writeup: bool = Column(Boolean, nullable=False)
+    is_submission_deducted: bool = Column(Boolean, nullable=False)
 
-    DEDUCTION_PERCENTAGE_OVERRIDE = 35
+    DEDUCTION_PERCENTAGE_OVERRIDE = 40
 
     @classmethod
     def fallback_policy(cls) -> GamePolicyStore:
@@ -24,3 +24,8 @@ class GamePolicyStore(Table):
             can_submit_writeup=False,
             is_submission_deducted=False,
         )
+
+    @property
+    def show_problems_to_guest(self) -> bool:
+        # show problems list to guest during the game to promote participation
+        return self.can_view_problem and self.can_submit_flag
