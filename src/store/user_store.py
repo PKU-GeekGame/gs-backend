@@ -96,7 +96,6 @@ class UserStore(Table):
 
         if self.group=='thu' and self.login_properties['type']=='carsi' and (
             (self.profile.stuid_or_null or '').startswith('202401')
-            or (self.profile.stuid_or_null or '').startswith('202408') # 本科留学生
         ):
             ret.append('rookie')
 
