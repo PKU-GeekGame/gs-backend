@@ -277,10 +277,6 @@ if secret.CARSI_APP_ID:
         usertype, _at, domain = affiliation.rpartition('@')
         assert _at == '@', affiliation
 
-        TSINGHUA_DOMAINS = ['tsinghua.edu.cn']
-        if domain not in TSINGHUA_DOMAINS:
-            raise AuthError(f'暂不支持 {domain} 域名登录')
-
         return f'carsi:{uid}', {
             'type': 'carsi',
             'info': {
@@ -288,7 +284,7 @@ if secret.CARSI_APP_ID:
                 'domain': domain,
             },
             'access_token': token
-        }, 'thu'
+        }, 'other'
 
     @bp.route('/carsi/logout')
     async def auth_carsi_logout(_req: Request, user: Optional[User]) -> HTTPResponse:
