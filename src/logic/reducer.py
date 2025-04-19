@@ -116,7 +116,7 @@ class Reducer(StateContainerBase):
                 if str(k) in allowed_profiles:
                     setattr(profile, f'{str(k)}_or_null', str(v))
 
-            err = profile.check_profile(user)
+            err = profile.check_profile(user.group)
             if err is not None:
                 return err
 

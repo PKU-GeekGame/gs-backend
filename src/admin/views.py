@@ -73,7 +73,7 @@ class StatusView(AdminIndexView):  # type: ignore
                 u_status = 'disabled'
             elif not u._store.terms_agreed:
                 u_status = 'pending_terms'
-            elif u._store.profile.check_profile(u._store) is not None:
+            elif u._store.profile.check_profile(u._store.group) is not None:
                 u_status = 'pending_profile'
             elif u.tot_score==0:
                 u_status = 'no_score'

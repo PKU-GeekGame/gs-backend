@@ -231,7 +231,7 @@ class User(WithGameLifecycle):
     def check_play_game(self) -> Optional[Tuple[str, str]]:
         if self.check_update_profile() is not None:
             return self.check_update_profile()
-        if self._store.profile.check_profile(self._store) is not None:
+        if self._store.profile.check_profile(self._store.group) is not None:
             return 'SHOULD_UPDATE_PROFILE', '请完善个人资料'
         return None
 
