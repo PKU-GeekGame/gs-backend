@@ -243,13 +243,13 @@ class User(WithGameLifecycle):
         return None
 
     def writeup_required(self) -> bool:
-        if self._store.group not in ['pku', 'thu']:
-            return False
-
-        board = self._game.boards[f'score_{self._store.group}']
+        board = self._game.boards['score_pku']
         assert isinstance(board, ScoreBoard)
 
-        return board.uid_to_rank.get(self._store.id, self.WRITEUP_REQUIRED_RANK+1)<=self.WRITEUP_REQUIRED_RANK
+        return (
+            self._store.group in self._store.MAIN_BOARD_GROUPS
+            and board.uid_to_rank.get(self._store.id, self.WRITEUP_REQUIRED_RANK+1)<=self.WRITEUP_REQUIRED_RANK
+        )
 
     def get_partition(self, ch: Challenge, n_part: int) -> int: # for partitioned dynamic flag
         h = hashlib.sha256(f'{self._store.id}-{ch._store.key}'.encode()).hexdigest()

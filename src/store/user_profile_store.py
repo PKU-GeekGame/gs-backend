@@ -51,7 +51,6 @@ class UserProfileStore(Table):
     PROFILE_FOR_GROUP = {
         'staff': ['nickname', 'tel', 'qq', 'comment'],
         'pku': ['nickname', 'tel', 'qq', 'comment'],
-        'thu': ['nickname', 'tel', 'qq', 'comment'],
         'other': ['nickname', 'qq', 'comment'],
         'banned': ['nickname', 'qq', 'comment'],
     }

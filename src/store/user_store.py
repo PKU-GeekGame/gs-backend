@@ -35,12 +35,12 @@ class UserStore(Table):
 
     GROUPS = {
         'pku': '北京大学',
-        'thu': '清华大学',
         'other': '校外选手',
         'staff': '工作人员',
         'banned': '已封禁',
     }
-    TOT_BOARD_GROUPS = ['pku', 'thu', 'other']
+    MAIN_BOARD_GROUPS = ['pku']
+    TOT_BOARD_GROUPS = ['pku', 'other']
 
     def __repr__(self) -> str:
         nick = '(no profile)' if self.profile is None else self.profile.nickname_or_null
@@ -86,9 +86,11 @@ class UserStore(Table):
         return self.GROUPS.get(g, f'({g})')
 
     def badges(self) -> List[str]:
+        in_main_board = self.group in self.MAIN_BOARD_GROUPS
+
         ret = []
 
-        if self.group=='pku' and self.login_properties['type']=='iaaa' and (
+        if in_main_board and self.login_properties['type']=='iaaa' and (
             self.login_properties['info'].get('identityId', '').startswith('24000')
             or self.login_properties['info'].get('identityId', '').startswith('24103') # 医学部 本博连读
         ):

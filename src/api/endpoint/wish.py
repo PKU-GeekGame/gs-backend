@@ -162,7 +162,8 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
 
         store_anticheat_log(req, ['open_game'])
 
-        active_board_key = 'score_pku' if user._store.group=='pku' else 'score_thu' if user._store.group=='thu' else 'score_all'
+        active_board_key = 'score_pku' if user._store.group in user._store.MAIN_BOARD_GROUPS else 'score_all'
+        active_board_name = '北京大学' if user._store.group in user._store.MAIN_BOARD_GROUPS else '总'
         active_board = worker.game.boards[active_board_key]
         assert isinstance(active_board, ScoreBoard)
 
@@ -170,7 +171,7 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'tot_score': user.tot_score,
             'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
             'board_key': active_board_key,
-            'board_name': active_board.name,
+            'board_name': active_board_name,
             'board_rank': active_board.uid_to_rank.get(user._store.id, None),
         }
     else:
