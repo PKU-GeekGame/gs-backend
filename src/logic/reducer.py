@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy import select
 import asyncio
 import time
+import datetime
 import json
 import sys
 from typing import Callable, Any, Awaitable, Dict, Tuple
@@ -300,7 +301,7 @@ class Reducer(StateContainerBase):
 
             if secret.ANTICHEAT_RECEIVER_ENABLED:
                 encoded = json.dumps(
-                    [time.time(), {
+                    [datetime.datetime.now().isoformat(), {
                         'load': [st['load_1'], st['load_5'], st['load_15']],
                         'ram': [st['ram_used'], st['ram_free']],
                         'n_user': len(self._game.users.list),
@@ -339,7 +340,7 @@ class Reducer(StateContainerBase):
             await event.send(self.event_socket)
 
     async def emit_sync(self) -> None:
-        if time.time()-self.last_emit_sync_time<=self.SYNC_THROTTLE_S:
+        if time.time()-self.last_emit_sync_time <= self.SYNC_THROTTLE_S:
             return
         self.last_emit_sync_time = time.time()
 

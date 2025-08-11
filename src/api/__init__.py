@@ -1,6 +1,6 @@
 from sanic.request import Request
 import json
-import time
+import datetime
 from typing import Optional, List, Any
 
 from ..state import User
@@ -39,7 +39,7 @@ def store_anticheat_log(req: Request, data: List[Any], user: Optional[User] = No
             tab_id = req.args.get('tabid', None)
 
             encoded = json.dumps(
-                [time.time(), addr, ac_canary, tab_id, *data],
+                [datetime.datetime.now().isoformat(), addr, ac_canary, tab_id, *data],
                 ensure_ascii=False,
             ).encode('utf-8')
             if len(encoded)>MAX_LINE_LEN:

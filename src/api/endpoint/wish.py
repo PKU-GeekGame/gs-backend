@@ -263,7 +263,7 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
     last_sub = user.last_submission
     if last_sub is not None:
         if not last_sub.matched_flag:
-            delta = time.time()-last_sub._store.timestamp_ms/1000
+            delta = time.time() - last_sub._store.timestamp_ms/1000
             if delta<SubmissionStore.SUBMIT_COOLDOWN_S:
                 return {'error': 'RATE_LIMIT', 'error_msg': f'提交太频繁，请等待 {SubmissionStore.SUBMIT_COOLDOWN_S-delta:.1f} 秒'}
 
