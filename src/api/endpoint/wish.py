@@ -380,15 +380,16 @@ async def get_my_submissions(_req: Request, worker: Worker, user: Optional[User]
 
     return {
         'list': [{
-            'idx': idx, # row key
-            'challenge_title': sub.challenge._store.title if sub.challenge else None,
-            'category': sub.challenge._store.category if sub.challenge else None,
-            'category_color': sub.challenge._store.category_color() if sub.challenge else None,
+            'challenge_key': sub.challenge._store.key,
+            'challenge_title': sub.challenge._store.title,
+            'category': sub.challenge._store.category,
+            'category_color': sub.challenge._store.category_color(),
             'matched_flag': sub.matched_flag.name if sub.matched_flag else None,
             'gained_score': sub.gained_score(),
-            'overrides': get_overrides(sub),
             'timestamp_s': int(sub._store.timestamp_ms/1000),
-        } for idx, sub in enumerate(user.submissions[::-1])],
+
+            'overrides': get_overrides(sub),
+        } for idx, sub in enumerate(user.submissions[::-1]) if sub.challenge],
 
         'topstars': [{
             'uid': user._store.id,
@@ -400,6 +401,8 @@ async def get_my_submissions(_req: Request, worker: Worker, user: Optional[User]
             worker.game.trigger.board_begin_ts,
             worker.game.trigger.board_end_ts,
         ],
+
+        'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
     }
 
 @wish_endpoint(bp, '/submissions/<uid:int>')
@@ -413,14 +416,14 @@ async def get_others_submissions(_req: Request, uid: int, worker: Worker) -> Dic
 
     return {
         'list': [{
-            'idx': idx, # row key
-            'challenge_title': sub.challenge._store.title if sub.challenge else None,
-            'category': sub.challenge._store.category if sub.challenge else None,
-            'category_color': sub.challenge._store.category_color() if sub.challenge else None,
+            'challenge_key': sub.challenge._store.key,
+            'challenge_title': sub.challenge._store.title,
+            'category': sub.challenge._store.category,
+            'category_color': sub.challenge._store.category_color(),
             'matched_flag': sub.matched_flag.name if sub.matched_flag else None,
             'gained_score': sub.gained_score(),
             'timestamp_s': int(sub._store.timestamp_ms/1000),
-        } for idx, sub in enumerate(user.succ_submissions[::-1])],
+        } for idx, sub in enumerate(user.succ_submissions[::-1]) if sub.challenge],
 
         'topstars': [{
             'uid': user._store.id,
@@ -432,6 +435,8 @@ async def get_others_submissions(_req: Request, uid: int, worker: Worker) -> Dic
             worker.game.trigger.board_begin_ts,
             worker.game.trigger.board_end_ts,
         ],
+
+        'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
     }
 
 file_ext_re = re.compile(r'^.*?((?:\.[a-z0-9]+)+)$')
