@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .store import UserStore
     from .state import User
     from . import utils
+    from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 
 ##
 ## SECRET KEYS
@@ -52,10 +53,10 @@ ADMIN_2FA_COOKIE = 'some_long_random_string'
 # openssl ecparam -name secp256k1 -genkey -noout -out token.priv
 # openssl req -x509 -key token.priv -out token.pub -days 365
 with open('/path/to/token.priv', 'rb') as f:
-    TOKEN_SIGNING_KEY = serialization.load_pem_private_key(
+    TOKEN_SIGNING_KEY: EllipticCurvePrivateKey = serialization.load_pem_private_key(
         f.read(),
         password=None,
-    )
+    ) # type: ignore
 
 ##
 ## DEPLOYMENT CONFIG

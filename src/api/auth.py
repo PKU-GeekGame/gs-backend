@@ -19,7 +19,7 @@ AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]]
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
 def add_cookie(res: HTTPResponse, name: str, value: str, *, path: str = '/', max_age: int = LOGIN_MAX_AGE_S, subdomain: bool = False) -> None:
-    res.cookies.add_cookie(
+    res.add_cookie(
         name, value,
         path=path,
         httponly=True,

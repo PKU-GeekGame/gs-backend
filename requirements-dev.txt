@@ -1,8 +1,8 @@
 -r requirements.txt
 
 # typing
-mypy~=1.10.0
-typing-extensions~=4.12.2
+mypy~=1.17.1
+typing-extensions~=4.14.1
 types-markdown
 types-pytz
 types-pyOpenSSL

@@ -32,7 +32,7 @@ LogLevel = Literal['debug', 'info', 'warning', 'error', 'critical', 'success']
 from . import secret
 
 def gen_random_str(length: int = 32, *, crypto: bool = False) -> str:
-    choice: Callable[[str], str] = secrets.choice if crypto else random.choice  # type: ignore
+    choice: Callable[[str], str] = secrets.choice if crypto else random.choice
     alphabet = 'qwertyuiopasdfghjkzxcvbnmQWERTYUPASDFGHJKLZXCVBNM23456789'
 
     return ''.join([choice(alphabet) for _ in range(length)])
@@ -104,7 +104,7 @@ def format_size(size: int) -> str:
 def sign_token(uid: int) -> str:
     sig = base64.urlsafe_b64encode(secret.TOKEN_SIGNING_KEY.sign(
         str(uid).encode(),
-        ec.ECDSA(hashes.SHA256())
+        ec.ECDSA(hashes.SHA256()),
     )).decode()
     return f'{uid}:{sig}'
 
@@ -151,7 +151,7 @@ def sys_status() -> Dict[str, Union[int, float]]:
     return {
         'process': len(psutil.pids()),
 
-        'n_cpu': psutil.cpu_count(logical=False),
+        'n_cpu': psutil.cpu_count(logical=False) or 0,
         'load_1': load_1,
         'load_5': load_5,
         'load_15': load_15,
