@@ -3,6 +3,7 @@ import OpenSSL.crypto
 import pathlib
 from typing import TYPE_CHECKING, List, Optional, Tuple, Dict, Literal, Union
 from cryptography.hazmat.primitives import serialization
+import httpx
 
 if TYPE_CHECKING:
     from .store import UserStore
@@ -105,9 +106,9 @@ ATTACHMENT_URL : Optional[str] = '/_internal_attachments' # None to opt-out X-Ac
 BACKEND_HOSTNAME = 'your_contest.example.com' # used for oauth redirects
 BACKEND_SCHEME: Union[Literal['http'], Literal['https']] = 'http' # used for oauth redirects and cookies
 
-OAUTH_HTTP_PROXIES: Optional[Dict[str, Optional[str]]] = {
-    # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/#http-proxying
-    'all://*github.com': None, #'http://127.0.0.1:xxxx',
+OAUTH_HTTP_MOUNTS: Optional[Dict[str, httpx.AsyncBaseTransport | None]] = {
+    # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/transports/#routing
+    'all://*github.com': None, # httpx.AsyncHTTPTransport(proxy='http://127.0.0.1:7890'),
 }
 
 def BUILD_LOGIN_FINISH_URL(user: Optional[User], is_register: bool) -> str: # redirected to this after (successful or failed) login

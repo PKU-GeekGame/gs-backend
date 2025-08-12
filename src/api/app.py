@@ -1,7 +1,6 @@
 from sanic import Sanic
 import os
 import asyncio
-import time
 import logging
 from sanic.request import Request
 from sanic import response, HTTPResponse, Blueprint
@@ -32,7 +31,7 @@ def get_worker(req: Request) -> Worker:
 def get_http_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(
         http2=True,
-        proxies=secret.OAUTH_HTTP_PROXIES,  # type: ignore
+        mounts=secret.OAUTH_HTTP_MOUNTS,
         timeout=OAUTH_HTTP_TIMEOUT,
     )
 
