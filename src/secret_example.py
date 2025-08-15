@@ -1,5 +1,4 @@
 from __future__ import annotations
-import OpenSSL.crypto
 import pathlib
 from typing import TYPE_CHECKING, List, Optional, Tuple, Dict, Literal, Union
 from cryptography.hazmat.primitives import serialization

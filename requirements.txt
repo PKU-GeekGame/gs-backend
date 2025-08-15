@@ -13,7 +13,6 @@ emoji~=2.14.1
 
 # logic
 pyzmq>=27.0.1
-pyopenssl>=25.1.0
 cryptography>=45.0.6
 
 # api
