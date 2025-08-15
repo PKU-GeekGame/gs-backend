@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .state import User
     from . import utils
     from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
+    from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
 ##
 ## SECRET KEYS
@@ -36,10 +37,13 @@ CARSI_APP_ID: Optional[str] = None # None to disable this endpoint
 CARSI_DOMAIN = 'spoauth2pre.carsi.edu.cn'
 CARSI_APP_SECRET = 'xxx'
 CARSI_DEFAULT_IDP: Optional[str] = None
-CARSI_PRIV_KEY: Optional[OpenSSL.crypto.PKey] = None
+CARSI_PRIV_KEY: Optional[RSAPrivateKey] = None
 # https://carsi.atlassian.net/wiki/spaces/CAW/pages/27103892/3.+CARSI+SP+OAuth+Joining+CARSI+for+OAuth+SP
-#with open('/path/to/carsi.priv') as f:
-#    CARSI_PRIV_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read())
+#with open('/path/to/carsi.priv', 'rb') as f:
+#    CARSI_PRIV_KEY: RSAPrivateKey = serialization.load_pem_private_key(
+#        f.read(),
+#        password=None,
+#    ) # type: ignore
 
 FEISHU_WEBHOOK_ADDR: Optional[str] = 'https://open.feishu.cn/open-apis/bot/v2/hook/...' # None to disable feishu push
 

@@ -214,18 +214,10 @@ if secret.IAAA_APP_ID:
 
 if secret.CARSI_APP_ID:
     def carsi_decrypt(data_b64: str) -> str:
-        assert hasattr(secret, 'CARSI_PRIV_KEY')
-
+        assert secret.CARSI_PRIV_KEY
         from cryptography.hazmat.primitives.asymmetric import padding
-        from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
-
         data = base64.b64decode(data_b64.encode())
-
-        assert secret.CARSI_PRIV_KEY is not None
-        k = secret.CARSI_PRIV_KEY.to_cryptography_key()
-        assert isinstance(k, RSAPrivateKey)
-
-        return k.decrypt(data, padding.PKCS1v15()).decode()
+        return secret.CARSI_PRIV_KEY.decrypt(data, padding.PKCS1v15()).decode()
 
     @bp.route('/carsi/login')
     async def auth_carsi_req(req: Request) -> HTTPResponse:
