@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, JSON
 from sqlalchemy.orm import validates
 import re
 import string
-from typing import Any, Optional, Tuple, Dict, List
+from typing import Any, Optional, Tuple, Dict, List, Literal, get_args, assert_never
 
 from . import Table
 
@@ -16,6 +16,8 @@ def check_leet_flag(flag: str) -> None:
         if rcont[i] in string.ascii_letters:
             rdlis.append(i)
     assert len(rdlis) >= 12, f'insufficient flag entropy ({len(rdlis)}, should be at least 12)'
+
+FlagType = Literal['static', 'wordlist', 'leet', 'partitioned', 'dynamic']
 
 class ChallengeStore(Table):
     __tablename__ = 'challenge'
@@ -52,6 +54,8 @@ class ChallengeStore(Table):
 
     METADATA_SNIPPET = '''{"author": "You", "first_blood_award_eligible": false, "score_deduction_eligible": true}'''
 
+    FLAG_TYPES = get_args(FlagType)
+
     @validates('flags')
     def validate_flags(self, _key: str, flags: Any) -> Any:
         assert isinstance(flags, list), 'flags should be list'
@@ -66,18 +70,43 @@ class ChallengeStore(Table):
             assert 'val' in flag, 'flag should have val'
             assert 'base_score' in flag, 'flag should have base_score'
 
-            assert flag['type'] in ['static', 'leet', 'partitioned', 'dynamic'], 'unknown flag type'
+            assert flag['type'] in self.FLAG_TYPES, 'unknown flag type'
             assert isinstance(flag['name'], str), 'flag name should be str'
             assert isinstance(flag['base_score'], int), 'flag base_score should be int'
+
             if flag['type']=='partitioned':
                 assert isinstance(flag['val'], list) and all(isinstance(f, str) for f in flag['val']), 'flag val should be list of str'
                 assert all((self.check_flag_format(f) is None) for f in flag['val']), f'{flag["name"]}不符合Flag格式'
-            else:
+
+            elif flag['type']=='wordlist':
+                assert isinstance(flag['val'], str), 'flag val should be str'
+                assert isinstance(flag['words'], list) and all(isinstance(w, list) for w in flag['words']), 'flag words should be list of list of str'
+
+                for ind0, words in enumerate(flag['words']):
+                    ind1 = ind0 + 1
+                    assert words, f'flag words[{ind0}] should not be empty'
+                    assert all(isinstance(w, str) for w in words), f'flag words[{ind0}] should be list of str'
+                    assert f'%{ind1}' in flag['val'], f'flag val should contain %{ind1}'
+
+                assert f'%0' not in flag['val'], f'flag val should not contain %0'
+                assert f'%{len(flag["words"])+1}' not in flag['val'], f'flag val should not contain %{len(flag["words"])+1}'
+
+                for ind0, words in enumerate(flag['words']):
+                    test_choices = [0] * len(flag['words'])
+                    for choice in range(len(words)):
+                        test_choices[ind0] = choice
+                        test_flag = self.get_wordlist_flag_for_variant(flag['val'], flag['words'], test_choices)
+                        assert self.check_flag_format(test_flag) is None, f'{flag["name"]}可能不符合Flag格式: {test_flag}'
+
+            elif flag['type'] in ['static', 'leet', 'dynamic']:
                 assert isinstance(flag['val'], str), 'flag val should be str'
                 if flag['type'] in ['static', 'leet']:
                     assert self.check_flag_format(flag['val']) is None, f'{flag["name"]}不符合Flag格式'
                 if flag['type']=='leet':
                     check_leet_flag(flag['val'])
+
+            else:
+                assert_never(flag['type'])
 
         if len(flags)==1:
             assert flags[0]['name']=='', '单个Flag的name需要留空，因为不会显示'
@@ -88,10 +117,18 @@ class ChallengeStore(Table):
 
     FLAG_SNIPPETS = {
         'static': '''{"name": "", "type": "static", "val" : "flag{}", "base_score": 100}''',
+        'wordlist': '''{"name": "", "type": "wordlist", "val" : "flag{have-a-%1-%2%3}", "words": [["good", "great", "nice"], ["day", "time"], ["", "!", "~~"]], "base_score": 100}''',
         'leet': '''{"name": "", "type": "leet", "val" : "flag{}", "salt": "", "base_score": 100}''',
-        'partitioned': '''{"name": "", "type": "partitioned", "val" : ["flag{}"], "base_score": 100}''',
+        #'partitioned': '''{"name": "", "type": "partitioned", "val" : ["flag{}"], "base_score": 100}''',
         'dynamic': '''{"name": "", "type": "dynamic", "val" : "module_path", "base_score": 100}''',
     }
+
+    @staticmethod
+    def get_wordlist_flag_for_variant(flag: str, words: List[List[str]], variant: List[int]) -> str:
+        for ind0, v in enumerate(variant):
+            ind1 = ind0 + 1
+            flag = flag.replace(f'%{ind1}', words[ind0][v])
+        return flag
 
     @validates('actions')
     def validate_actions(self, _key: str, actions: Any) -> Any:
