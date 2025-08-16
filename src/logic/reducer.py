@@ -16,6 +16,7 @@ from ..state import Trigger
 from ..store import *
 from .. import utils
 from .. import secret
+from .. import token_signer
 
 on_action, action_listeners = make_callback_decorator()
 
@@ -86,7 +87,7 @@ class Reducer(StateContainerBase):
             session.flush()
             assert profile.id is not None, 'created profile not in db'
 
-            user.token = utils.sign_token(uid)
+            user.token = token_signer.sign_token(secret.TOKEN_SIGNER, uid)
             user.auth_token = f'{uid}_{utils.gen_random_str(48, crypto=True)}'
             user.profile_id = profile.id
 

@@ -1,14 +1,14 @@
 from __future__ import annotations
 import pathlib
 from typing import TYPE_CHECKING, List, Optional, Tuple, Dict, Literal, Union
-from cryptography.hazmat.primitives import serialization
 import httpx
+
+from .token_signer import load_sk, SigningKey
 
 if TYPE_CHECKING:
     from .store import UserStore
     from .state import User
     from . import utils
-    from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
     from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
 ##
@@ -54,13 +54,9 @@ ADMIN_2FA_COOKIE = 'some_long_random_string'
 
 #### SIGNING KEYS
 
-# openssl ecparam -name secp256k1 -genkey -noout -out token.priv
-# openssl req -x509 -key token.priv -out token.pub -days 365
-with open('/path/to/token.priv', 'rb') as f:
-    TOKEN_SIGNING_KEY: EllipticCurvePrivateKey = serialization.load_pem_private_key(
-        f.read(),
-        password=None,
-    ) # type: ignore
+# python3 token_signer.py
+with open('/path/to/token.sk', 'r') as f:
+    TOKEN_SIGNER: SigningKey = load_sk(f.read())
 
 ##
 ## DEPLOYMENT CONFIG

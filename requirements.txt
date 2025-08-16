@@ -14,6 +14,7 @@ emoji~=2.14.1
 # logic
 pyzmq>=27.0.1
 cryptography>=45.0.6
+pynacl~=1.5.0
 
 # api
 sanic~=24.12.0
