@@ -69,7 +69,7 @@ MACRO_TEMPLATE = '''
 def render_template(template_str: str, args: Dict[str, Any]) -> str:
     # jinja2 to md
     env = jinja2.Environment(
-        loader=jinja2.DictLoader({'index.md': MACRO_TEMPLATE+'\n'+template_str,}), # add \n for line stmts in the first line
+        loader=jinja2.DictLoader({'index.md': MACRO_TEMPLATE+'\n'+template_str}),
         autoescape=True,
         auto_reload=False,
         line_statement_prefix='% ',

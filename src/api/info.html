@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            text-align: center;
+            background-color: #579;
+            color: #fff;
+            color-scheme: dark;
+        }
+        a {
+            color: #bdf;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <br>
+    <h1>{{ title }}</h1>
+    <br>
+    <p>{{ body }}</p>
+    <p><a href="{{ backurl | urlencode }}">→ 返回比赛平台</a></p>
+</body>
+</html>

@@ -8,7 +8,7 @@ from sanic.exceptions import SanicException
 import httpx
 from typing import Optional, Any
 
-from . import get_cur_user
+from . import get_cur_user, render_info
 from ..logic import Worker
 from ..state import User
 from .. import utils
@@ -56,18 +56,14 @@ async def handle_error(req: Request, exc: Exception) -> HTTPResponse:
         user = get_cur_user(req)
         debug_info = f'{req.id} {req.uri_template} U#{"--" if user is None else user._store.id}'
     except Exception as e:
-        debug_info = f'no debug info, {repr(e)}'
+        debug_info = f'{req.id}, no debug info, {repr(e)}'
 
     req.app.ctx.worker.log('error', 'app.handle_error', f'exception in request ({debug_info}): {utils.get_traceback(exc)}')
-    return response.html(
-        '<!doctype html>'
-        '<h1>🤡 500 — Internal Server Error</h1>'
-        '<p>This accident is recorded.</p>'
-        f'<p>If you believe there is a bug, tell admin about this request ID: {req.id}</p>'
-        '<br>'
-        '<p>😭 <i>Project Guiding Star</i></p>',
-        status=500
-    )
+
+    return response.html(render_info(
+        title='🤡 Internal Server Error',
+        body=f'已记录日志，Request ID: {req.id}',
+    ), status=500)
 
 app.error_handler.add(Exception, handle_error)
 
