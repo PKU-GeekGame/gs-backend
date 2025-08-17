@@ -49,16 +49,27 @@ async def setup_game_state(cur_app: Sanic[Any, Any], _loop: Any) -> None:
     cur_app.ctx._worker_task = asyncio.create_task(worker._mainloop())
 
 async def handle_error(req: Request, exc: Exception) -> HTTPResponse:
-    if isinstance(exc, SanicException):
-        raise exc
-
     try:
         user = get_cur_user(req)
         debug_info = f'{req.id} {req.uri_template} U#{"--" if user is None else user._store.id}'
     except Exception as e:
         debug_info = f'{req.id}, no debug info, {repr(e)}'
 
-    req.app.ctx.worker.log('error', 'app.handle_error', f'exception in request ({debug_info}): {utils.get_traceback(exc)}')
+    if isinstance(exc, SanicException):
+        if exc.status_code==500:
+            req.app.ctx.worker.log(
+                'error', 'app.handle_error',
+                f'http 500 in request ({debug_info})\ncontext={exc.context}\nextra={exc.extra}\n{utils.get_traceback(exc)}',
+            )
+
+        return response.html(render_info(
+            title=f'🤡 HTTP Error {exc.status_code}',
+            body=exc.message,
+        ), status=exc.status_code)
+
+    # otherwise, 500
+
+    req.app.ctx.worker.log('error', 'app.handle_error', f'exception in request ({debug_info})\n{utils.get_traceback(exc)}')
 
     return response.html(render_info(
         title='🤡 Internal Server Error',
