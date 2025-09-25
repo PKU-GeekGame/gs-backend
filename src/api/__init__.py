@@ -1,7 +1,9 @@
 from sanic.request import Request
 import json
-import time
+import datetime
+from pathlib import Path
 from typing import Optional, List, Any
+import jinja2
 
 from ..state import User
 from .. import secret
@@ -39,7 +41,7 @@ def store_anticheat_log(req: Request, data: List[Any], user: Optional[User] = No
             tab_id = req.args.get('tabid', None)
 
             encoded = json.dumps(
-                [time.time(), addr, ac_canary, tab_id, *data],
+                [datetime.datetime.now().isoformat(), addr, ac_canary, tab_id, *data],
                 ensure_ascii=False,
             ).encode('utf-8')
             if len(encoded)>MAX_LINE_LEN:
@@ -50,3 +52,15 @@ def store_anticheat_log(req: Request, data: List[Any], user: Optional[User] = No
 
         except Exception as e:
             req.app.ctx.worker.log('error', 'app.store_anticheat_log', f'cannot write log for U#{user._store.id}: {utils.get_traceback(e)}')
+
+with (Path(__file__).parent / 'info.html').open('r', encoding='utf-8') as f:
+    info_template = jinja2.Environment(
+        loader=jinja2.DictLoader({'index.html': f.read()}),
+        autoescape=True,
+        auto_reload=False,
+    ).get_template('index.html')
+
+_back_url = secret.BUILD_LOGIN_FINISH_URL(None, False)
+
+def render_info(title: str, body: str, backurl: str = _back_url) -> str:
+    return info_template.render(title=title, body=body, backurl=backurl)

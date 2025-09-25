@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy import select
 import asyncio
 import time
+import datetime
 import json
 import sys
 from typing import Callable, Any, Awaitable, Dict, Tuple
@@ -15,6 +16,7 @@ from ..state import Trigger
 from ..store import *
 from .. import utils
 from .. import secret
+from .. import token_signer
 
 on_action, action_listeners = make_callback_decorator()
 
@@ -88,7 +90,7 @@ class Reducer(StateContainerBase):
             session.flush()
             assert profile.id is not None, 'created profile not in db'
 
-            user.token = utils.sign_token(uid)
+            user.token = token_signer.sign_token(secret.TOKEN_SIGNER, uid)
             user.auth_token = f'{uid}_{utils.gen_random_str(12, crypto=True)}'
             user.profile_id = profile.id
 
@@ -119,7 +121,7 @@ class Reducer(StateContainerBase):
                 if str(k) in allowed_profiles:
                     setattr(profile, f'{str(k)}_or_null', str(v))
 
-            err = profile.check_profile(user.group)
+            err = profile.check_profile(user)
             if err is not None:
                 return err
 
@@ -303,7 +305,7 @@ class Reducer(StateContainerBase):
 
             if secret.ANTICHEAT_RECEIVER_ENABLED:
                 encoded = json.dumps(
-                    [time.time(), {
+                    [datetime.datetime.now().isoformat(), {
                         'load': [st['load_1'], st['load_5'], st['load_15']],
                         'ram': [st['ram_used'], st['ram_free']],
                         'n_user': len(self._game.users.list),
@@ -342,7 +344,7 @@ class Reducer(StateContainerBase):
             await event.send(self.event_socket)
 
     async def emit_sync(self) -> None:
-        if time.time()-self.last_emit_sync_time<=self.SYNC_THROTTLE_S:
+        if time.time()-self.last_emit_sync_time <= self.SYNC_THROTTLE_S:
             return
         self.last_emit_sync_time = time.time()
 

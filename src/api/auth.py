@@ -1,13 +1,12 @@
 import httpx
 from sanic import response, Request, HTTPResponse
 from sanic.models.handler_types import RouteHandler
-from html import escape
 from functools import wraps
 from inspect import isawaitable
 from urllib.parse import quote
 from typing import Dict, Any, Callable, Tuple, Union, Awaitable, Optional
 
-from . import store_anticheat_log
+from . import store_anticheat_log, render_info
 from ..logic import Worker, glitter
 from ..state import User
 from .. import secret
@@ -19,7 +18,7 @@ AuthResponse = Union[User, Tuple[str, Dict[str, Any], str]]
 AuthHandler = Callable[..., Union[AuthResponse, Awaitable[AuthResponse]]]
 
 def add_cookie(res: HTTPResponse, name: str, value: str, *, path: str = '/', max_age: int = LOGIN_MAX_AGE_S, subdomain: bool = False) -> None:
-    res.cookies.add_cookie(
+    res.add_cookie(
         name, value,
         path=path,
         httponly=True,
@@ -102,13 +101,10 @@ def auth_response(fn: AuthHandler) -> RouteHandler:
                 worker.log('warning', 'api.auth.auth_response', f'request error: {utils.get_traceback(e)}')
                 raise AuthError('第三方服务网络错误')
         except AuthError as e:
-            return response.html(
-                '<!doctype html>'
-                '<h1>登录失败</h1>'
-                f'<p>{escape(e.message)}</p>'
-                '<br>'
-                f'<p><a href="{secret.BUILD_LOGIN_FINISH_URL(None, False)}">返回比赛平台</a></p>'
-            )
+            return response.html(render_info(
+                title='登录失败',
+                body=e.message,
+            ))
 
     return wrapped
 

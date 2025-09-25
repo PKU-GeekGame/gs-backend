@@ -1,34 +1,33 @@
 # store
-sqlalchemy~=2.0.31
+sqlalchemy~=2.0.42
 PyMySQL~=1.1.1
 
 # utils
-markdown~=3.6
-Pygments~=2.18.0
-pytz>=2024.1
-jinja2~=3.1.4
+markdown~=3.8.2
+Pygments~=2.19.2
+pytz>=2025.2
+jinja2~=3.1.6
 psutil~=6.0.0
 unicategories~=0.1.2
-uniseg~=0.8.1
-emoji~=2.13.2
+emoji~=2.14.1
 
 # logic
-pyzmq>=26.0.3
-pyopenssl>=24.1.0
+pyzmq>=27.0.1
+cryptography>=45.0.6
+pynacl~=1.5.0
 
 # api
-sanic~=23.12
-sanic-ext~=23.12
-httpx[http2]~=0.27.0
-pyjwt~=2.8.0
-cryptography>=42.0.8
+sanic~=24.12.0
+sanic-ext~=24.12.0
+httpx[http2]~=0.28.1
+pyjwt~=2.10.1
 websockets>=11.0 # websockets.connections renamed to websockets.protocol since then
 
 # admin
-flask~=3.0.3
+flask~=3.1.1
 flask-sqlalchemy~=3.1.1
 flask-admin~=1.6.1
-Flask-Migrate~=4.0.4
+Flask-Migrate~=4.1.0
 wtforms~=3.1.2
-markupsafe~=2.1.1
-gevent>=21.12.0
+markupsafe~=3.0.2
+gevent>=25.5.1

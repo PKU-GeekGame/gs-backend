@@ -12,9 +12,6 @@ from markdown.extensions.fenced_code import FencedCodeExtension
 from markdown.extensions.sane_lists import SaneListExtension
 import datetime
 import pytz
-import base64
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes
 import traceback
 import asyncio
 import secrets
@@ -32,7 +29,7 @@ LogLevel = Literal['debug', 'info', 'warning', 'error', 'critical', 'success']
 from . import secret
 
 def gen_random_str(length: int = 32, *, crypto: bool = False) -> str:
-    choice: Callable[[str], str] = secrets.choice if crypto else random.choice  # type: ignore
+    choice: Callable[[str], str] = secrets.choice if crypto else random.choice
     alphabet = 'qwertyuiopasdfghjkzxcvbnmQWERTYUPASDFGHJKLZXCVBNM23456789'
 
     return ''.join([choice(alphabet) for _ in range(length)])
@@ -72,7 +69,7 @@ MACRO_TEMPLATE = '''
 def render_template(template_str: str, args: Dict[str, Any]) -> str:
     # jinja2 to md
     env = jinja2.Environment(
-        loader=jinja2.DictLoader({'index.md': MACRO_TEMPLATE+'\n'+template_str,}), # add \n for line stmts in the first line
+        loader=jinja2.DictLoader({'index.md': MACRO_TEMPLATE+'\n'+template_str}),
         autoescape=True,
         auto_reload=False,
         line_statement_prefix='% ',
@@ -100,13 +97,6 @@ def format_size(size: int) -> str:
         return f'{size/(1024**2):.1f}M'
     else:
         return f'{size/(1024**3):.1f}G'
-
-def sign_token(uid: int) -> str:
-    sig = base64.urlsafe_b64encode(secret.TOKEN_SIGNING_KEY.sign(
-        str(uid).encode(),
-        ec.ECDSA(hashes.SHA256())
-    )).decode()
-    return f'{uid}:{sig}'
 
 def get_traceback(e: Exception) -> str:
     return repr(e) + '\n' + ''.join(traceback.format_exception(type(e), e, e.__traceback__))
@@ -151,7 +141,7 @@ def sys_status() -> Dict[str, Union[int, float]]:
     return {
         'process': len(psutil.pids()),
 
-        'n_cpu': psutil.cpu_count(logical=False),
+        'n_cpu': psutil.cpu_count(logical=False) or 0,
         'load_1': load_1,
         'load_5': load_5,
         'load_15': load_15,

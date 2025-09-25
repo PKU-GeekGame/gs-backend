@@ -25,6 +25,7 @@ from ..logic.reducer import Reducer
 from .. import store
 from .. import secret
 from .. import utils
+from .. import token_signer
 
 class StatusView(AdminIndexView):  # type: ignore
     IS_SAFE = True
@@ -177,18 +178,18 @@ class StatusView(AdminIndexView):  # type: ignore
         resp.mimetype = 'text/plain'
         return resp
 
-    # @expose('/regenerate_token')
-    # def regenerate_token(self) -> ResponseReturnValue:
-    #     reducer: Reducer = current_app.config['reducer_obj']
-    #
-    #     with reducer.SqlSession() as session:
-    #         users: List[store.UserStore] = list(session.execute(select(store.UserStore)).scalars().all())
-    #         for u in users:
-    #             u.token = utils.sign_token(u.id)
-    #         session.commit()
-    #         flash(f'已重新生成 {len(users)} 个 token，请手动重启 reducer 和所有 worker', 'success')
-    #
-    #     return redirect(url_for('.index'))
+    @expose('/regenerate_token')
+    def regenerate_token(self) -> ResponseReturnValue:
+        reducer: Reducer = current_app.config['reducer_obj']
+
+        with reducer.SqlSession() as session:
+            users: List[store.UserStore] = list(session.execute(select(store.UserStore)).scalars().all())
+            for u in users:
+                u.token = token_signer.sign_token(secret.TOKEN_SIGNER, u.id)
+            session.commit()
+            flash(f'已重新生成 {len(users)} 个 token，请手动重启 reducer 和所有 worker', 'success')
+
+        return redirect(url_for('.index'))
 
 # increased timeout from 30min to 24h
 class SecureForm(BaseForm): # type: ignore

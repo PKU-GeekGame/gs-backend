@@ -289,6 +289,19 @@ class User(WithGameLifecycle):
         h = hashlib.sha256(f'{self._store.id}-{ch._store.key}'.encode()).hexdigest()
         return int(h, 16) % n_part
 
+    def get_partitions(self, ch: Challenge, n_parts: List[int]) -> List[int]: # for wordlist dynamic flag
+        tot_parts = 1
+        for n in n_parts:
+            assert isinstance(n, int) and n>0, 'each value in n_parts must be positive integers'
+            tot_parts *= n
+
+        part = self.get_partition(ch, tot_parts)
+        ret = []
+        for n in n_parts:
+            ret.append(part % n)
+            part //= n
+        return ret
+
     def admin_badges(self) -> List[str]:
         return [
             #f'U#{self._store.id}',

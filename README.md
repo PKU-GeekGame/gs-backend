@@ -31,7 +31,7 @@ Although nobody uses Windows on a server, it is a good news if you develop on Wi
 
 **Setup:**
 
-- Install Python (≥3.8)
+- Install Python (≥3.11)
 - `pip install -r requirements.txt`
 - Install MySQL server (≥5.7.8, or MariaDB ≥10.2.7 for the JSON datatype) and set up a database
   - `CREATE USER 'username'@'localhost' IDENTIFIED BY 'password';`

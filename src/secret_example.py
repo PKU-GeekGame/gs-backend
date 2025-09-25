@@ -1,13 +1,15 @@
 from __future__ import annotations
-import OpenSSL.crypto
 import pathlib
 from typing import TYPE_CHECKING, List, Optional, Tuple, Dict, Literal, Union
-from cryptography.hazmat.primitives import serialization
+import httpx
+
+from .token_signer import load_sk, SigningKey
 
 if TYPE_CHECKING:
     from .store import UserStore
     from .state import User
     from . import utils
+    from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
 ##
 ## SECRET KEYS
@@ -34,10 +36,13 @@ CARSI_APP_ID: Optional[str] = None # None to disable this endpoint
 CARSI_DOMAIN = 'spoauth2pre.carsi.edu.cn'
 CARSI_APP_SECRET = 'xxx'
 CARSI_DEFAULT_IDP: Optional[str] = None
-CARSI_PRIV_KEY: Optional[OpenSSL.crypto.PKey] = None
+CARSI_PRIV_KEY: Optional[RSAPrivateKey] = None
 # https://carsi.atlassian.net/wiki/spaces/CAW/pages/27103892/3.+CARSI+SP+OAuth+Joining+CARSI+for+OAuth+SP
-#with open('/path/to/carsi.priv') as f:
-#    CARSI_PRIV_KEY = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read())
+#with open('/path/to/carsi.priv', 'rb') as f:
+#    CARSI_PRIV_KEY: RSAPrivateKey = serialization.load_pem_private_key(
+#        f.read(),
+#        password=None,
+#    ) # type: ignore
 
 FEISHU_WEBHOOK_ADDR: Optional[str] = 'https://open.feishu.cn/open-apis/bot/v2/hook/...' # None to disable feishu push
 
@@ -49,13 +54,9 @@ ADMIN_2FA_COOKIE = 'some_long_random_string'
 
 #### SIGNING KEYS
 
-# openssl ecparam -name secp256k1 -genkey -noout -out token.priv
-# openssl req -x509 -key token.priv -out token.pub -days 365
-with open('/path/to/token.priv', 'rb') as f:
-    TOKEN_SIGNING_KEY = serialization.load_pem_private_key(
-        f.read(),
-        password=None,
-    )
+# python3 token_signer.py
+with open('/path/to/token.sk', 'r') as f:
+    TOKEN_SIGNER: SigningKey = load_sk(f.read())
 
 ##
 ## DEPLOYMENT CONFIG
@@ -105,9 +106,9 @@ ATTACHMENT_URL : Optional[str] = '/_internal_attachments' # None to opt-out X-Ac
 BACKEND_HOSTNAME = 'your_contest.example.com' # used for oauth redirects
 BACKEND_SCHEME: Union[Literal['http'], Literal['https']] = 'http' # used for oauth redirects and cookies
 
-OAUTH_HTTP_PROXIES: Optional[Dict[str, Optional[str]]] = {
-    # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/#http-proxying
-    'all://*github.com': None, #'http://127.0.0.1:xxxx',
+OAUTH_HTTP_MOUNTS: Optional[Dict[str, httpx.AsyncBaseTransport | None]] = {
+    # will be passed to `httpx.AsyncClient`, see https://www.python-httpx.org/advanced/transports/#routing
+    'all://*github.com': None, # httpx.AsyncHTTPTransport(proxy='http://127.0.0.1:7890'),
 }
 
 def BUILD_LOGIN_FINISH_URL(user: Optional[User], is_register: bool) -> str: # redirected to this after (successful or failed) login

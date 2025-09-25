@@ -3,12 +3,12 @@ import hashlib
 import string
 import math
 from functools import lru_cache
-from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable, Tuple, Optional
+from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable, Tuple, Optional, assert_never
 
 if TYPE_CHECKING:
     from . import Game, Challenge, User, Submission
 from . import WithGameLifecycle
-from ..store import UserStore
+from ..store import ChallengeStore, FlagType
 from .. import utils
 from .. import secret
 
@@ -54,10 +54,9 @@ class Flag(WithGameLifecycle):
 
         self.challenge = chall
         self.idx0 = idx0
-        self.type: str = descriptor['type']
+        self.type: FlagType = descriptor['type']
         self.val: Union[str, List[str]] = descriptor['val'] # list[str] for partitioned
         self.name: str = descriptor['name']
-        self.salt: str = descriptor.get('salt', '')
         self.base_score: int = descriptor['base_score']
 
         self.cur_score: int = 0
@@ -82,16 +81,26 @@ class Flag(WithGameLifecycle):
             if self.type=='static':
                 assert isinstance(self.val, str)
                 return self.val
+
+            elif self.type=='wordlist':
+                assert isinstance(self.val, str)
+                variant = user.get_partitions(self.challenge, [len(w) for w in self._store['words']])
+                return ChallengeStore.get_wordlist_flag_for_variant(self.val, self._store['words'], variant)
+
             elif self.type=='leet':
                 assert isinstance(self.val, str)
-                return leet_flag(self.val, user._store.id, self.salt)
+                return leet_flag(self.val, user._store.id, self._store['salt'])
+
             elif self.type=='partitioned':
                 assert isinstance(self.val, list)
                 return self.val[user.get_partition(self.challenge, len(self.val))]
+
             elif self.type=='dynamic':
                 return dyn_flag(self, user)
+
             else:
-                raise ValueError(f'Unknown flag type: {self.type}')
+                assert_never(self.type)  # for mypy type checking
+
         except Exception as e:
             self._game.worker.log('error', 'flag.correct_flag', f'error calculating flag {repr(self)} for U#{user._store.id}: {utils.get_traceback(e)}')
             return '😅FAIL'
