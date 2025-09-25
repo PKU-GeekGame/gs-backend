@@ -226,7 +226,7 @@ class User(WithGameLifecycle):
         return self.submissions[-1] if len(self.submissions)>0 else None
 
     @property
-    def normalized_tot_score(self):
+    def normalized_tot_score(self) -> float:
         return (
             50 * self.tot_score / self._game.users.max_score +
             50 * self.score_offset / self._game.users.max_score_offset

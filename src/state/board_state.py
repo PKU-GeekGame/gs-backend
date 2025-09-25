@@ -1,12 +1,11 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional, List, Tuple, Dict, Any
+from typing import TYPE_CHECKING, Optional, List, Tuple, Dict, Any, Union
 
 if TYPE_CHECKING:
     from . import *
-    ScoreBoardItemType = Tuple[User, int]
+    ScoreBoardItemType = Tuple[User, Union[int, float]]
 from . import WithGameLifecycle
-from ..store import UserStore
 from .. import utils
 
 class Board(WithGameLifecycle, ABC):

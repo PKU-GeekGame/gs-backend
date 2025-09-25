@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Set, Dict, Any, Union, List, Callable, Tuple, 
 if TYPE_CHECKING:
     from . import Game, Challenge, User, Submission
 from . import WithGameLifecycle
-from ..store import ChallengeStore, FlagType
+from ..store import ChallengeStore, FlagType, UserStore
 from .. import utils
 from .. import secret
 
