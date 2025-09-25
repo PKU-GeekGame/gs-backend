@@ -228,8 +228,8 @@ class User(WithGameLifecycle):
     @property
     def normalized_tot_score(self) -> float:
         return (
-            50 * self.tot_score / self._game.users.max_score +
-            50 * self.score_offset / self._game.users.max_score_offset
+            50 * self.tot_score / max(1e-10, self._game.users.max_score) +
+            50 * self.score_offset / max(1e-10, self._game.users.max_score_offset)
         )
 
     @property
