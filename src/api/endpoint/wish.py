@@ -166,6 +166,11 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
 
         active_board_key = f'score_{user._store.group}'
         active_board_name = UserStore.GROUPS[user._store.group]
+
+        if active_board_key not in worker.game.boards:
+            active_board_key = 'score_all'
+            active_board_name = '总排名'
+
         active_board = worker.game.boards[active_board_key]
         assert isinstance(active_board, ScoreBoard)
 
