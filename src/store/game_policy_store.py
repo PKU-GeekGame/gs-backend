@@ -13,7 +13,7 @@ class GamePolicyStore(Table):
     can_submit_writeup: bool = Column(Boolean, nullable=False)
     is_submission_deducted: bool = Column(Boolean, nullable=False)
 
-    DEDUCTION_PERCENTAGE_OVERRIDE = 40
+    DEDUCTION_PERCENTAGE_OVERRIDE = 35
 
     @classmethod
     def fallback_policy(cls) -> GamePolicyStore:

@@ -93,14 +93,14 @@ class UserStore(Table):
         ret = []
 
         if self.group=='pku' and self.login_properties['type']=='iaaa' and (
-            self.login_properties['info'].get('identityId', '').startswith('24000')
-            or self.login_properties['info'].get('identityId', '').startswith('24103') # 医学部 本博连读
+            self.login_properties['info'].get('identityId', '').startswith('25000')
+            or self.login_properties['info'].get('identityId', '').startswith('25103') # 医学部 本博连读
         ):
             ret.append('rookie')
 
         if self.group=='thu' and self.login_properties['type']=='carsi' and (
-            (self.profile.stuid_or_null or '').startswith('202401')
-            or (self.profile.stuid_or_null or '').startswith('202408') # 本科留学生
+            (self.profile.stuid_or_null or '').startswith('202501')
+            or (self.profile.stuid_or_null or '').startswith('202508') # 本科留学生
         ):
             ret.append('rookie')
 
