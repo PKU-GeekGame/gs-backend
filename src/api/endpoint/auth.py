@@ -99,9 +99,16 @@ if secret.GITHUB_APP_ID:
         }, headers={
             'Accept': 'application/json',
         })
-        token = token_res.json().get('access_token', None)
+        try:
+            token_res.raise_for_status()
+            token_json = token_res.json()
+        except Exception as e:
+            worker.log('warning', 'api.auth.github', f'retrieve access_token failed:\nHTTP {token_res.status_code}: {token_res.text}\n{e}')
+            raise AuthError('GitHub Token请求失败')
+
+        token = token_json.get('access_token', None)
         if token is None:
-            worker.log('warning', 'api.auth.github', f'get access_token failed:\n{token_res.json()}')
+            worker.log('warning', 'api.auth.github', f'no access_token:\n{token_json}')
             raise AuthError('GitHub Token不存在')
 
         info_res = await http_client.get('https://api.github.com/user', headers={
@@ -180,7 +187,14 @@ if secret.MS_APP_ID:
                 req.app.url_for('auth.auth_ms_res', _external=True, _scheme=secret.BACKEND_SCHEME, _server=secret.BACKEND_HOSTNAME)
             ),
         })
-        token_json = token_res.json()
+
+        try:
+            token_res.raise_for_status()
+            token_json = token_res.json()
+        except Exception as e:
+            worker.log('warning', 'api.auth.ms', f'retrieve access_token failed:\nHTTP {token_res.status_code}: {token_res.text}\n{e}')
+            raise AuthError('MS Token请求失败')
+
         token = token_json.get('access_token', None)
         if token is None:
             worker.log('warning', 'api.auth.ms', f'get access_token failed:\n{token_json}')
