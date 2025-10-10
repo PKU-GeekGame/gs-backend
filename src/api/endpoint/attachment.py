@@ -58,7 +58,7 @@ def gen_attachment(chall: Challenge, att: Dict[str, Any], user: User, log: Calla
         else:
             cache_path.symlink_to(out_path)
     except Exception as e:
-        log('error', 'api.attachment.get_attachment', f'error generating attachment: {utils.get_traceback(e)}')
+        log('error', 'api.attachment.get_attachment', f'error generating attachment for {chall} [{mod_path}]: {utils.get_traceback(e)}')
         return None
     else:
         return cache_url
