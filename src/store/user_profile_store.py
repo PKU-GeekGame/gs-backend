@@ -42,7 +42,7 @@ class UserProfileStore(Table):
 
     email_or_null = Column('email', String(MAX_INFO_LEN), nullable=True)
     #VAL_EMAIL = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
-    VAL_EMAIL = re.compile(r'^[a-z-]+[0-9]+@(mails?.)?tsinghua.edu.cn$')
+    VAL_EMAIL = re.compile(r'^.+@(mails?.)?tsinghua.edu.cn$')
 
     stuid_or_null = Column('stuid', String(MAX_INFO_LEN), nullable=True)
     VAL_STUID = re.compile(r'^\d{10}$')
