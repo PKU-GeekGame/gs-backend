@@ -92,17 +92,22 @@ class UserStore(Table):
     def badges(self) -> List[str]:
         ret = []
 
-        if self.group=='pku' and self.login_properties['type']=='iaaa' and (
-            self.login_properties['info'].get('identityId', '').startswith('25000')
-            or self.login_properties['info'].get('identityId', '').startswith('25103') # 医学部 本博连读
-        ):
-            ret.append('rookie')
+        if self.group=='pku' and self.login_properties['type']=='iaaa':
+            stuid = self.login_properties['info'].get('identityId', '')
+            if (
+                stuid.startswith('25000')
+                or stuid.startswith('25101') # 医学部 本科生
+                or stuid.startswith('25103') # 医学部 本博连读
+            ):
+                ret.append('rookie')
 
-        if self.group=='thu' and self.login_properties['type']=='carsi' and (
-            (self.profile.stuid_or_null or '').startswith('202501')
-            or (self.profile.stuid_or_null or '').startswith('202508') # 本科留学生
-        ):
-            ret.append('rookie')
+        if self.group=='thu' and self.login_properties['type']=='carsi':
+            stuid = self.profile.stuid_or_null or ''
+            if (
+                stuid.startswith('202501')
+                or stuid.startswith('202508') # 本科留学生
+            ):
+                ret.append('rookie')
 
         extra = self.login_properties.get('badges', None)
         if isinstance(extra, list):
