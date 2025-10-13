@@ -561,6 +561,8 @@ class SubmitFeedbackParam:
 @wish_endpoint(bp, '/submit_feedback')
 @validate(json=SubmitFeedbackParam)
 async def submit_feedback(req: Request, body: SubmitFeedbackParam, worker: Worker, user: Optional[User]) -> Dict[str, Any]:
+    return {'error': 'POLICY_ERROR', 'error_msg': '未启用反馈功能'}
+
     if user is None:
         return {'error': 'NO_USER', 'error_msg': '未登录'}
     if worker.game is None:
