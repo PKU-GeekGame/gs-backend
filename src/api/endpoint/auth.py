@@ -55,6 +55,24 @@ async def auth_su(_req: Request, query: AuthSuParam, worker: Worker, user: Optio
     return su_user
 
 @dataclass
+class AuthTokenParam:
+    token: str
+
+@bp.route('/token')
+@validate(query=AuthTokenParam)
+@auth_response
+async def auth_token(_req: Request, query: AuthTokenParam, worker: Worker) -> AuthResponse:
+    if worker.game is None:
+        raise AuthError('服务暂时不可用')
+
+    user = worker.game.users.user_by_auth_token.get(query.token, None)
+    if user is None:
+        raise AuthError('密码错误')
+
+    return user
+
+
+@dataclass
 class AuthPasswordParam:
     email: str
     password: str
