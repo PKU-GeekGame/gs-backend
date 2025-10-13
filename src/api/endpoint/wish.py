@@ -393,8 +393,8 @@ async def get_my_submissions(_req: Request, worker: Worker, user: Optional[User]
 
         if sub._store.score_override_or_null is not None:
             ret.append(f'分数 = {sub._store.score_override_or_null}')
-        elif sub._store.precentage_override_or_null is not None:
-            ret.append(f'分数 * {sub._store.precentage_override_or_null}%')
+        elif sub._store.percentage_override_or_null is not None:
+            ret.append(f'分数 * {sub._store.percentage_override_or_null}%')
 
         return ret
 

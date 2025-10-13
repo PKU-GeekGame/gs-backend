@@ -21,13 +21,13 @@ class SubmissionStore(Table):
     timestamp_ms: int = Column(BigInteger, nullable=False, default=lambda: int(1000*time.time()))
 
     score_override_or_null = Column(Integer, nullable=True)
-    precentage_override_or_null = Column(Integer, nullable=True)
+    percentage_override_or_null = Column(Integer, nullable=True)
 
     def tweak_score(self, flag_score: int) -> int:
         if self.score_override_or_null is not None:
             return self.score_override_or_null
 
-        if self.precentage_override_or_null is not None:
-            return int(flag_score * self.precentage_override_or_null / 100)
+        if self.percentage_override_or_null is not None:
+            return int(flag_score * self.percentage_override_or_null / 100)
 
         return flag_score

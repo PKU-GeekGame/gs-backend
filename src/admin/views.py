@@ -476,8 +476,8 @@ def _flag_override_formatter(_view: Any, _context: Any, model: store.SubmissionS
     ret = []
     if model.score_override_or_null is not None:
         ret.append(f'[={model.score_override_or_null}]')
-    if model.precentage_override_or_null is not None:
-        ret.append(f'[*{model.precentage_override_or_null}%]')
+    if model.percentage_override_or_null is not None:
+        ret.append(f'[*{model.percentage_override_or_null}%]')
 
     return ' '.join(ret)
 
@@ -501,7 +501,7 @@ class SubmissionView(ViewBase):
     }
     column_descriptions = {
         'score_override_or_null': '将选手分数覆盖为此值，与 score_override_or_null 同时存在时分数以此为准',
-        'precentage_override_or_null': '将选手分数乘以此百分比',
+        'percentage_override_or_null': '将选手分数乘以此百分比',
     }
     column_formatters = {
         'timestamp_ms': fields.timestamp_ms_formatter,

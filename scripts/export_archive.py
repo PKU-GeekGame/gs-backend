@@ -53,7 +53,7 @@ def export_problemset(game: Game) -> None:
 
             for u in flag.passed_users:
                 #sub = u.passed_flags[flag]
-                #cat = '2' if sub._store.precentage_override_or_null is not None else '1'
+                #cat = '2' if sub._store.percentage_override_or_null is not None else '1'
                 #grp = 'pku' if u._store.group == 'pku' else 'other'
                 n_passed += 1
 

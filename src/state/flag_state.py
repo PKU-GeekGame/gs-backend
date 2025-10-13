@@ -122,7 +122,7 @@ class Flag(WithGameLifecycle):
 
         if (
             submission.user._store.group in UserStore.TOT_BOARD_GROUPS # user is in tot board
-            #and submission._store.precentage_override_or_null is None # submission not in second phase
+            #and submission._store.percentage_override_or_null is None # submission not in second phase
         ):
             self.passed_users_for_score_calculation.add(submission.user)
 
@@ -134,7 +134,7 @@ class Flag(WithGameLifecycle):
     def is_user_deducted(self, user: User) -> bool:
         sub = user.passed_flags.get(self, None)
         if sub and (
-            sub._store.precentage_override_or_null is not None
+            sub._store.percentage_override_or_null is not None
             or sub._store.score_override_or_null is not None
         ):
             return True

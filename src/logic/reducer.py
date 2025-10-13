@@ -166,7 +166,7 @@ class Reducer(StateContainerBase):
             return 'user not found'
 
         last_sub = user.last_submission
-        if last_sub is not None:
+        if last_sub is not None and not last_sub.matched_flag:
             delta = time.time() - last_sub._store.timestamp_ms / 1000
             if delta < SubmissionStore.SUBMIT_COOLDOWN_S - 1:
                 return '请求太频繁'
@@ -176,7 +176,7 @@ class Reducer(StateContainerBase):
                 user_id=user._store.id,
                 challenge_key=ch._store.key,
                 flag=str(req.flag),
-                precentage_override_or_null=(
+                percentage_override_or_null=(
                     GamePolicyStore.DEDUCTION_PERCENTAGE_OVERRIDE if (
                         self._game.policy.cur_policy.is_submission_deducted
                         #and (ch._store.chall_metadata is None or ch._store.chall_metadata.get('score_deduction_eligible', True))
