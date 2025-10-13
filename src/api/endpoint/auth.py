@@ -80,7 +80,7 @@ class AuthPasswordParam:
 @bp.post('/password')
 @validate(form=AuthPasswordParam)
 @auth_response
-async def auth_token(_req: Request, body: AuthPasswordParam, worker: Worker) -> AuthResponse:
+async def auth_password(_req: Request, body: AuthPasswordParam, worker: Worker) -> AuthResponse:
     if worker.game is None:
         raise AuthError('服务暂时不可用')
 
