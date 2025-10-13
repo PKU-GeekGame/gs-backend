@@ -116,12 +116,14 @@ class StatusView(AdminIndexView):  # type: ignore
     @expose('/register_user')
     def register_user(self) -> ResponseReturnValue:
         identity = request.args.get('identity')
+        password = request.args.get('password')
         group = request.args.get('group')
 
-        assert identity is not None
+        assert identity
+        assert password
         assert group is not None and group in store.UserStore.GROUPS
 
-        login_key = f'user:{identity}'
+        login_key = f'email:{identity}'
 
         loop: asyncio.AbstractEventLoop = current_app.config['reducer_loop']
         reducer: Reducer = current_app.config['reducer_obj']
@@ -130,7 +132,7 @@ class StatusView(AdminIndexView):  # type: ignore
             return await reducer.on_reg_user(glitter.RegUserReq(
                 client='admin',
                 login_key=login_key,
-                login_properties={'type': 'user', 'identity': identity},
+                login_properties={'type': 'user', 'identity': identity, 'password': password},
                 group=group,
             ))
 
