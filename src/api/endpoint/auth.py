@@ -55,18 +55,23 @@ async def auth_su(_req: Request, query: AuthSuParam, worker: Worker, user: Optio
     return su_user
 
 @dataclass
-class AuthTokenParam:
-    token: str
+class AuthPasswordParam:
+    email: str
+    password: str
 
-@bp.route('/token')
-@validate(query=AuthTokenParam)
+@bp.route('/password')
+@validate(form=AuthPasswordParam)
 @auth_response
-async def auth_token(_req: Request, query: AuthTokenParam, worker: Worker) -> AuthResponse:
+async def auth_token(_req: Request, body: AuthPasswordParam, worker: Worker) -> AuthResponse:
     if worker.game is None:
         raise AuthError('服务暂时不可用')
 
-    user = worker.game.users.user_by_auth_token.get(query.token, None)
+    user = worker.game.users.user_by_login_key.get(f'email:{body.email}', None)
     if user is None:
-        raise AuthError('密码错误')
+        raise AuthError('用户不存在或者密码错误')
+
+    pw = user._store.login_properties.get('password', None)
+    if pw is None or pw != body.password:
+        raise AuthError('用户不存在或者密码错误')
 
     return user
