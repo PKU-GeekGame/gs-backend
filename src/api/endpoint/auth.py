@@ -59,7 +59,7 @@ class AuthPasswordParam:
     email: str
     password: str
 
-@bp.route('/password')
+@bp.post('/password')
 @validate(form=AuthPasswordParam)
 @auth_response
 async def auth_token(_req: Request, body: AuthPasswordParam, worker: Worker) -> AuthResponse:
