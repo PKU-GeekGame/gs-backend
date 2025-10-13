@@ -85,7 +85,7 @@ class UserProfileStore(Table):
 
         for field in required_profiles:
             if getattr(self, f'{field}_or_null') is None:
-                return f'队伍资料不完整（{field}）'
+                return f'个人资料不完整（{field}）'
 
         # if 'nickname' in required_profiles and not self.VAL_NICKNAME.match(self.nickname_or_null or ''):
         #     return '昵称格式错误，应为1到20字符'

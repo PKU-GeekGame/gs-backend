@@ -265,7 +265,7 @@ class User(WithGameLifecycle):
             return 'USER_BANNED', '此用户组被禁止参赛'
 
         if self._store.profile.check_profile(self._store.group) is not None:
-            return 'SHOULD_UPDATE_PROFILE', '请完善队伍资料'
+            return 'SHOULD_UPDATE_PROFILE', '请完善个人资料'
         return None
 
     def check_submit_writeup(self) -> Optional[Tuple[str, str]]:
