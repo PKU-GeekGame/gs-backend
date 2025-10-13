@@ -59,7 +59,7 @@ class ScoreBoard(Board):
             user, score = x
             return (
                 ((user._store.group in self.group) if self.group is not None else True)
-                and (score>0 or user.score_offset>0)
+                and score>0
             )
 
         def sorter(x: ScoreBoardItemType) -> Tuple[Any, ...]:
@@ -67,10 +67,9 @@ class ScoreBoard(Board):
             return (
                 -score,
                 -1 if user.last_succ_submission is None else user.last_succ_submission._store.id,
-                -user.score_offset,
             )
 
-        b = [(u, u.normalized_tot_score) for u in self._game.users.list]
+        b = [(u, u.tot_score) for u in self._game.users.list]
         self.board = sorted([x for x in b if is_valid(x)], key=sorter)
         self.uid_to_rank = {user._store.id: idx+1 for idx, (user, _score) in enumerate(self.board)}
 
@@ -98,9 +97,9 @@ class ScoreBoard(Board):
                 'group_disp': u._store.group_disp() if self.show_group else None,
                 'badges': u._store.badges() + (u.admin_badges() if is_admin else []),
                 'score': u.tot_score,
-                'score_offset': u.score_offset,
-                'normalized_score': round(score, 2),
-                #'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
+                #'score_offset': u.score_offset,
+                #'normalized_score': round(score, 2),
+                'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
                     ch._store.key: status
                     for ch in self._game.challenges.list if ch.cur_effective

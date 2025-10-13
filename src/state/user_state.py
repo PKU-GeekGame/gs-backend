@@ -11,14 +11,14 @@ from .. import secret
 from ..state import ScoreBoard
 from ..store import UserStore
 
-if secret.SCORE_OFFSET_PATH:
-    with open(secret.SCORE_OFFSET_PATH) as f:
-        SCORE_OFFSET = {int(k): v for k, v in json.load(f).items()}
-else:
-    SCORE_OFFSET = {}
+# if secret.SCORE_OFFSET_PATH:
+#     with open(secret.SCORE_OFFSET_PATH) as f:
+#         SCORE_OFFSET = {int(k): v for k, v in json.load(f).items()}
+# else:
+#     SCORE_OFFSET = {}
 
 class Users(WithGameLifecycle):
-    max_score_offset = max(SCORE_OFFSET.values(), default=0)
+    #max_score_offset = max(SCORE_OFFSET.values(), default=0)
 
     def __init__(self, game: Game, stores: List[UserStore]):
         self._game: Game = game
@@ -119,7 +119,7 @@ class User(WithGameLifecycle):
         self.succ_submissions: List[Submission] = []
         self.submissions: List[Submission] = []
         self.tot_score: int = 0
-        self.score_offset: int = 0
+        #self.score_offset: int = 0
         self.tot_score_by_cat: Dict[str, int] = {}
 
         self._score_history: Optional[ScoreHistory] = None
@@ -133,7 +133,7 @@ class User(WithGameLifecycle):
             reload_frontend = True
 
         self._store = store
-        self.score_offset = SCORE_OFFSET.get(self._store.id, 0)
+        #self.score_offset = SCORE_OFFSET.get(self._store.id, 0)
         return reload_frontend
 
     def on_scoreboard_reset(self) -> None:
@@ -225,12 +225,12 @@ class User(WithGameLifecycle):
     def last_submission(self) -> Optional[Submission]:
         return self.submissions[-1] if len(self.submissions)>0 else None
 
-    @property
-    def normalized_tot_score(self) -> float:
-        return (
-            50 * self.tot_score / max(1e-10, self._game.users.max_score) +
-            50 * self.score_offset / max(1e-10, self._game.users.max_score_offset)
-        )
+    # @property
+    # def normalized_tot_score(self) -> float:
+    #     return (
+    #         50 * self.tot_score / max(1e-10, self._game.users.max_score) +
+    #         50 * self.score_offset / max(1e-10, self._game.users.max_score_offset)
+    #     )
 
     @property
     def score_history_diff(self) -> List[Tuple[int, int]]:
