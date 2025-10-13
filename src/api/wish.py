@@ -4,7 +4,7 @@ from functools import wraps
 from inspect import isawaitable
 from typing import Callable, Dict, Any, Union, Awaitable, List, Optional
 
-ACCEPTED_WISH_VERS = ['edu2025.v2']
+ACCEPTED_WISH_VERS = ['edu2025.v3']
 
 WishHandler = Callable[..., Union[Dict[str, Any], Awaitable[Dict[str, Any]]]]
 
