@@ -175,8 +175,7 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
         assert isinstance(active_board, ScoreBoard)
 
         user_info = {
-            #'tot_score': user.tot_score, # todo: show both scores in frontend
-            'tot_score': user.normalized_tot_score,
+            'tot_score': user.tot_score,
             'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
             'board_key': active_board_key,
             'board_name': active_board_name,
