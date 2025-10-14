@@ -241,6 +241,10 @@ async def get_challenge_details(req: Request, worker: Worker, user: Optional[Use
     ch = worker.game.challenges.chall_by_key.get(challenge_key, None)
     if ch is None or (not ch.cur_effective and not is_admin):
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+    
+    # Check if challenge is visible to user's group
+    if not is_admin and not ch.is_visible_to_user(user):
+        return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
     store_anticheat_log(req, ['open_challenge', ch._store.key])
 
@@ -276,8 +280,14 @@ async def submit_flag(req: Request, body: SubmitFlagParam, worker: Worker, user:
     ch = worker.game.challenges.chall_by_key.get(body.challenge_key, None)
     if ch is None:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+    
+    # Check group-based visibility
+    is_admin = secret.IS_ADMIN(user._store)
+    if not ch.is_visible_to_user(user) and not is_admin:
+        return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+    
     if not ch.cur_effective:
-        if secret.IS_ADMIN(user._store):
+        if is_admin:
             for f in ch.flags:
                 if f.validate_flag(user, body.flag):
                     return {'error': 'NOT_FOUND', 'error_msg': f'题目未启用，Flag 正确（{f.name or "flag"}）'}
@@ -322,8 +332,11 @@ async def get_touched_users(_req: Request, challenge_key: str, worker: Worker, u
     ch = worker.game.challenges.chall_by_key.get(challenge_key, None)
     if ch is None or not ch.cur_effective:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
-
+    
+    # Check if challenge is visible to user's group
     is_admin = secret.IS_ADMIN(user._store)
+    if not is_admin and not ch.is_visible_to_user(user):
+        return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
     users: Dict[User, List[Optional[Submission]]] = {}
     users_sort_key: List[Tuple[Tuple[int, int], User]] = []
@@ -581,6 +594,11 @@ async def submit_feedback(req: Request, body: SubmitFeedbackParam, worker: Worke
 
     ch = worker.game.challenges.chall_by_key.get(body.challenge_key, None)
     if ch is None or not ch.cur_effective:
+        return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
+    
+    # Check group-based visibility
+    is_admin = secret.IS_ADMIN(user._store)
+    if not ch.is_visible_to_user(user) and not is_admin:
         return {'error': 'NOT_FOUND', 'error_msg': '题目不存在'}
 
     if len(body.feedback)>FeedbackStore.MAX_CONTENT_LEN:

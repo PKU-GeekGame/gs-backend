@@ -81,13 +81,29 @@ class ScoreBoard(Board):
         for idx, (u, score) in list(enumerate(self.board))[::-1]:
             score_to_rank[score] = idx+1
 
+        def is_challenge_visible_to_board(ch: Challenge) -> bool:
+            """Check if challenge is visible to any group in this board"""
+            if not ch.cur_effective:
+                return False
+            
+            # If challenge has no group restrictions, it's visible to all
+            if not ch._store.groups:
+                return True
+            
+            # If board has no group restrictions, show all challenges
+            if self.group is None:
+                return True
+            
+            # Check if any board group overlaps with challenge groups
+            return any(board_group in ch._store.groups for board_group in self.group)
+
         return {
             'challenges': [{
                 'key': ch._store.key,
                 'title': ch._store.title,
                 'category': ch._store.category,
                 'flags': [f.name for f in ch.flags],
-            } for ch in self._game.challenges.list if ch.cur_effective],
+            } for ch in self._game.challenges.list if is_challenge_visible_to_board(ch)],
 
             'list': [{
                 'uid': u._store.id,
@@ -102,7 +118,7 @@ class ScoreBoard(Board):
                 'last_succ_submission_ts': int(u.last_succ_submission._store.timestamp_ms/1000) if u.last_succ_submission else None,
                 'challenge_status': {
                     ch._store.key: status
-                    for ch in self._game.challenges.list if ch.cur_effective
+                    for ch in self._game.challenges.list if is_challenge_visible_to_board(ch)
                     if (status := ch.user_status(u)) != 'untouched'
                 },
                 'flag_status': {
@@ -110,6 +126,7 @@ class ScoreBoard(Board):
                         int(sub._store.timestamp_ms/1000), # timestamp_s
                         sub.gained_score(), # gained_score
                     ] for f, sub in u.passed_flags.items()
+                    if is_challenge_visible_to_board(f.challenge)
                 },
             } for idx, (u, score) in enumerate(self.board[:self.max_display_users])],
 
@@ -151,6 +168,22 @@ class FirstBloodBoard(Board):
     def _render(self, is_admin: bool) -> Dict[str, Any]:
         self._game.worker.log('debug', 'board.render', f'rendering first blood board {self.name}')
 
+        def is_challenge_visible_to_board(ch: Challenge) -> bool:
+            """Check if challenge is visible to any group in this board"""
+            if not ch.cur_effective:
+                return False
+            
+            # If challenge has no group restrictions, it's visible to all
+            if not ch._store.groups:
+                return True
+            
+            # If board has no group restrictions, show all challenges
+            if self.group is None:
+                return True
+            
+            # Check if any board group overlaps with challenge groups
+            return any(board_group in ch._store.groups for board_group in self.group)
+
         return {
             'list': [{
                 'key': ch._store.key,
@@ -175,7 +208,7 @@ class FirstBloodBoard(Board):
                     'timestamp': int(f_sub._store.timestamp_ms/1000) if f_sub is not None else None,
                 } for f in ch.flags for f_sub in [self.flag_board.get(f, None)]]),
 
-            } for ch in self._game.challenges.list if ch.cur_effective for ch_sub in [self.chall_board.get(ch, None)]],
+            } for ch in self._game.challenges.list if is_challenge_visible_to_board(ch) for ch_sub in [self.chall_board.get(ch, None)]],
         }
 
     def on_scoreboard_reset(self) -> None:

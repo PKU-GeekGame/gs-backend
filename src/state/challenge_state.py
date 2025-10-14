@@ -113,6 +113,15 @@ class Challenge(WithGameLifecycle):
         for flag in self.flags:
             flag.on_tick_change()
 
+    def is_visible_to_user(self, user: User) -> bool:
+        """Check if this challenge is visible to the given user based on their group."""
+        # If no groups are specified, challenge is visible to all users
+        if not self._store.groups:
+            return True
+        
+        # Check if user's group is in the allowed groups
+        return user._store.group in self._store.groups
+
     def on_scoreboard_reset(self) -> None:
         self.passed_users = set()
         self.touched_users = set()

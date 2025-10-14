@@ -165,3 +165,30 @@ class FlagsField(flask_admin.form.JSONField): # type: ignore
 
 class ActionsField(flask_admin.form.JSONField): # type: ignore
     widget = JsonListInputWithSnippets(store.ChallengeStore.ACTION_SNIPPETS)
+
+class GroupsField(wtforms.fields.SelectMultipleField): # type: ignore
+    """Custom field for selecting multiple groups for challenge visibility."""
+    
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        # Import here to avoid circular imports
+        from ..store.user_store import UserStore
+        
+        # Set choices to available groups
+        kwargs['choices'] = [(k, f"{k} ({v})") for k, v in UserStore.GROUPS.items()]
+        kwargs['coerce'] = str
+        super().__init__(*args, **kwargs)
+    
+    def process_formdata(self, valuelist: List[str]) -> None:
+        """Process form data and convert to list format expected by the model."""
+        if valuelist:
+            # Filter out empty values
+            self.data = [v for v in valuelist if v]
+        else:
+            self.data = []
+    
+    def _value(self) -> List[str]:
+        """Return the current value for form rendering."""
+        if self.data:
+            return self.data
+        else:
+            return []

@@ -33,6 +33,7 @@ class ChallengeStore(Table):
     chall_metadata: Optional[Dict[str, Any]] = Column(JSON, nullable=False)
     actions: List[Dict[str, Any]] = Column(JSON, nullable=False)
     flags: List[Dict[str, Any]] = Column(JSON, nullable=False)
+    groups: List[str] = Column(JSON, nullable=False)
 
     VAL_FLAG = re.compile(r'^flag{[\x20-\x7c\x7e]{1,100}}$') # 0x7d is '}'
     MAX_FLAG_LEN = 110
@@ -51,6 +52,23 @@ class ChallengeStore(Table):
         assert isinstance(chall_metadata, dict), 'metadata should be a dict'
 
         return chall_metadata
+
+    @validates('groups')
+    def validate_groups(self, _key: str, groups: Any) -> Any:
+        if groups is None:
+            return groups
+        
+        assert isinstance(groups, list), 'groups should be a list'
+        
+        # Import UserStore to validate group names
+        from .user_store import UserStore
+        valid_groups = set(UserStore.GROUPS.keys())
+        
+        for group in groups:
+            assert isinstance(group, str), 'group should be string'
+            assert group in valid_groups, f'invalid group: {group}'
+        
+        return groups
 
     METADATA_SNIPPET = '''{}'''
 
