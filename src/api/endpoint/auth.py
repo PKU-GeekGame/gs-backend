@@ -287,6 +287,8 @@ if secret.CARSI_APP_ID:
         if domain not in TSINGHUA_DOMAINS:
             raise AuthError(f'暂不支持 {domain} 域名登录')
 
+        grp = 'thu' if usertype=='student' else 'other'
+
         return f'carsi:{uid}', {
             'type': 'carsi',
             'info': {
@@ -294,7 +296,7 @@ if secret.CARSI_APP_ID:
                 'domain': domain,
             },
             'access_token': token
-        }, 'thu'
+        }, grp
 
     @bp.route('/carsi/logout')
     async def auth_carsi_logout(_req: Request, user: Optional[User]) -> HTTPResponse:
