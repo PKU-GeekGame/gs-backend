@@ -275,7 +275,7 @@ class ChallengeView(ViewBase):
         'chall_metadata': 'JSON，目前没用',
         'actions': '题面底部展示的动作列表，附件传到 Attachment 目录',
         'flags': '题目有多 Flag 时前端会展示 name 字段，单 Flag 的题目不会展示',
-        'groups': '题目可见的用户组，Ctrl+Click 多选，不选表示对所有用户可见',
+        'groups': '题目可见的用户组，Ctrl+Click 多选',
     }
     form_overrides = {
         'desc_template': fields.MarkdownField,
