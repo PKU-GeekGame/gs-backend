@@ -9,6 +9,7 @@ pytz>=2025.2
 jinja2~=3.1.6
 psutil~=6.0.0
 unicategories~=0.1.2
+uniseg~=0.10.0
 emoji~=2.14.1
 
 # logic
