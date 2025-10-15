@@ -30,17 +30,17 @@ class Game(WithGameLifecycle):
         self.challenges: Challenges = Challenges(self, challenge_stores)
         self.users: Users = Users(self, user_stores)
         self.boards: Dict[str, Board] = {
-            'score_all': ScoreBoard('总排名', None, self, UserStore.TOT_BOARD_GROUPS, True, 1000),
+            #'score_all': ScoreBoard('总排名', None, self, UserStore.TOT_BOARD_GROUPS, True, 1000),
             **{
                 f'score_{g}': ScoreBoard(f'{UserStore.GROUPS[g]}排名', None, self, [g], False, 1000)
                 for g in UserStore.TOT_BOARD_GROUPS
             },
-            'banned': ScoreBoard('已封禁用户', None, self, ['banned'], True, 1000),
+            #'banned': ScoreBoard('已封禁用户', None, self, ['banned'], True, 1000),
             #**{
             #    f'first_{g}': FirstBloodBoard(f'{UserStore.GROUPS[g]}一血榜', None, self, [g], False)
             #    for g in UserStore.TOT_BOARD_GROUPS
             #},
-            'first_all': FirstBloodBoard('一血榜', '榜单仅供参考，本比赛并未对一血队伍设置奖项', self, UserStore.TOT_BOARD_GROUPS, True),
+            #'first_all': FirstBloodBoard('一血榜', '榜单仅供参考，本比赛并未对一血队伍设置奖项', self, UserStore.TOT_BOARD_GROUPS, True),
         } if use_boards else {}
 
         self.n_corr_submission: int = 0

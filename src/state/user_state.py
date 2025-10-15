@@ -23,7 +23,7 @@ class Users(WithGameLifecycle):
     def __init__(self, game: Game, stores: List[UserStore]):
         self._game: Game = game
         self._stores: List[UserStore] = []
-        self.max_score = 0
+        #self.max_score = 0
 
         self.list: List[User] = []
         self.user_by_id: Dict[int, User] = {}
@@ -74,16 +74,16 @@ class Users(WithGameLifecycle):
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         submission.user.on_scoreboard_update(submission, in_batch)
-        if not in_batch:
-            self.update_max_score()
+        #if not in_batch:
+        #    self.update_max_score()
 
     def on_scoreboard_batch_update_done(self) -> None:
         for user in self.list:
             user.on_scoreboard_batch_update_done()
-        self.update_max_score()
+        #self.update_max_score()
 
-    def update_max_score(self) -> None:
-        self.max_score = max((u.tot_score for u in self.list if u._store.group in UserStore.TOT_BOARD_GROUPS), default=0)
+    #def update_max_score(self) -> None:
+    #    self.max_score = max((u.tot_score for u in self.list if u._store.group in UserStore.TOT_BOARD_GROUPS), default=0)
 
 class ScoreHistory:
     def __init__(self) -> None:
@@ -108,7 +108,10 @@ class ScoreHistory:
         self.last_score = score
 
 class User(WithGameLifecycle):
-    WRITEUP_REQUIRED_RANK = 8
+    WRITEUP_REQUIRED_RANKS = {
+        'admin_s': 50, 'pentest_s': 50, 'dfir_s': 50,
+        'admin_f': 25, 'pentest_f': 25, 'dfir_f': 25,
+    }
 
     def __init__(self, game: Game, store: UserStore):
         self._game: Game = game
@@ -248,22 +251,16 @@ class User(WithGameLifecycle):
     def check_update_profile(self) -> Optional[Tuple[str, str]]:
         if self.check_login() is not None:
             return self.check_login()
-
-        if not self._store.terms_agreed:
-           return 'SHOULD_AGREE_TERMS', '请阅读参赛须知'
-        if self._store.group=='banned':
-           return 'USER_BANNED', '此用户组被禁止参赛'
-        return None
-
-    def check_play_game(self) -> Optional[Tuple[str, str]]:
-        #if self.check_update_profile() is not None:
-        #    return self.check_update_profile()
         if not self._store.terms_agreed:
             return 'SHOULD_AGREE_TERMS', '请阅读参赛须知'
         if self._store.group=='banned':
             return 'USER_BANNED', '此用户组被禁止参赛'
+        return None
 
-        if self._store.profile.check_profile(self._store.group) is not None:
+    def check_play_game(self) -> Optional[Tuple[str, str]]:
+        if self.check_update_profile() is not None:
+            return self.check_update_profile()
+        if self._store.profile.check_profile(self._store) is not None:
             return 'SHOULD_UPDATE_PROFILE', '请完善个人资料'
         return None
 
@@ -275,14 +272,16 @@ class User(WithGameLifecycle):
         return None
 
     def writeup_required(self) -> bool:
-        if self._store.group not in self._store.TOT_BOARD_GROUPS:
+        grp = self._store.group
+        required_rank = self.WRITEUP_REQUIRED_RANKS.get(grp, None)
+        if required_rank is None:
             return False
 
-        board = self._game.boards.get(f'score_{self._store.group}')
+        board = self._game.boards[f'score_{self._store.group}']
         assert isinstance(board, ScoreBoard)
-        margin_score = board.board[self.WRITEUP_REQUIRED_RANK-1][1]
 
-        return self.tot_score >= margin_score
+        rank = board.uid_to_rank.get(self._store.id, required_rank+1)
+        return rank <= required_rank
 
     def get_partition(self, ch: Challenge, n_part: int) -> int: # for partitioned dynamic flag
         h = hashlib.sha256(f'{self._store.id}-{ch._store.key}'.encode()).hexdigest()

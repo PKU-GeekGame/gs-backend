@@ -74,7 +74,7 @@ class StatusView(AdminIndexView):  # type: ignore
                 u_status = 'disabled'
             elif not u._store.terms_agreed:
                 u_status = 'pending_terms'
-            elif u._store.profile.check_profile(u._store.group) is not None:
+            elif u._store.profile.check_profile(u._store) is not None:
                 u_status = 'pending_profile'
             elif u.tot_score==0:
                 u_status = 'no_score'
@@ -265,7 +265,7 @@ class ChallengeView(ViewBase):
     column_formatters = {
         'actions': lambda _v, _c, model, _n: '；'.join([f'[{a["type"]}] {a["name"]}' for a in model.actions]),
         'flags': lambda _v, _c, model, _n: '；'.join([f'[{f["base_score"]}pt] {f["name"]}' for f in model.flags]),
-        'groups': lambda _v, _c, model, _n: '；'.join([f'{g} ({store.UserStore.GROUPS.get(g, g)})' for g in (model.groups or [])]) if model.groups else '（所有用户）',
+        'groups': lambda _v, _c, model, _n: '、'.join(model.groups) if model.groups else '（所有用户）',
     }
     column_descriptions = {
         'effective_after': '题目从该 Tick 编号后对选手可见，具体赛程参考 Trigger',
@@ -275,7 +275,7 @@ class ChallengeView(ViewBase):
         'chall_metadata': 'JSON，目前没用',
         'actions': '题面底部展示的动作列表，附件传到 Attachment 目录',
         'flags': '题目有多 Flag 时前端会展示 name 字段，单 Flag 的题目不会展示',
-        'groups': '限制题目可见的用户组，留空表示对所有用户可见',
+        'groups': '题目可见的用户组，Ctrl+Click 多选，不选表示对所有用户可见',
     }
     form_overrides = {
         'desc_template': fields.MarkdownField,

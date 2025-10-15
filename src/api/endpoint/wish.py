@@ -85,7 +85,7 @@ async def update_profile(_req: Request, body: UpdateProfileParam, worker: Worker
         setattr(profile, f'{field}_or_null', str(body.profile[field]))
         fields[field] = str(body.profile[field])
 
-    chk = profile.check_profile(user._store.group)
+    chk = profile.check_profile(user._store)
     if chk is not None:
         return {'error': 'INVALID_PARAM', 'error_msg': chk}
 
@@ -168,18 +168,20 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
         active_board_name = UserStore.GROUPS[user._store.group]
 
         if active_board_key not in worker.game.boards:
-            active_board_key = 'score_all'
-            active_board_name = '总排名'
-
-        active_board = worker.game.boards[active_board_key]
-        assert isinstance(active_board, ScoreBoard)
+            active_board_key = ''
+            active_board_name = '???'
+            board_rank = None
+        else:
+            active_board = worker.game.boards[active_board_key]
+            assert isinstance(active_board, ScoreBoard)
+            board_rank = active_board.uid_to_rank.get(user._store.id, None)
 
         user_info = {
             'tot_score': user.tot_score,
             'tot_score_by_cat': [(k, v) for k, v in reorder_by_cat(user.tot_score_by_cat).items()] if user.tot_score_by_cat else None,
             'board_key': active_board_key,
             'board_name': active_board_name,
-            'board_rank': active_board.uid_to_rank.get(user._store.id, None),
+            'board_rank': board_rank,
         }
     else:
         if not policy.show_problems_to_guest:

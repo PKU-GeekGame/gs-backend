@@ -37,13 +37,13 @@ class UserStore(Table):
         'staff': '工作人员',
         'banned': '已封禁',
 
-        'huanan': '华南赛区',
-        'huazhong': '华东赛区',
-        'huadong': '华中赛区',
-        'huabei': '华北赛区',
-        'dongbei': '东北赛区',
-        'xinan': '西南赛区',
-        'xibei': '西北赛区',
+        'admin_s': '网络安全管理员（在校学生）',
+        'admin_f': '网络安全管理员（教职员工）',
+        'pentest_s': '渗透测试员（在校学生）',
+        'pentest_f': '渗透测试员（教职员工）',
+        'dfir_s': '电子数据取证分析师（在校学生）',
+        'dfir_f': '电子数据取证分析师（教职员工）',
+
     }
     TOT_BOARD_GROUPS = [k for k in GROUPS if k not in ['staff', 'banned']]
 
