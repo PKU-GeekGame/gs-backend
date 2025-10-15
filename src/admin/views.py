@@ -141,7 +141,7 @@ class StatusView(AdminIndexView):  # type: ignore
         if rep is None:
             user = reducer._game.users.user_by_login_key.get(login_key)
             if user:
-                flash(f'注册成功，密码为：{user._store.auth_token}')
+                flash(f'注册成功 {user._store.login_key}')
             else:
                 flash('注册成功，但是找不到用户。怎么回事呢？')
         else:
