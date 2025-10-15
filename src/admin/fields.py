@@ -176,6 +176,7 @@ class GroupsField(wtforms.fields.SelectMultipleField): # type: ignore
         # Set choices to available groups
         kwargs['choices'] = [('---', '（对全部用户可见）')] + [(k, f"{k} ({v})") for k, v in UserStore.GROUPS.items()]
         kwargs['coerce'] = str
+        kwargs['render_kw'] = {'size': len(kwargs['choices'])}
         super().__init__(*args, **kwargs)
     
     def process_formdata(self, valuelist: List[str]) -> None:
