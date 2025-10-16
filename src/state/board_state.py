@@ -55,14 +55,14 @@ class ScoreBoard(Board):
         self.board: List[ScoreBoardItemType] = []
         self.uid_to_rank: Dict[int, int] = {}
 
-    def _update_board(self) -> None:
-        def is_valid(x: ScoreBoardItemType) -> bool:
-            user, score = x
-            return (
-                ((user._store.group in self.group) if self.group is not None else True)
-                and score>0
-            )
+    def _user_is_valid(self, u: User) -> bool:
+        g = self.group
+        if g is None:
+            return True
+        else:
+            return u._store.group in g
 
+    def _update_board(self) -> None:
         def sorter(x: ScoreBoardItemType) -> Tuple[Any, ...]:
             user, score = x
             return (
@@ -70,8 +70,8 @@ class ScoreBoard(Board):
                 -1 if user.last_succ_submission is None else user.last_succ_submission._store.id,
             )
 
-        b = [(u, u.tot_score) for u in self._game.users.list]
-        self.board = sorted([x for x in b if is_valid(x)], key=sorter)
+        b = [(u, u.tot_score) for u in self._game.users.list if self._user_is_valid(u) and u.tot_score>0]
+        self.board = sorted(b, key=sorter)
         self.uid_to_rank = {user._store.id: idx+1 for idx, (user, _score) in enumerate(self.board)}
 
     def _render(self, is_admin: bool) -> Dict[str, Any]:
@@ -131,6 +131,79 @@ class ScoreBoard(Board):
     def on_scoreboard_batch_update_done(self) -> None:
         self._update_board()
         self.clear_render_cache()
+
+class CategoryScoreBoard(ScoreBoard):
+    def __init__(self, name: str, desc: Optional[str], game: Game, group: Optional[List[str]], show_group: bool, max_display_users: int, challenge_category: str):
+        super().__init__(name, desc, game, group, show_group, max_display_users)
+
+        self.challenge_category = challenge_category
+        self.last_succ_submission_in_cats: Dict[int, Optional[Submission]] = {}
+
+    def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
+        if submission.matched_flag is not None:
+            assert submission.challenge is not None, 'submission matched flag to no challenge'
+
+            if (
+                submission.challenge._store.category==self.challenge_category # challenge category is good
+                and self._user_is_valid(submission.user) # user group is good
+            ):
+                self.last_succ_submission_in_cats[submission.user._store.id] = submission
+
+        super().on_scoreboard_update(submission, in_batch)
+
+    def _update_board(self) -> None:
+        def sorter(x: ScoreBoardItemType) -> Tuple[Any, ...]:
+            user, score = x
+            last = self.last_succ_submission_in_cats.get(user._store.id, None)
+            return (
+                -score,
+                -1 if last is None else last._store.id,
+            )
+
+        # noinspection PyUnboundLocalVariable
+        b = [(u, s) for u in self._game.users.list if self._user_is_valid(u) and (s := u.tot_score_by_cat.get(self.challenge_category, 0)) > 0]
+        self.board = sorted(b, key=sorter)
+        self.uid_to_rank = {user._store.id: idx+1 for idx, (user, _score) in enumerate(self.board)}
+
+    def _render(self, is_admin: bool) -> Dict[str, Any]:
+        self._game.worker.log('debug', 'board.render', f'rendering category score board {self.name}')
+
+        return {
+            'challenges': [{
+                'key': ch._store.key,
+                'title': ch._store.title,
+                'category': ch._store.category,
+                'flags': [f.name for f in ch.flags],
+            } for ch in self._game.challenges.list if ch.cur_effective and ch._store.category==self.challenge_category],
+
+            'list': [{
+                'uid': u._store.id,
+                'rank': idx+1,
+                'nickname': u._store.profile.nickname_or_null or '--',
+                'group_disp': u._store.group_disp() if self.show_group else None,
+                'badges': u._store.badges() + (u.admin_badges() if is_admin else []),
+                'score': score,
+                'last_succ_submission_ts': int(last._store.timestamp_ms/1000) if (last := self.last_succ_submission_in_cats.get(u._store.id, None)) else None,
+                'challenge_status': {
+                    ch._store.key: status
+                    for ch in self._game.challenges.list if ch.cur_effective and ch._store.category==self.challenge_category
+                    if (status := ch.user_status(u)) != 'untouched'
+                },
+                'flag_status': {
+                    f'{f.challenge._store.key}_{f.idx0}': [
+                        int(sub._store.timestamp_ms/1000), # timestamp_s
+                        sub.gained_score(), # gained_score
+                    ] for f, sub in u.passed_flags.items() if f.challenge._store.category==self.challenge_category
+                },
+            } for idx, (u, score) in enumerate(self.board[:self.max_display_users])],
+
+            'topstars': [],
+
+            'time_range': [
+                self._game.trigger.board_begin_ts,
+                self._game.trigger.board_end_ts,
+            ],
+        }
 
 class FirstBloodBoard(Board):
     def __init__(self, name: str, desc: Optional[str], game: Game, group: Optional[List[str]], show_group: bool):

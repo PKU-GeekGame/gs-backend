@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Dict
 
 if TYPE_CHECKING:
     from ..logic.base import StateContainerBase
-from . import WithGameLifecycle, Submission, Trigger, GamePolicy, Announcements, Challenges, Users, Board, ScoreBoard, FirstBloodBoard
+from . import WithGameLifecycle, Submission, Trigger, GamePolicy, Announcements, Challenges, Users, Board, ScoreBoard, FirstBloodBoard, CategoryScoreBoard
 from ..store import *
 
 class Game(WithGameLifecycle):
@@ -36,6 +36,8 @@ class Game(WithGameLifecycle):
             'first_pku': FirstBloodBoard('北京大学一血榜', None, self, ['pku'], False),
             'first_thu': FirstBloodBoard('清华大学一血榜', None, self, ['thu'], False),
             'first_other': FirstBloodBoard('其他选手一血榜', '题目一血与奖项无关，仅供参考', self, ['other'], False),
+            'binary_score_pku': CategoryScoreBoard('北京大学 Binary 分类排名', '仅计入 Binary 分类题目，前三名预计可获得比特之星奖', self, ['pku'], False, 30, 'Binary'),
+            'binary_score_thu': CategoryScoreBoard('清华大学 Binary 分类排名', '仅计入 Binary 分类题目，前三名预计可获得比特之星奖', self, ['thu'], False, 30, 'Binary'),
             'score_all': ScoreBoard('总排名', '总排名与校内奖项无关，仅供参考', self, UserStore.TOT_BOARD_GROUPS, True, 200),
             'first_all': FirstBloodBoard('总一血榜', '题目一血与奖项无关，仅供参考', self, UserStore.TOT_BOARD_GROUPS, True),
             'banned': ScoreBoard('封神榜', 'R.I.P.', self, ['banned'], True, 200),

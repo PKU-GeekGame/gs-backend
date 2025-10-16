@@ -15,7 +15,7 @@ class WithGameLifecycle(ABC):
         pass
 
 from .trigger_state import Trigger
-from .board_state import Board, ScoreBoard, FirstBloodBoard
+from .board_state import Board, ScoreBoard, FirstBloodBoard, CategoryScoreBoard
 from .flag_state import Flag
 from .challenge_state import Challenge, Challenges
 from .game_policy_state import GamePolicy
