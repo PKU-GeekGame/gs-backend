@@ -22,20 +22,23 @@ async def main():
     userlist = []
     with open(sys.argv[1], encoding='utf-8') as f:
         for line in f.read().splitlines():
-            group, identity = line.split(',')
+            if not line.strip():
+                continue
+            identity, password, group = line.split('\t')
             group = group_mapping[group.strip()]
             identity = identity.strip()
-            userlist.append((group, identity))
+            password = password.strip()
+            userlist.append((group, identity, password))
 
-    for group, identity in userlist:
-        login_key = f'user:{identity}'
+    for group, identity, password in userlist:
+        login_key = f'email:{identity}'
         if login_key in worker._game.users.user_by_login_key:
             user = worker._game.users.user_by_login_key[login_key]
         else:
             rep = await worker.perform_action(glitter.RegUserReq(
                 client='script',
                 login_key=login_key,
-                login_properties={'type': 'user', 'identity': identity},
+                login_properties={'type': 'user', 'identity': identity, 'password': password},
                 group=group,
             ))
 
@@ -44,7 +47,7 @@ async def main():
                 assert user is not None, 'user should be created'
             else:
                 raise RuntimeError(f'注册账户失败：{rep.error_msg}')
-        print(f'{UserStore.GROUPS[group]},{identity},{user._store.auth_token}')
+        print(f'{UserStore.GROUPS[group]},{identity},{password},{user._store.auth_token}')
 
 if __name__=='__main__':
     utils.fix_zmq_asyncio_windows()
