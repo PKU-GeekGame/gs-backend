@@ -78,7 +78,7 @@ class ChallengeStore(Table):
     def validate_flags(self, _key: str, flags: Any) -> Any:
         assert isinstance(flags, list), 'flags should be list'
         assert len(flags)>0, 'flags should not be empty'
-        assert len(flags)<=3, '最多只支持3个flag'
+        #assert len(flags)<=3, '最多只支持3个flag'
 
         for flag in flags:
             assert isinstance(flag, dict), 'flag should be dict'
