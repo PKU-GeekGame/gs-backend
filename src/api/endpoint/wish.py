@@ -204,7 +204,7 @@ async def get_game(req: Request, worker: Worker, user: Optional[User]) -> Dict[s
             'tot_cur_score': ch.tot_cur_score,
             'passed_users_count': len(ch.passed_users),
             'touched_users_count': len(ch.touched_users),
-        } for ch in worker.game.challenges.list if ch.cur_effective or is_admin],
+        } for ch in worker.game.challenges.list if (ch.cur_effective and user and ch.is_visible_to_user(user)) or is_admin],
 
         'user_info': user_info,
         'cur_tick': worker.game.cur_tick,
