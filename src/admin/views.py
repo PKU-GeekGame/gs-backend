@@ -302,6 +302,7 @@ class ChallengeView(ViewBase):
             'chall_metadata': ch.chall_metadata,
             'actions': ch.actions,
             'flags': ch.flags,
+            'groups': ch.groups,
         }
 
     @staticmethod
@@ -317,6 +318,7 @@ class ChallengeView(ViewBase):
         ch.chall_metadata = data['chall_metadata']
         ch.actions = data['actions']
         ch.flags = data['flags']
+        ch.groups = data['groups']
 
     @expose('/import_json', methods=['GET', 'POST'])
     def import_json(self) -> ResponseReturnValue:
