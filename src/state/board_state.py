@@ -124,9 +124,8 @@ class ScoreBoard(Board):
 
     def on_scoreboard_update(self, submission: Submission, in_batch: bool) -> None:
         if not in_batch and submission.matched_flag is not None:
-            if self.group is None or submission.user._store.group in self.group:
-                self._update_board()
-                self.clear_render_cache()
+            self._update_board()
+            self.clear_render_cache()
 
     def on_scoreboard_batch_update_done(self) -> None:
         self._update_board()
