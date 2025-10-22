@@ -37,12 +37,9 @@ class UserStore(Table):
         'staff': '工作人员',
         'banned': '已封禁',
 
-        'admin_s': '网络安全管理员（在校学生）',
-        'admin_f': '网络安全管理员（教职员工）',
-        'pentest_s': '渗透测试员（在校学生）',
-        'pentest_f': '渗透测试员（教职员工）',
-        'dfir_s': '电子数据取证分析师（在校学生）',
-        'dfir_f': '电子数据取证分析师（教职员工）',
+        'track_admin': '网络安全管理员',
+        'track_pentest': '渗透测试员',
+        'track_dfir': '电子数据取证分析师',
 
     }
     TOT_BOARD_GROUPS = [k for k in GROUPS if k not in ['staff', 'banned']]

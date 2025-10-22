@@ -108,10 +108,7 @@ class ScoreHistory:
         self.last_score = score
 
 class User(WithGameLifecycle):
-    WRITEUP_REQUIRED_RANKS = {
-        'admin_s': 50, 'pentest_s': 50, 'dfir_s': 50,
-        'admin_f': 25, 'pentest_f': 25, 'dfir_f': 25,
-    }
+    WRITEUP_REQUIRED_RANKS = {}
 
     def __init__(self, game: Game, store: UserStore):
         self._game: Game = game

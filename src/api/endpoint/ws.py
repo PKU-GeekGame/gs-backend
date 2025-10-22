@@ -12,7 +12,7 @@ from ... import secret
 
 bp = Blueprint('ws', url_prefix='/ws')
 
-MAX_DEVICES_PER_USER = 30
+MAX_DEVICES_PER_USER = 16
 
 online_uids: Dict[int, int] = Counter()
 
