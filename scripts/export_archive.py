@@ -2,7 +2,6 @@ import asyncio
 import datetime
 from pathlib import Path
 from typing import List, Dict, Any
-import json
 import shutil
 import csv
 import sys
@@ -14,10 +13,10 @@ from src.state import Game, Challenge, ScoreBoard, FirstBloodBoard
 from src import utils
 from src import secret
 
-EXPORT_PATH = Path('../exported-archive')
+EXPORT_PATH = Path('../data/exported-archive')
 if EXPORT_PATH.is_dir():
     shutil.rmtree(EXPORT_PATH)
-EXPORT_PATH.mkdir()
+EXPORT_PATH.mkdir(parents=True)
 
 UID_FOR_PREVIEW = 1 # used for dyn_attachment and template rendering
 

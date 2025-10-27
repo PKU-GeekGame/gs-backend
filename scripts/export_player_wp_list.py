@@ -15,10 +15,10 @@ from src import secret
 
 WRITEUP_UIDS = [1]
 
-EXPORT_PATH = Path('../players-writeup')
+EXPORT_PATH = Path('../data/exported-players-writeup')
 if EXPORT_PATH.is_dir():
     shutil.rmtree(EXPORT_PATH)
-EXPORT_PATH.mkdir()
+EXPORT_PATH.mkdir(parents=True)
 
 def md_escape(s: str) -> str:
     for c in r'\`*_{}[]<>()#+-.!|':

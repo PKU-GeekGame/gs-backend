@@ -108,7 +108,6 @@ if __name__=='__main__':
 
             u = sub.user
 
-
             row = [ch._store.category, ch._store.title] + info_getter(u)
             print(*row, sep='\t')
 
